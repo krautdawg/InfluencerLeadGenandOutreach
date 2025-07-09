@@ -118,17 +118,18 @@ def save_hashtag_username_pairs(profiles, duplicates):
 
 
 def call_apify_actor_sync(actor_id, input_data, token):
-    """Call Apify actor using official client - memory optimized streaming version"""
+    """Call Apify actor using official client - ultra-light memory version"""
     client = ApifyClient(token)
     
     try:
         # Run the Actor and wait for it to finish
         run = client.actor(actor_id).call(run_input=input_data)
         
-        # Extreme memory optimization to prevent SIGKILL
-        max_items = 50   # Drastically reduced from 100 to 50
-        batch_size = 10  # Reduced batch size from 20 to 10
-        processing_delay = 0.8  # Increased delay to reduce memory pressure
+        # Ultra-conservative memory limits to prevent SIGKILL
+        max_items = 20   # Drastically reduced from 50 to 20
+        batch_size = 5   # Reduced batch size from 10 to 5
+        processing_delay = 1.5  # Increased delay to reduce memory pressure
+        max_usernames = 15  # Hard limit on usernames to extract
         
         dataset = client.dataset(run["defaultDatasetId"])
         
@@ -138,52 +139,78 @@ def call_apify_actor_sync(actor_id, input_data, token):
         
         # Use smaller chunks and more frequent garbage collection
         import gc
+        import time
         
-        logger.info(f"Starting streaming extraction with max_items={max_items}")
+        logger.info(f"Starting ultra-light extraction with max_items={max_items}, max_usernames={max_usernames}")
         
         for item in dataset.iterate_items():
+            # Stop if we've reached username limit for memory safety
+            if len(all_usernames) >= max_usernames:
+                logger.info(f"Reached username limit of {max_usernames} for memory safety")
+                break
+                
             if total_processed >= max_items:
                 logger.info(f"Reached maximum item limit of {max_items} for memory safety")
                 break
             
             # Extract usernames immediately without storing the item
-            if isinstance(item, dict):
-                # Extract from latestPosts
-                if 'latestPosts' in item and isinstance(item['latestPosts'], list):
-                    for post in item['latestPosts']:
+            try:
+                if isinstance(item, dict):
+                    # Process only essential fields to minimize memory
+                    posts_to_check = []
+                    
+                    # Extract from latestPosts (limit to first 3 posts)
+                    if 'latestPosts' in item and isinstance(item['latestPosts'], list):
+                        posts_to_check.extend(item['latestPosts'][:3])
+                    
+                    # Extract from topPosts (limit to first 3 posts)  
+                    if 'topPosts' in item and isinstance(item['topPosts'], list):
+                        posts_to_check.extend(item['topPosts'][:3])
+                    
+                    # Process posts with memory constraints
+                    for post in posts_to_check:
+                        if len(all_usernames) >= max_usernames:
+                            break
+                            
                         if isinstance(post, dict) and 'ownerUsername' in post:
-                            username = post['ownerUsername']
-                            if username and isinstance(username, str):
+                            username = post.get('ownerUsername')
+                            if username and isinstance(username, str) and len(username) > 0:
                                 all_usernames.add(username)
-                
-                # Extract from topPosts
-                if 'topPosts' in item and isinstance(item['topPosts'], list):
-                    for post in item['topPosts']:
-                        if isinstance(post, dict) and 'ownerUsername' in post:
-                            username = post['ownerUsername']
-                            if username and isinstance(username, str):
-                                all_usernames.add(username)
+                    
+                    # Clear references immediately
+                    posts_to_check = None
+                    item = None
+                    
+            except Exception as e:
+                logger.warning(f"Error processing item {total_processed}: {e}")
+                continue
             
             total_processed += 1
             
-            # Aggressive memory cleanup
+            # Very aggressive memory cleanup
             if total_processed % batch_size == 0:
                 gc.collect()  # Force garbage collection
-                import time
                 time.sleep(processing_delay)
                 logger.debug(f"Processed {total_processed} items, found {len(all_usernames)} unique usernames")
         
-        # Convert set to list of profile objects
-        processed_items = [{'ownerUsername': username} for username in all_usernames]
+        # Convert set to list of profile objects with minimal memory footprint
+        processed_items = []
+        for username in list(all_usernames):
+            processed_items.append({'ownerUsername': username})
+            
+        # Clear the set immediately
+        all_usernames = None
         
         # Final cleanup
         gc.collect()
-        logger.info(f"Streaming extraction completed: {len(all_usernames)} unique usernames from {total_processed} items")
+        logger.info(f"Ultra-light extraction completed: {len(processed_items)} unique usernames from {total_processed} items")
         
         return {"items": processed_items}
         
     except Exception as e:
         logger.error(f"Apify actor call failed: {e}")
+        import gc
+        gc.collect()  # Clean up on error
         return {"items": []}
 
 
@@ -448,11 +475,11 @@ def process_keyword():
     if not keyword:
         return {"error": "Keyword is required"}, 400
     
-    # Validate search limit - further reduced maximum to prevent memory issues
+    # Validate search limit - ultra-conservative to prevent memory issues
     try:
         search_limit = int(search_limit)
-        if search_limit < 1 or search_limit > 50:  # Reduced from 100 to 50 for memory safety
-            return {"error": "Search limit must be between 1 and 50"}, 400
+        if search_limit < 1 or search_limit > 15:  # Reduced from 50 to 15 for maximum memory safety
+            return {"error": "Search limit must be between 1 and 15"}, 400
     except (ValueError, TypeError):
         return {"error": "Invalid search limit value"}, 400
 
@@ -596,16 +623,16 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit):
         logger.error(f"Failed to save hashtag-username pairs: {e}")
         # Continue processing even if saving pairs fails
 
-    # Step 3: Profile enrichment with aggressive memory optimization
-    semaphore = asyncio.Semaphore(20)  # Further reduced to 2 concurrent calls
+    # Step 3: Profile enrichment with ultra-conservative memory optimization
+    semaphore = asyncio.Semaphore(1)  # Reduced to 1 concurrent call to minimize memory
     perplexity_semaphore = asyncio.Semaphore(1)  # Reduced to 1 concurrent Perplexity call
 
-    # Extreme memory safety measures to prevent SIGKILL
+    # Ultra-conservative memory safety measures to prevent SIGKILL
     usernames = [p['username'] for p in unique_profiles]
-    batch_size = 2  # Further reduced batch size from 3 to 2 for memory safety
+    batch_size = 1  # Process one username at a time for maximum memory safety
     
-    # Further reduced limit to prevent memory overflow
-    max_usernames = 25  # Reduced limit from 50 to 25 for memory safety
+    # Ultra-reduced limit to prevent memory overflow
+    max_usernames = 10  # Reduced limit from 25 to 10 for maximum memory safety
     if len(usernames) > max_usernames:
         logger.info(f"Limiting usernames from {len(usernames)} to {max_usernames} for memory safety")
         usernames = usernames[:max_usernames]

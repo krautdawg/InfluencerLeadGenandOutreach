@@ -83,8 +83,8 @@ async function processKeyword() {
         return;
     }
     
-    if (searchLimit < 1 || searchLimit > 50) {
-        showToast('Search limit must be between 1 and 50 (memory safety)', 'error');
+    if (searchLimit < 1 || searchLimit > 15) {
+        showToast('Search limit must be between 1 and 15 (memory safety)', 'error');
         return;
     }
     

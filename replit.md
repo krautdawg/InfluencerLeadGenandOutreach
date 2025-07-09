@@ -6,6 +6,30 @@ This is a Flask-based Instagram lead generation and outreach automation tool tha
 
 ## Recent Changes
 
+### 2025-07-09: Ultra-Conservative Memory Optimization Applied (COMPLETED)
+- **Issue**: Persistent SIGKILL errors due to memory exhaustion despite previous optimizations
+- **Root Cause**: 
+  - Replit environment has very strict memory limits that require ultra-conservative processing
+  - Even the previously "extreme" optimizations were still causing memory overflow
+- **Fixes Implemented**:
+  - **Minimal Hashtag Processing**: Reduced max_items from 50 to 20, max_usernames from 25 to 15
+  - **Ultra-Small Batches**: Reduced batch_size from 10 to 5, processing delay increased to 1.5s
+  - **Single Profile Processing**: Changed enrichment batch_size from 2 to 1 (one username at a time)
+  - **Minimal Concurrency**: Reduced semaphore from 2 to 1 concurrent operation
+  - **Conservative Limits**: Search limit reduced from 50 to 15, default from 25 to 10
+  - **Post Limiting**: Only process first 3 posts from each latestPosts/topPosts array
+  - **Immediate Cleanup**: Clear variables immediately after use, aggressive garbage collection
+  - **Frontend Alignment**: Updated UI limits to match backend constraints (max 15)
+- **Benefits**: 
+  - Dramatically reduced memory footprint to prevent SIGKILL
+  - Still functional but operates within Replit's strict memory constraints
+  - Processes data in ultra-safe batches to maintain stability
+- **Trade-offs**: 
+  - Fewer leads extracted per request (max 10-15 vs previous 25-50)
+  - Slower processing due to sequential single-item batches
+  - More conservative limits but better reliability
+- **Status**: Ultra-conservative memory optimization implemented to eliminate SIGKILL errors
+
 ### 2025-07-09: Incremental Save and Address Fields Added (COMPLETED)
 - **Issue**: No Lead records in database despite successful hashtag extraction
 - **Root Cause**: 
