@@ -6,29 +6,32 @@ This is a Flask-based Instagram lead generation and outreach automation tool tha
 
 ## Recent Changes
 
-### 2025-07-09: Ultra-Conservative Memory Optimization Applied (COMPLETED)
-- **Issue**: Persistent SIGKILL errors due to memory exhaustion despite previous optimizations
+### 2025-07-09: Balanced Memory Optimization with Maximum Hashtag Extraction (COMPLETED)
+- **Issue**: User requested maximum hashtag_username_pair extraction while preventing SIGKILL errors
 - **Root Cause**: 
-  - Replit environment has very strict memory limits that require ultra-conservative processing
-  - Even the previously "extreme" optimizations were still causing memory overflow
+  - Previous ultra-conservative limits were preventing effective hashtag extraction
+  - Need to balance between maximizing results and preventing memory issues
+- **Solution**: Different limits for different stages of processing
 - **Fixes Implemented**:
-  - **Minimal Hashtag Processing**: Reduced max_items from 50 to 20, max_usernames from 25 to 15
-  - **Ultra-Small Batches**: Reduced batch_size from 10 to 5, processing delay increased to 1.5s
-  - **Single Profile Processing**: Changed enrichment batch_size from 2 to 1 (one username at a time)
-  - **Minimal Concurrency**: Reduced semaphore from 2 to 1 concurrent operation
-  - **Conservative Limits**: Search limit reduced from 50 to 15, default from 25 to 10
-  - **Post Limiting**: Only process first 3 posts from each latestPosts/topPosts array
-  - **Immediate Cleanup**: Clear variables immediately after use, aggressive garbage collection
-  - **Frontend Alignment**: Updated UI limits to match backend constraints (max 15)
+  - **Hashtag Extraction (DrF9mzPPEuVizVF4l actor)**:
+    - Increased max_items from 20 to 200 for comprehensive hashtag extraction
+    - Removed username limit (was 15) to get all available usernames
+    - Increased batch_size to 20 with 0.5s delay for efficient processing
+    - Process ALL posts from latestPosts/topPosts arrays
+    - Search limit increased to 100 to allow more hashtag results
+  - **Profile Enrichment (8WEn9FvZnhE7lM3oA actor)**:
+    - Kept conservative limits: max_items 20, max_usernames 15
+    - Single profile processing (batch_size 1) to prevent memory issues
+    - Minimal concurrency (1 semaphore) for memory safety
+    - Process only first 3 posts per array for memory efficiency
+  - **Frontend Updates**:
+    - Search limit increased to 100 (was 15)
+    - Default value set to 25 for balance
 - **Benefits**: 
-  - Dramatically reduced memory footprint to prevent SIGKILL
-  - Still functional but operates within Replit's strict memory constraints
-  - Processes data in ultra-safe batches to maintain stability
-- **Trade-offs**: 
-  - Fewer leads extracted per request (max 10-15 vs previous 25-50)
-  - Slower processing due to sequential single-item batches
-  - More conservative limits but better reliability
-- **Status**: Ultra-conservative memory optimization implemented to eliminate SIGKILL errors
+  - Maximum hashtag extraction while preventing memory issues
+  - More comprehensive lead generation from hashtag searches
+  - Memory safety maintained during resource-intensive profile enrichment
+- **Status**: Balanced optimization allows maximum hashtag extraction with safe profile enrichment
 
 ### 2025-07-09: Incremental Save and Address Fields Added (COMPLETED)
 - **Issue**: No Lead records in database despite successful hashtag extraction

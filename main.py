@@ -118,18 +118,26 @@ def save_hashtag_username_pairs(profiles, duplicates):
 
 
 def call_apify_actor_sync(actor_id, input_data, token):
-    """Call Apify actor using official client - ultra-light memory version"""
+    """Call Apify actor using official client - optimized for hashtag extraction"""
     client = ApifyClient(token)
     
     try:
         # Run the Actor and wait for it to finish
         run = client.actor(actor_id).call(run_input=input_data)
         
-        # Ultra-conservative memory limits to prevent SIGKILL
-        max_items = 20   # Drastically reduced from 50 to 20
-        batch_size = 5   # Reduced batch size from 10 to 5
-        processing_delay = 1.5  # Increased delay to reduce memory pressure
-        max_usernames = 15  # Hard limit on usernames to extract
+        # Different limits based on actor type
+        if actor_id == "DrF9mzPPEuVizVF4l":  # Hashtag crawling actor
+            # More generous limits for hashtag extraction to maximize results
+            max_items = 200   # Allow more items for hashtag extraction
+            batch_size = 20   # Larger batches for efficiency
+            processing_delay = 0.5  # Shorter delay
+            max_usernames = None  # No username limit for hashtag extraction
+        else:
+            # Keep conservative limits for profile enrichment
+            max_items = 20
+            batch_size = 5
+            processing_delay = 1.5
+            max_usernames = 15
         
         dataset = client.dataset(run["defaultDatasetId"])
         
@@ -141,35 +149,45 @@ def call_apify_actor_sync(actor_id, input_data, token):
         import gc
         import time
         
-        logger.info(f"Starting ultra-light extraction with max_items={max_items}, max_usernames={max_usernames}")
+        logger.info(f"Starting extraction for actor {actor_id} with max_items={max_items}")
         
         for item in dataset.iterate_items():
-            # Stop if we've reached username limit for memory safety
-            if len(all_usernames) >= max_usernames:
-                logger.info(f"Reached username limit of {max_usernames} for memory safety")
+            # Check limits
+            if max_usernames and len(all_usernames) >= max_usernames:
+                logger.info(f"Reached username limit of {max_usernames}")
                 break
                 
             if total_processed >= max_items:
-                logger.info(f"Reached maximum item limit of {max_items} for memory safety")
+                logger.info(f"Reached maximum item limit of {max_items}")
                 break
             
             # Extract usernames immediately without storing the item
             try:
                 if isinstance(item, dict):
-                    # Process only essential fields to minimize memory
+                    # Process all posts for hashtag extraction
                     posts_to_check = []
                     
-                    # Extract from latestPosts (limit to first 3 posts)
+                    # Extract from latestPosts
                     if 'latestPosts' in item and isinstance(item['latestPosts'], list):
-                        posts_to_check.extend(item['latestPosts'][:3])
+                        if actor_id == "DrF9mzPPEuVizVF4l":
+                            # Process all posts for hashtag extraction
+                            posts_to_check.extend(item['latestPosts'])
+                        else:
+                            # Limit posts for profile enrichment
+                            posts_to_check.extend(item['latestPosts'][:3])
                     
-                    # Extract from topPosts (limit to first 3 posts)  
+                    # Extract from topPosts
                     if 'topPosts' in item and isinstance(item['topPosts'], list):
-                        posts_to_check.extend(item['topPosts'][:3])
+                        if actor_id == "DrF9mzPPEuVizVF4l":
+                            # Process all posts for hashtag extraction
+                            posts_to_check.extend(item['topPosts'])
+                        else:
+                            # Limit posts for profile enrichment
+                            posts_to_check.extend(item['topPosts'][:3])
                     
-                    # Process posts with memory constraints
+                    # Process posts
                     for post in posts_to_check:
-                        if len(all_usernames) >= max_usernames:
+                        if max_usernames and len(all_usernames) >= max_usernames:
                             break
                             
                         if isinstance(post, dict) and 'ownerUsername' in post:
@@ -179,15 +197,17 @@ def call_apify_actor_sync(actor_id, input_data, token):
                     
                     # Clear references immediately
                     posts_to_check = None
-                    item = None
                     
             except Exception as e:
                 logger.warning(f"Error processing item {total_processed}: {e}")
                 continue
+            finally:
+                # Always clear the item reference
+                item = None
             
             total_processed += 1
             
-            # Very aggressive memory cleanup
+            # Memory cleanup at intervals
             if total_processed % batch_size == 0:
                 gc.collect()  # Force garbage collection
                 time.sleep(processing_delay)
@@ -203,7 +223,7 @@ def call_apify_actor_sync(actor_id, input_data, token):
         
         # Final cleanup
         gc.collect()
-        logger.info(f"Ultra-light extraction completed: {len(processed_items)} unique usernames from {total_processed} items")
+        logger.info(f"Extraction completed: {len(processed_items)} unique usernames from {total_processed} items")
         
         return {"items": processed_items}
         
@@ -475,11 +495,11 @@ def process_keyword():
     if not keyword:
         return {"error": "Keyword is required"}, 400
     
-    # Validate search limit - ultra-conservative to prevent memory issues
+    # Validate search limit - allow higher limits for hashtag extraction
     try:
         search_limit = int(search_limit)
-        if search_limit < 1 or search_limit > 15:  # Reduced from 50 to 15 for maximum memory safety
-            return {"error": "Search limit must be between 1 and 15"}, 400
+        if search_limit < 1 or search_limit > 100:  # Allow up to 100 for hashtag extraction
+            return {"error": "Search limit must be between 1 and 100"}, 400
     except (ValueError, TypeError):
         return {"error": "Invalid search limit value"}, 400
 
