@@ -130,7 +130,7 @@ def call_apify_actor_sync(actor_id, input_data, token):
         
         # Use a set to track yielded usernames to avoid duplicates within the stream
         yielded_usernames = set()
-        max_items = 50  # Keep this limit for safety
+        max_items = 1000  # Increased to allow processing up to 1000 items
         processed_count = 0
 
         logger.info(f"Starting to stream usernames from Apify dataset...")
@@ -141,11 +141,23 @@ def call_apify_actor_sync(actor_id, input_data, token):
                 break
 
             if isinstance(item, dict):
-                # The streaming process should directly yield the username
-                username = item.get('ownerUsername')
-                if username and isinstance(username, str) and username not in yielded_usernames:
-                    yielded_usernames.add(username)
-                    yield username # Yield the username instead of storing it
+                # Extract usernames from latestPosts
+                if 'latestPosts' in item and isinstance(item['latestPosts'], list):
+                    for post in item['latestPosts']:
+                        if isinstance(post, dict) and 'ownerUsername' in post:
+                            username = post['ownerUsername']
+                            if username and isinstance(username, str) and username not in yielded_usernames:
+                                yielded_usernames.add(username)
+                                yield username
+                
+                # Extract usernames from topPosts
+                if 'topPosts' in item and isinstance(item['topPosts'], list):
+                    for post in item['topPosts']:
+                        if isinstance(post, dict) and 'ownerUsername' in post:
+                            username = post['ownerUsername']
+                            if username and isinstance(username, str) and username not in yielded_usernames:
+                                yielded_usernames.add(username)
+                                yield username
 
             processed_count += 1
         
