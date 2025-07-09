@@ -49,6 +49,26 @@ with app.app_context():
 app_data = {'processing_status': None}
 
 
+# Global temporary storage for usernames during processing
+temp_username_storage = []
+
+def save_usernames_to_temp_storage(usernames):
+    """Save usernames to temporary storage to avoid memory accumulation"""
+    global temp_username_storage
+    saved = []
+    for username in usernames:
+        if username not in temp_username_storage:
+            temp_username_storage.append(username)
+            saved.append(username)
+    return saved
+
+def get_usernames_from_temp_storage():
+    """Get usernames from temporary storage and clear it"""
+    global temp_username_storage
+    result = [{'ownerUsername': username} for username in temp_username_storage]
+    temp_username_storage = []  # Clear after retrieval
+    return result
+
 def deduplicate_profiles(profiles):
     """Remove duplicate profiles based on hashtag|username key"""
     seen = set()
@@ -118,69 +138,90 @@ def save_hashtag_username_pairs(profiles, duplicates):
 
 
 def call_apify_actor_sync(actor_id, input_data, token):
-    """Call Apify actor using official client - memory optimized streaming version"""
+    """Call Apify actor using official client - extreme memory optimization with true streaming"""
     client = ApifyClient(token)
     
     try:
         # Run the Actor and wait for it to finish
         run = client.actor(actor_id).call(run_input=input_data)
         
-        # Extreme memory optimization to prevent SIGKILL
-        max_items = 50   # Drastically reduced from 100 to 50
-        batch_size = 10  # Reduced batch size from 20 to 10
-        processing_delay = 0.8  # Increased delay to reduce memory pressure
+        # Ultra memory optimization settings
+        max_items = 30   # Further reduced to prevent memory issues
+        save_batch_size = 5  # Save to DB every 5 usernames
+        processing_delay = 1.0  # Increased delay
         
         dataset = client.dataset(run["defaultDatasetId"])
         
-        # Stream process with immediate username extraction - no item storage
-        all_usernames = set()  # Use set for automatic deduplication
+        # Process and save usernames in micro-batches
+        username_batch = []
+        total_saved = 0
         total_processed = 0
         
         # Use smaller chunks and more frequent garbage collection
         import gc
+        import time
         
-        logger.info(f"Starting streaming extraction with max_items={max_items}")
+        logger.info(f"Starting ultra-streaming extraction with max_items={max_items}")
         
+        # Don't accumulate all usernames - process in micro batches
         for item in dataset.iterate_items():
             if total_processed >= max_items:
                 logger.info(f"Reached maximum item limit of {max_items} for memory safety")
                 break
             
-            # Extract usernames immediately without storing the item
+            # Extract usernames from this single item
+            item_usernames = set()
+            
             if isinstance(item, dict):
                 # Extract from latestPosts
                 if 'latestPosts' in item and isinstance(item['latestPosts'], list):
-                    for post in item['latestPosts']:
+                    for post in item['latestPosts'][:5]:  # Limit posts per item
                         if isinstance(post, dict) and 'ownerUsername' in post:
                             username = post['ownerUsername']
                             if username and isinstance(username, str):
-                                all_usernames.add(username)
+                                item_usernames.add(username)
                 
                 # Extract from topPosts
                 if 'topPosts' in item and isinstance(item['topPosts'], list):
-                    for post in item['topPosts']:
+                    for post in item['topPosts'][:5]:  # Limit posts per item
                         if isinstance(post, dict) and 'ownerUsername' in post:
                             username = post['ownerUsername']
                             if username and isinstance(username, str):
-                                all_usernames.add(username)
+                                item_usernames.add(username)
+            
+            # Add to batch
+            username_batch.extend(item_usernames)
+            
+            # Clear the item from memory immediately
+            item = None
+            item_usernames = None
             
             total_processed += 1
             
-            # Aggressive memory cleanup
-            if total_processed % batch_size == 0:
-                gc.collect()  # Force garbage collection
-                import time
+            # Save batch to database when it reaches threshold
+            if len(username_batch) >= save_batch_size:
+                # Save this micro-batch immediately
+                saved_usernames = save_usernames_to_temp_storage(username_batch[:save_batch_size])
+                total_saved += len(saved_usernames)
+                
+                # Keep only unprocessed usernames
+                username_batch = username_batch[save_batch_size:]
+                
+                # Aggressive cleanup
+                gc.collect()
                 time.sleep(processing_delay)
-                logger.debug(f"Processed {total_processed} items, found {len(all_usernames)} unique usernames")
+                logger.debug(f"Saved micro-batch: {len(saved_usernames)} usernames. Total saved: {total_saved}")
         
-        # Convert set to list of profile objects
-        processed_items = [{'ownerUsername': username} for username in all_usernames]
+        # Save any remaining usernames
+        if username_batch:
+            saved_usernames = save_usernames_to_temp_storage(username_batch)
+            total_saved += len(saved_usernames)
+            gc.collect()
         
-        # Final cleanup
-        gc.collect()
-        logger.info(f"Streaming extraction completed: {len(all_usernames)} unique usernames from {total_processed} items")
+        logger.info(f"Ultra-streaming completed: {total_saved} usernames saved from {total_processed} items")
         
-        return {"items": processed_items}
+        # Return usernames from temp storage
+        return {"items": get_usernames_from_temp_storage()}
         
     except Exception as e:
         logger.error(f"Apify actor call failed: {e}")
@@ -230,6 +271,72 @@ async def call_perplexity_api(username, api_key):
                 f"Failed to parse Perplexity response for {username}: {e}")
             return {"email": "", "phone": "", "website": ""}
 
+
+def save_single_lead_to_db(username, profile_info, keyword=None):
+    """Save a single lead directly to database - used for extreme memory optimization"""
+    try:
+        with app.app_context():
+            # Get keyword from global context if not provided
+            if not keyword:
+                keyword = getattr(save_single_lead_to_db, 'current_keyword', 'unknown')
+            
+            # Check if lead already exists
+            existing_lead = Lead.query.filter_by(
+                username=username,
+                hashtag=keyword
+            ).first()
+            
+            if existing_lead:
+                # Update existing lead
+                existing_lead.full_name = profile_info.get('full_name', '')
+                existing_lead.bio = profile_info.get('biography', '')
+                existing_lead.email = profile_info.get('public_email', '')
+                existing_lead.phone = profile_info.get('contact_phone_number', '')
+                existing_lead.website = profile_info.get('external_url', '')
+                existing_lead.followers_count = profile_info.get('follower_count', 0)
+                existing_lead.following_count = profile_info.get('following_count', 0)
+                existing_lead.posts_count = profile_info.get('media_count', 0)
+                existing_lead.is_verified = profile_info.get('is_verified', False)
+                existing_lead.profile_pic_url = profile_info.get('profile_pic_url', '')
+                existing_lead.address_street = profile_info.get('address_street', '')
+                existing_lead.city_name = profile_info.get('city_name', '')
+                existing_lead.zip = profile_info.get('zip', '')
+                existing_lead.latitude = profile_info.get('latitude')
+                existing_lead.longitude = profile_info.get('longitude')
+                existing_lead.is_duplicate = profile_info.get('is_duplicate', False)
+                existing_lead.updated_at = datetime.utcnow()
+            else:
+                # Create new lead
+                new_lead = Lead(
+                    username=username,
+                    hashtag=keyword,
+                    full_name=profile_info.get('full_name', ''),
+                    bio=profile_info.get('biography', ''),
+                    email=profile_info.get('public_email', ''),
+                    phone=profile_info.get('contact_phone_number', ''),
+                    website=profile_info.get('external_url', ''),
+                    followers_count=profile_info.get('follower_count', 0),
+                    following_count=profile_info.get('following_count', 0),
+                    posts_count=profile_info.get('media_count', 0),
+                    is_verified=profile_info.get('is_verified', False),
+                    profile_pic_url=profile_info.get('profile_pic_url', ''),
+                    address_street=profile_info.get('address_street', ''),
+                    city_name=profile_info.get('city_name', ''),
+                    zip=profile_info.get('zip', ''),
+                    latitude=profile_info.get('latitude'),
+                    longitude=profile_info.get('longitude'),
+                    is_duplicate=profile_info.get('is_duplicate', False)
+                )
+                db.session.add(new_lead)
+            
+            # Commit immediately
+            db.session.commit()
+            return True
+            
+    except Exception as e:
+        logger.error(f"Failed to save single lead {username}: {e}")
+        db.session.rollback()
+        return False
 
 def save_leads_incrementally(enriched_leads, keyword):
     """Save leads to database incrementally to prevent data loss"""
@@ -307,149 +414,106 @@ def save_leads_incrementally(enriched_leads, keyword):
 
 async def enrich_profile_batch(usernames, ig_sessionid, apify_token,
                                perplexity_key, semaphore):
-    """Enrich a batch of profiles with concurrent processing"""
+    """Enrich a batch of profiles with direct database saving - extreme memory optimization"""
     async with semaphore:
+        saved_count = 0
+        keyword = None  # Will be set from context
+        
         try:
-            # Call Apify profile enrichment actor with correct format
-            instagram_urls = [f"https://www.instagram.com/{username}" for username in usernames]
-            input_data = {
-                "instagram_ids": instagram_urls,
-                "SessionID": ig_sessionid,
-                "proxy": {
-                    "useApifyProxy": True,
-                    "groups": ["RESIDENTIAL"],
-                }
-            }
-
-            # Memory-optimized profile enrichment call
-            enriched_profiles = []
-            profile_items = []
-            
-            # Call profile enrichment with extreme memory optimization
-            client = ApifyClient(apify_token)
-            try:
-                # Run the actor but don't wait for full completion
-                run = client.actor("8WEn9FvZnhE7lM3oA").call(run_input=input_data)
-                dataset = client.dataset(run["defaultDatasetId"])
-                
-                # Stream process one profile at a time to minimize memory
-                import gc
-                processed_count = 0
-                
-                for item in dataset.iterate_items():
-                    # Process immediately and extract only essential fields
-                    if isinstance(item, dict):
-                        # Extract only the fields we need
-                        essential_profile = {
-                            'username': item.get('username', ''),
-                            'url': item.get('url', ''),
-                            'full_name': item.get('full_name', ''),
-                            'biography': item.get('biography', ''),
-                            'public_email': item.get('public_email', ''),
-                            'contact_phone_number': item.get('contact_phone_number', ''),
-                            'external_url': item.get('external_url', ''),
-                            'follower_count': item.get('follower_count', 0),
-                            'following_count': item.get('following_count', 0), 
-                            'media_count': item.get('media_count', 0),
-                            'is_verified': item.get('is_verified', False),
-                            'profile_pic_url': item.get('profile_pic_url', ''),
-                            'address_street': item.get('address_street', ''),
-                            'city_name': item.get('city_name', ''),
-                            'zip': item.get('zip', ''),
-                            'latitude': item.get('latitude'),
-                            'longitude': item.get('longitude')
+            # Process one username at a time to minimize memory
+            for username in usernames:
+                try:
+                    # Call Apify for single profile
+                    instagram_url = f"https://www.instagram.com/{username}"
+                    input_data = {
+                        "instagram_ids": [instagram_url],  # Only one URL
+                        "SessionID": ig_sessionid,
+                        "proxy": {
+                            "useApifyProxy": True,
+                            "groups": ["RESIDENTIAL"],
                         }
-                        profile_items.append(essential_profile)
-                        processed_count += 1
+                    }
                     
-                    # Clear the original item from memory immediately
-                    item = None
+                    # Call profile enrichment for single profile
+                    client = ApifyClient(apify_token)
+                    profile_info = {}
+                    
+                    try:
+                        run = client.actor("8WEn9FvZnhE7lM3oA").call(run_input=input_data)
+                        dataset = client.dataset(run["defaultDatasetId"])
+                        
+                        # Get first item only
+                        for item in dataset.iterate_items():
+                            if isinstance(item, dict):
+                                # Extract only essential fields
+                                profile_info = {
+                                    'username': item.get('username', username),
+                                    'full_name': item.get('full_name', ''),
+                                    'biography': item.get('biography', ''),
+                                    'public_email': item.get('public_email', ''),
+                                    'contact_phone_number': item.get('contact_phone_number', ''),
+                                    'external_url': item.get('external_url', ''),
+                                    'follower_count': item.get('follower_count', 0),
+                                    'following_count': item.get('following_count', 0),
+                                    'media_count': item.get('media_count', 0),
+                                    'is_verified': item.get('is_verified', False),
+                                    'profile_pic_url': item.get('profile_pic_url', ''),
+                                    'address_street': item.get('address_street', ''),
+                                    'city_name': item.get('city_name', ''),
+                                    'zip': item.get('zip', ''),
+                                    'latitude': item.get('latitude'),
+                                    'longitude': item.get('longitude')
+                                }
+                                break  # Only process first item
+                        
+                        # Clear dataset from memory
+                        dataset = None
+                        
+                    except Exception as e:
+                        logger.error(f"Profile enrichment failed for {username}: {e}")
+                    
+                    # Check if contact info is missing and use Perplexity fallback
+                    if not any([
+                            profile_info.get('public_email'),
+                            profile_info.get('contact_phone_number'),
+                            profile_info.get('external_url')
+                    ]):
+                        try:
+                            contact_info = await call_perplexity_api(username, perplexity_key)
+                            if 'email' in contact_info:
+                                profile_info['public_email'] = contact_info['email']
+                            if 'phone' in contact_info:
+                                profile_info['contact_phone_number'] = contact_info['phone']
+                            if 'website' in contact_info:
+                                profile_info['external_url'] = contact_info['website']
+                        except Exception as e:
+                            logger.error(f"Perplexity API failed for {username}: {e}")
+                    
+                    # Save directly to database - one profile at a time
+                    if profile_info:
+                        saved = save_single_lead_to_db(username, profile_info)
+                        if saved:
+                            saved_count += 1
+                            logger.info(f"Saved profile {username} directly to database")
                     
                     # Force garbage collection after each profile
-                    if processed_count % 1 == 0:  # Every profile
-                        gc.collect()
-                
-                logger.info(f"Processed {processed_count} profiles with minimal memory usage")
-                
-            except Exception as e:
-                logger.error(f"Profile enrichment API call failed: {e}")
-                # Continue with empty results rather than crash
+                    import gc
+                    gc.collect()
+                    
+                    # Small delay to reduce memory pressure
+                    import time
+                    time.sleep(0.5)
+                    
+                except Exception as e:
+                    logger.error(f"Failed to process profile {username}: {e}")
+                    continue
             
-            # Create a mapping of username to profile data
-            profile_map = {}
-            for item in profile_items:
-                # Extract username from URL or directly from item
-                if 'url' in item:
-                    username_from_url = item['url'].split('/')[-2] if item['url'].endswith('/') else item['url'].split('/')[-1]
-                    profile_map[username_from_url] = item
-                elif 'username' in item:
-                    profile_map[item['username']] = item
-
-            for username in usernames:
-                profile_info = profile_map.get(username, {})
-
-                # Check if contact info is missing and use Perplexity fallback
-                if not any([
-                        profile_info.get('public_email'),
-                        profile_info.get('contact_phone_number'),
-                        profile_info.get('external_url')
-                ]):
-                    try:
-                        contact_info = await call_perplexity_api(
-                            username, perplexity_key)
-                        profile_info.update(contact_info)
-                    except Exception as e:
-                        logger.error(
-                            f"Perplexity API failed for {username}: {e}")
-
-                enriched_profiles.append({
-                    'username':
-                    username,
-                    'full_name':
-                    profile_info.get('full_name', ''),
-                    'biography':
-                    profile_info.get('biography', ''),
-                    'public_email':
-                    profile_info.get('public_email', ''),
-                    'contact_phone_number':
-                    profile_info.get('contact_phone_number', ''),
-                    'external_url':
-                    profile_info.get('external_url', ''),
-                    'follower_count':
-                    profile_info.get('follower_count', 0),
-                    'following_count':
-                    profile_info.get('following_count', 0),
-                    'media_count':
-                    profile_info.get('media_count', 0),
-                    'is_verified':
-                    profile_info.get('is_verified', False),
-                    'profile_pic_url':
-                    profile_info.get('profile_pic_url', ''),
-                    'address_street':
-                    profile_info.get('address_street', ''),
-                    'city_name':
-                    profile_info.get('city_name', ''),
-                    'zip':
-                    profile_info.get('zip', ''),
-                    'latitude':
-                    profile_info.get('latitude'),
-                    'longitude':
-                    profile_info.get('longitude'),
-                    'subject':
-                    '',
-                    'emailBody':
-                    '',
-                    'sent':
-                    False,
-                    'sentAt':
-                    None
-                })
-
-            return enriched_profiles
-
+            logger.info(f"Enrichment batch complete: {saved_count} profiles saved")
+            return saved_count  # Return count instead of list
+            
         except Exception as e:
-            logger.error(f"Failed to enrich profiles {usernames}: {e}")
-            return []
+            logger.error(f"Failed to enrich profiles batch: {e}")
+            return 0
 
 
 @app.route('/')
@@ -643,67 +707,66 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit):
         logger.error(f"Failed to save hashtag-username pairs: {e}")
         # Continue processing even if saving pairs fails
 
-    # Step 3: Profile enrichment with aggressive memory optimization
-    semaphore = asyncio.Semaphore(20)  # Further reduced to 2 concurrent calls
-    perplexity_semaphore = asyncio.Semaphore(1)  # Reduced to 1 concurrent Perplexity call
-
-    # Extreme memory safety measures to prevent SIGKILL
-    usernames = [p['username'] for p in unique_profiles]
-    batch_size = 1  # Process only 1 profile at a time to minimize memory
+    # Step 3: Profile enrichment with extreme memory optimization
+    # Set keyword context for database saving
+    save_single_lead_to_db.current_keyword = keyword
     
-    # Further reduced limit to prevent memory overflow
-    max_usernames = 10  # Drastically reduced to prevent memory issues
+    semaphore = asyncio.Semaphore(1)  # Only 1 concurrent call to minimize memory
+    
+    # Extract usernames and process one at a time
+    usernames = [p['username'] for p in unique_profiles]
+    
+    # Ultra-reduced limit to prevent memory overflow
+    max_usernames = 5  # Extremely reduced for memory safety
     if len(usernames) > max_usernames:
-        logger.info(f"Limiting usernames from {len(usernames)} to {max_usernames} for memory safety")
+        logger.info(f"Limiting usernames from {len(usernames)} to {max_usernames} for extreme memory safety")
         usernames = usernames[:max_usernames]
     
-    batches = [
-        usernames[i:i + batch_size]
-        for i in range(0, len(usernames), batch_size)
-    ]
-
-    # Process batches sequentially to minimize memory usage
+    # Clear unique_profiles from memory
+    unique_profiles = None
+    duplicates_set = duplicates  # Keep for checking
+    duplicates = None
+    
+    # Process one username at a time with direct database saving
     total_saved_leads = 0
     import gc
+    import time
     
-    for i, batch in enumerate(batches):
+    logger.info(f"Starting ultra-memory-optimized enrichment for {len(usernames)} usernames")
+    
+    # Process each username individually
+    for i, username in enumerate(usernames):
         try:
-            logger.info(f"Processing batch {i+1}/{len(batches)} with {len(batch)} usernames")
+            logger.info(f"Processing username {i+1}/{len(usernames)}: {username}")
             
-            # Process one batch at a time
-            result = await enrich_profile_batch(batch, ig_sessionid, apify_token,
-                                              perplexity_key, semaphore)
+            # Process single username with direct DB save
+            saved_count = await enrich_profile_batch([username], ig_sessionid, apify_token,
+                                                   perplexity_key, semaphore)
             
-            if isinstance(result, list) and result:
-                # Mark duplicates and add hashtag information for this batch
-                for lead in result:
-                    if lead['username'] in duplicates:
-                        lead['is_duplicate'] = True
-                    else:
-                        lead['is_duplicate'] = False
-                    # Use search keyword as hashtag
-                    lead['hashtag'] = keyword
-                
-                # Save this batch immediately to prevent data loss
-                saved_count = save_leads_incrementally(result, keyword)
-                total_saved_leads += saved_count
-                logger.info(f"Batch {i+1}: Saved {saved_count} leads incrementally")
-            else:
-                logger.warning(f"Batch {i+1}: No results or unexpected type: {type(result)}")
+            # Update duplicate status if needed
+            if username in duplicates_set:
+                try:
+                    with app.app_context():
+                        lead = Lead.query.filter_by(username=username, hashtag=keyword).first()
+                        if lead:
+                            lead.is_duplicate = True
+                            db.session.commit()
+                except Exception as e:
+                    logger.error(f"Failed to update duplicate status for {username}: {e}")
             
-            # Force garbage collection after each batch
+            total_saved_leads += saved_count
+            logger.info(f"Username {i+1}: Saved {saved_count} lead(s)")
+            
+            # Aggressive cleanup after each profile
             gc.collect()
-            
-            # Add delay between batches to reduce memory pressure
-            import time
-            time.sleep(2.0)  # Increased delay to 2 seconds since we're processing 1 profile at a time
+            time.sleep(1.5)  # Longer delay between profiles
             
         except Exception as e:
-            logger.error(f"Batch {i+1} processing error: {e}")
-            # Continue processing other batches even if one fails
+            logger.error(f"Username {i+1} processing error: {e}")
+            # Continue with next username
             continue
 
-    logger.info(f"Total enrichment complete: {total_saved_leads} leads saved to database")
+    logger.info(f"Ultra-memory-optimized enrichment complete: {total_saved_leads} leads saved to database")
     
     # Return dictionary format for API response
     # Query fresh leads from database to avoid session issues

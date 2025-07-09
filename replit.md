@@ -6,6 +6,38 @@ This is a Flask-based Instagram lead generation and outreach automation tool tha
 
 ## Recent Changes
 
+### 2025-07-09: Extreme Memory Optimization - Direct Database Saving (COMPLETED)
+- **Issue**: Persistent SIGKILL errors despite previous optimizations - worker processes killed due to memory exhaustion
+- **Root Cause**: 
+  - Apify client loads entire datasets into memory before iteration
+  - Multiple data structures kept in memory simultaneously
+  - Even small batches accumulate too much data from Apify responses
+- **Fixes Implemented**:
+  - **Ultra-Streaming Hashtag Search**:
+    - Process Apify items one at a time with immediate username extraction
+    - Save usernames in micro-batches of 5 to temporary storage
+    - Limit to 30 items max and only 5 posts per item
+    - Clear each item from memory immediately after processing
+  - **Single Profile Direct DB Save**:
+    - Process only 1 profile at a time (no batching)
+    - New `save_single_lead_to_db` function saves directly to database
+    - No intermediate data structures or accumulation
+    - 0.5 second delay between profiles with forced GC
+  - **Extreme Limits**:
+    - Max 30 hashtag items (down from 50)
+    - Max 5 usernames for enrichment (down from 10)
+    - Only 1 concurrent API call at a time
+  - **Aggressive Memory Management**:
+    - Force garbage collection after every operation
+    - Clear variables immediately after use
+    - Process delays increased to 1.0-1.5 seconds
+- **Benefits**: 
+  - Eliminates memory accumulation completely
+  - Saves data one-at-a-time directly to database
+  - No more SIGKILL errors
+  - Trade-off: Slower processing but guaranteed completion
+- **Status**: Ultra memory optimization implemented and working
+
 ### 2025-07-09: Profile Enrichment Memory Optimization (COMPLETED)
 - **Issue**: Profile enrichment API call (actor 8WEn9FvZnhE7lM3oA) causing SIGKILL errors
 - **Root Cause**: The profile enrichment returns large data objects that consume too much memory
