@@ -6,19 +6,22 @@ This is a Flask-based Instagram lead generation and outreach automation tool tha
 
 ## Recent Changes
 
-### 2025-07-09: Fixed Critical Memory Issues and SIGKILL Errors
+### 2025-07-09: Fixed Critical Memory Issues and SIGKILL Errors (FINAL UPDATE)
 - **Issue**: Application experiencing SIGKILL errors due to memory exhaustion when processing large Apify datasets
-- **Resolution**: Implemented comprehensive memory optimization and resource management
+- **Resolution**: Implemented extremely aggressive memory optimization and resource management
 - **Changes Made**:
-  - **Batch Processing**: Modified `call_apify_actor_sync` to process dataset items in batches of 20 instead of loading all items into memory at once
-  - **Item Limits**: Added maximum item limit of 1000 to prevent memory overflow from large datasets
-  - **Memory Cleanup**: Added explicit variable clearing (`hashtag_data = None`) to help with garbage collection
-  - **Database Optimization**: Reduced batch commit size from 20 to smaller chunks with proper session cleanup
-  - **Concurrent Processing**: Reduced concurrent processing limits from 10 to 3 simultaneous operations
-  - **Search Limits**: Reduced search limit from 500 to 100 to prevent memory overload
-  - **Processing Timeout**: Shortened processing timeout from 5 minutes to 3 minutes for better resource control
-  - **Username Extraction**: Switched to set-based username extraction to avoid duplicate storage
-- **Status**: Memory usage optimized, SIGKILL errors resolved, server stability improved
+  - **Aggressive Batch Processing**: Reduced batch size from 20 to 10 items with forced garbage collection
+  - **Item Limits**: Reduced maximum item limit from 1000 to 300 to prevent memory overflow
+  - **Essential Data Only**: Strip unnecessary fields from Apify responses, keep only required data
+  - **Database Optimization**: Reduced batch commit size from 20 to 10 with proper session cleanup
+  - **Concurrent Processing**: Further reduced from 3 to 2 simultaneous operations for profile enrichment
+  - **Sequential Processing**: Changed from parallel to sequential batch processing to minimize memory usage
+  - **Search Limits**: Reduced maximum search limit from 100 to 50 for memory safety
+  - **Username Limits**: Added hard limit of 50 usernames processed per request
+  - **Frequent GC**: Added forced garbage collection after each batch and processing delay (0.3s)
+  - **Processing Delay**: Increased delays between operations to reduce memory pressure
+  - **Frontend Update**: Updated UI to reflect new search limits (max 50, default 25)
+- **Status**: Memory usage heavily optimized, SIGKILL errors should be resolved, server stability maximized
 
 ### 2025-07-09: Integrated PostgreSQL Database
 - **Issue**: Application was using in-memory storage which lost data on restart

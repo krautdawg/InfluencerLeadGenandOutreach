@@ -117,50 +117,65 @@ def save_hashtag_username_pairs(profiles, duplicates):
 
 
 def call_apify_actor_sync(actor_id, input_data, token):
-    """Call Apify actor using official client - synchronous version with memory optimization"""
+    """Call Apify actor using official client - memory optimized streaming version"""
     client = ApifyClient(token)
     
     try:
         # Run the Actor and wait for it to finish
         run = client.actor(actor_id).call(run_input=input_data)
         
-        # Process results in batches to avoid memory issues
-        dataset_items = []
-        batch_size = 20  # Smaller batch size to reduce memory usage
-        max_items = 1000  # Limit total items to prevent memory overflow
+        # Extremely aggressive memory optimization
+        max_items = 300  # Further reduced from 1000 to 300
+        batch_size = 10  # Reduced batch size from 20 to 10
+        processing_delay = 0.2  # Increased delay to reduce memory pressure
         
         dataset = client.dataset(run["defaultDatasetId"])
-        item_iterator = dataset.iterate_items()
         
-        # Process items in batches to manage memory
-        current_batch = []
+        # Stream process without storing all items in memory
+        processed_items = []
         total_processed = 0
         
-        for item in item_iterator:
+        # Use smaller chunks and more frequent garbage collection
+        import gc
+        
+        for item in dataset.iterate_items():
             if total_processed >= max_items:
-                logger.info(f"Reached maximum item limit of {max_items}")
+                logger.info(f"Reached maximum item limit of {max_items} for memory safety")
                 break
+            
+            # Only keep essential data, discard unnecessary fields
+            essential_item = {}
+            if isinstance(item, dict):
+                # For hashtag search results, keep only essential fields
+                if 'latestPosts' in item:
+                    essential_item['latestPosts'] = item.get('latestPosts', [])[:5]  # Limit posts
+                if 'topPosts' in item:
+                    essential_item['topPosts'] = item.get('topPosts', [])[:5]  # Limit posts
                 
-            current_batch.append(item)
+                # For profile enrichment results, keep only essential fields
+                for key in ['username', 'full_name', 'biography', 'public_email', 
+                           'contact_phone_number', 'external_url', 'follower_count',
+                           'following_count', 'media_count', 'is_verified', 'profile_pic_url', 'url']:
+                    if key in item:
+                        essential_item[key] = item[key]
+            else:
+                essential_item = item
+            
+            processed_items.append(essential_item)
             total_processed += 1
             
-            # When batch is full, process it
-            if len(current_batch) >= batch_size:
-                dataset_items.extend(current_batch)
-                current_batch = []  # Clear batch from memory
-                
-                # Optional: Add a small delay to prevent overwhelming the system
+            # More frequent memory cleanup
+            if total_processed % batch_size == 0:
+                gc.collect()  # Force garbage collection
                 import time
-                time.sleep(0.1)
+                time.sleep(processing_delay)
+                logger.debug(f"Processed {total_processed} items, forced GC")
         
-        # Don't forget the last batch
-        if current_batch:
-            dataset_items.extend(current_batch)
+        # Final cleanup
+        gc.collect()
+        logger.info(f"Memory-optimized processing completed: {len(processed_items)} items")
         
-        logger.info(f"Processed {len(dataset_items)} items from Apify dataset (max {max_items})")
-        
-        # Return in format compatible with existing code
-        return {"items": dataset_items}
+        return {"items": processed_items}
         
     except Exception as e:
         logger.error(f"Apify actor call failed: {e}")
@@ -344,11 +359,11 @@ def process_keyword():
     if not keyword:
         return {"error": "Keyword is required"}, 400
     
-    # Validate search limit - reduced maximum to prevent memory issues
+    # Validate search limit - further reduced maximum to prevent memory issues
     try:
         search_limit = int(search_limit)
-        if search_limit < 1 or search_limit > 100:
-            return {"error": "Search limit must be between 1 and 100"}, 400
+        if search_limit < 1 or search_limit > 50:  # Reduced from 100 to 50 for memory safety
+            return {"error": "Search limit must be between 1 and 50"}, 400
     except (ValueError, TypeError):
         return {"error": "Invalid search limit value"}, 400
 
@@ -465,42 +480,52 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit):
         logger.error(f"Failed to save hashtag-username pairs: {e}")
         # Continue processing even if saving pairs fails
 
-    # Step 3: Profile enrichment with reduced memory footprint
-    semaphore = asyncio.Semaphore(3)  # Reduced to 3 concurrent calls to save memory
-    perplexity_semaphore = asyncio.Semaphore(
-        2)  # Reduced to 2 concurrent Perplexity calls
+    # Step 3: Profile enrichment with aggressive memory optimization
+    semaphore = asyncio.Semaphore(2)  # Further reduced to 2 concurrent calls
+    perplexity_semaphore = asyncio.Semaphore(1)  # Reduced to 1 concurrent Perplexity call
 
-    # Batch usernames for processing with smaller batches
+    # Extremely small batches for memory safety
     usernames = [p['username'] for p in unique_profiles]
-    batch_size = 3  # Reduced batch size to lower memory usage
+    batch_size = 2  # Further reduced batch size to just 2
+    
+    # Limit total usernames to prevent memory overflow
+    max_usernames = 50  # Limit total usernames processed
+    if len(usernames) > max_usernames:
+        logger.info(f"Limiting usernames from {len(usernames)} to {max_usernames} for memory safety")
+        usernames = usernames[:max_usernames]
+    
     batches = [
         usernames[i:i + batch_size]
         for i in range(0, len(usernames), batch_size)
     ]
 
-    # Process batches concurrently
-    tasks = []
-    for batch in batches:
-        task = enrich_profile_batch(batch, ig_sessionid, apify_token,
-                                    perplexity_key, semaphore)
-        tasks.append(task)
-
-    logger.info(f"Processing {len(tasks)} batches concurrently")
-    results = await asyncio.gather(*tasks, return_exceptions=True)
-
-    # Flatten results and clear memory
+    # Process batches sequentially to minimize memory usage
     enriched_leads = []
-    for result in results:
-        if isinstance(result, list):
-            enriched_leads.extend(result)
-        elif isinstance(result, Exception):
-            logger.error(f"Batch processing error: {result}")
-        else:
-            logger.warning(f"Unexpected result type: {type(result)}")
+    import gc
     
-    # Clear tasks and results from memory
-    tasks = None
-    results = None
+    for i, batch in enumerate(batches):
+        try:
+            logger.info(f"Processing batch {i+1}/{len(batches)} with {len(batch)} usernames")
+            
+            # Process one batch at a time
+            result = await enrich_profile_batch(batch, ig_sessionid, apify_token,
+                                              perplexity_key, semaphore)
+            
+            if isinstance(result, list):
+                enriched_leads.extend(result)
+            else:
+                logger.warning(f"Unexpected result type from batch {i+1}: {type(result)}")
+            
+            # Force garbage collection after each batch
+            gc.collect()
+            
+            # Add delay between batches to reduce memory pressure
+            import time
+            time.sleep(0.3)
+            
+        except Exception as e:
+            logger.error(f"Batch {i+1} processing error: {e}")
+            continue
 
     logger.info(f"Successfully enriched {len(enriched_leads)} leads")
 
@@ -511,9 +536,9 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit):
         else:
             lead['is_duplicate'] = False
 
-    # Store results in database with memory optimization
+    # Store results in database with aggressive memory optimization
     saved_leads = []
-    batch_commit_size = 20  # Commit in smaller batches to reduce memory usage
+    batch_commit_size = 10  # Further reduced commit batch size to save memory
     
     try:
         for i, lead_data in enumerate(enriched_leads):
