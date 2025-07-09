@@ -126,9 +126,9 @@ def call_apify_actor_sync(actor_id, input_data, token):
         run = client.actor(actor_id).call(run_input=input_data)
         
         # Extremely aggressive memory optimization
-        max_items = 300  # Further reduced from 1000 to 300
-        batch_size = 100  # Reduced batch size from 20 to 10
-        processing_delay = 0.2  # Increased delay to reduce memory pressure
+        max_items = 200  # Further reduced from 300 to 200
+        batch_size = 50  # Reduced batch size from 100 to 50
+        processing_delay = 0.3  # Increased delay to reduce memory pressure
         
         dataset = client.dataset(run["defaultDatasetId"])
         
@@ -434,25 +434,54 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit):
         "searchLimit": search_limit
     }
 
-    hashtag_data = call_apify_actor_sync("DrF9mzPPEuVizVF4l", hashtag_input,
-                                         apify_token)
+    try:
+        hashtag_data = call_apify_actor_sync("DrF9mzPPEuVizVF4l", hashtag_input,
+                                             apify_token)
+        if not hashtag_data or not hashtag_data.get('items'):
+            logger.error(f"No hashtag data returned for keyword: {keyword}")
+            return []
+    except Exception as e:
+        logger.error(f"Hashtag crawl failed for keyword '{keyword}': {e}")
+        return []
 
     # Step 2: Memory-efficient processing - extract unique usernames only
     usernames_set = set()  # Use set for deduplication
     hashtag_items = hashtag_data.get('items', [])
     logger.info(f"Processing {len(hashtag_items)} hashtag items")
     
-    for item in hashtag_items:
-        # Process posts directly without storing them all in memory
-        for post in item.get('latestPosts', []):
-            username = post.get('ownerUsername')
-            if username:
-                usernames_set.add(username)
-        
-        for post in item.get('topPosts', []):
-            username = post.get('ownerUsername')
-            if username:
-                usernames_set.add(username)
+    # Add better error handling and memory management
+    try:
+        for item in hashtag_items:
+            if not isinstance(item, dict):
+                logger.warning(f"Skipping non-dict item: {type(item)}")
+                continue
+                
+            # Process posts directly without storing them all in memory
+            # Process latestPosts - this ensures we get all usernames from this array
+            latest_posts = item.get('latestPosts', [])
+            if isinstance(latest_posts, list):
+                for post in latest_posts:
+                    if isinstance(post, dict):
+                        username = post.get('ownerUsername')
+                        if username and isinstance(username, str):
+                            usernames_set.add(username)
+            
+            # Process topPosts - this ensures we get all usernames from this array
+            top_posts = item.get('topPosts', [])
+            if isinstance(top_posts, list):
+                for post in top_posts:
+                    if isinstance(post, dict):
+                        username = post.get('ownerUsername')
+                        if username and isinstance(username, str):
+                            usernames_set.add(username)
+            
+            # Clear individual item from memory immediately
+            latest_posts = None
+            top_posts = None
+    
+    except Exception as e:
+        logger.error(f"Error during username extraction: {e}")
+        # Continue with whatever usernames we have
     
     # Clear hashtag_data from memory to help with garbage collection
     hashtag_data = None
@@ -463,6 +492,9 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit):
     # Convert to profiles list using search keyword as hashtag
     profiles = [{'hashtag': keyword, 'username': username} for username in usernames_set]
     
+    # Store count before clearing for logging
+    usernames_count = len(usernames_set)
+    
     # Clear usernames_set from memory
     usernames_set = None
 
@@ -470,7 +502,8 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit):
     
     # If no profiles found, return empty result
     if not profiles:
-        logger.warning("No profiles found in hashtag data")
+        logger.warning(f"No profiles found in hashtag data for keyword: {keyword}")
+        logger.info(f"Extracted {usernames_count} unique usernames from hashtag data")
         return []
 
     unique_profiles, duplicates = deduplicate_profiles(profiles)

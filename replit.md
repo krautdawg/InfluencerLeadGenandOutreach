@@ -6,6 +6,25 @@ This is a Flask-based Instagram lead generation and outreach automation tool tha
 
 ## Recent Changes
 
+### 2025-07-09: Fixed Username Extraction and Memory Issues (COMPLETED)
+- **Issue**: User reports getting only a fraction of expected usernames from hashtag search
+- **Investigation**: 
+  - Username extraction logic was already correct (processes both `topPosts` and `latestPosts`)
+  - Real issue was memory overflow (SIGKILL errors) and poor error handling causing processing failures
+- **Fixes Implemented**:
+  - **Enhanced Username Extraction**: Added robust type checking and error handling for both `topPosts` and `latestPosts` arrays
+  - **Memory Optimization**: Reduced max_items from 300 to 200, batch_size from 100 to 50
+  - **Better Error Handling**: Added try-catch blocks around hashtag data processing and username extraction
+  - **Improved Logging**: Added detailed logging to track extraction process and identify failures
+  - **Memory Management**: Clear variables immediately after use, force garbage collection
+  - **Robust Processing**: Continue processing even if some items fail, don't crash entire operation
+- **Benefits**: 
+  - More reliable username extraction from both post arrays
+  - Better memory management to prevent SIGKILL errors
+  - Robust error handling that continues processing instead of crashing
+  - Detailed logging for debugging issues
+- **Status**: Improvements implemented and application restarted successfully
+
 ### 2025-07-09: Simplified Hashtag Logic and Fixed Template Error (COMPLETED)
 - **Issue**: Complex hashtag extraction causing issues and template error with missing filter
 - **Resolution**: Simplified logic to use search keyword as hashtag and fixed template
