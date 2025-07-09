@@ -58,7 +58,14 @@
                         <small class="form-text text-muted">Max 50 (reduced for memory safety)</small>
                     </div>
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-2">
+                    <div class="form-group">
+                        <label for="enrichLimitInput">Enrich Limit</label>
+                        <input type="number" class="form-control" id="enrichLimitInput" value="5" min="1" max="25" placeholder="5">
+                        <small class="form-text text-muted">Max 25 (for testing)</small>
+                    </div>
+                </div>
+                <div class="col-md-2">
                     <div class="form-group">
                         <label>&nbsp;</label>
                         <button type="button" class="btn btn-primary w-100" id="runButton">

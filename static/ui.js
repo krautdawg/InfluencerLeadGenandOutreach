@@ -77,6 +77,7 @@ async function saveSessionId() {
 async function processKeyword() {
     const keyword = document.getElementById('keywordInput').value.trim();
     const searchLimit = parseInt(document.getElementById('searchLimitInput').value) || 25;
+    const enrichLimit = parseInt(document.getElementById('enrichLimitInput').value) || 5;
     
     if (!keyword) {
         showToast('Please enter a keyword', 'error');
@@ -88,13 +89,18 @@ async function processKeyword() {
         return;
     }
     
+    if (enrichLimit < 1 || enrichLimit > 25) {
+        showToast('Enrich limit must be between 1 and 25 (for testing)', 'error');
+        return;
+    }
+    
     // Show processing status
     const statusDiv = document.getElementById('processingStatus');
     const statusText = document.getElementById('statusText');
     const runButton = document.getElementById('runButton');
     
     statusDiv.style.display = 'block';
-    statusText.textContent = `Processing keyword and gathering up to ${searchLimit} leads...`;
+    statusText.textContent = `Processing keyword, gathering up to ${searchLimit} leads, enriching ${enrichLimit} profiles...`;
     runButton.disabled = true;
     runButton.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Processing...';
     
@@ -108,7 +114,7 @@ async function processKeyword() {
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ keyword: keyword, searchLimit: searchLimit }),
+            body: JSON.stringify({ keyword: keyword, searchLimit: searchLimit, enrichLimit: enrichLimit }),
             signal: controller.signal
         });
         

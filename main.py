@@ -444,6 +444,7 @@ def process_keyword():
     data = request.get_json()
     keyword = data.get('keyword', '').strip()
     search_limit = data.get('searchLimit', 100)
+    enrich_limit = data.get('enrichLimit', 25)  # New parameter for testing
 
     if not keyword:
         return {"error": "Keyword is required"}, 400
@@ -455,6 +456,14 @@ def process_keyword():
             return {"error": "Search limit must be between 1 and 50"}, 400
     except (ValueError, TypeError):
         return {"error": "Invalid search limit value"}, 400
+    
+    # Validate enrich limit for testing purposes
+    try:
+        enrich_limit = int(enrich_limit)
+        if enrich_limit < 1 or enrich_limit > 25:
+            return {"error": "Enrich limit must be between 1 and 25"}, 400
+    except (ValueError, TypeError):
+        return {"error": "Invalid enrich limit value"}, 400
 
     ig_sessionid = session.get('ig_sessionid') or os.environ.get(
         'IG_SESSIONID')
@@ -467,7 +476,7 @@ def process_keyword():
     try:
         # Run the async processing in a thread pool with memory optimization
         with ThreadPoolExecutor(max_workers=1) as executor:
-            future = executor.submit(run_async_process, keyword, ig_sessionid, search_limit)
+            future = executor.submit(run_async_process, keyword, ig_sessionid, search_limit, enrich_limit)
             try:
                 result = future.result(timeout=180)  # Reduced to 3 minutes
             except TimeoutError:
@@ -484,7 +493,7 @@ def process_keyword():
         return {"error": str(e)}, 500
 
 
-def run_async_process(keyword, ig_sessionid, search_limit):
+def run_async_process(keyword, ig_sessionid, search_limit, enrich_limit):
     """Run async processing in a separate thread"""
     try:
         # Create new event loop for this thread
@@ -492,7 +501,7 @@ def run_async_process(keyword, ig_sessionid, search_limit):
         asyncio.set_event_loop(loop)
         try:
             return loop.run_until_complete(
-                process_keyword_async(keyword, ig_sessionid, search_limit))
+                process_keyword_async(keyword, ig_sessionid, search_limit, enrich_limit))
         finally:
             loop.close()
     except Exception as e:
@@ -500,7 +509,7 @@ def run_async_process(keyword, ig_sessionid, search_limit):
         raise
 
 
-async def process_keyword_async(keyword, ig_sessionid, search_limit):
+async def process_keyword_async(keyword, ig_sessionid, search_limit, enrich_limit):
     """Async processing of keyword"""
     apify_token = os.environ.get('APIFY_TOKEN')
     perplexity_key = os.environ.get('PERPLEXITY_API_KEY')
@@ -604,11 +613,10 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit):
     usernames = [p['username'] for p in unique_profiles]
     batch_size = 2  # Further reduced batch size from 3 to 2 for memory safety
     
-    # Further reduced limit to prevent memory overflow
-    max_usernames = 25  # Reduced limit from 50 to 25 for memory safety
-    if len(usernames) > max_usernames:
-        logger.info(f"Limiting usernames from {len(usernames)} to {max_usernames} for memory safety")
-        usernames = usernames[:max_usernames]
+    # Use enrich_limit parameter to control how many profiles to enrich (for testing)
+    if len(usernames) > enrich_limit:
+        logger.info(f"Limiting usernames from {len(usernames)} to {enrich_limit} for testing (enrich_limit)")
+        usernames = usernames[:enrich_limit]
     
     batches = [
         usernames[i:i + batch_size]
