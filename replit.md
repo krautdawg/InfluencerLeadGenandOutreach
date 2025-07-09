@@ -6,9 +6,9 @@ This is a Flask-based Instagram lead generation and outreach automation tool tha
 
 ## Recent Changes
 
-### 2025-07-09: Fixed Critical Memory Issues and SIGKILL Errors (FINAL UPDATE)
-- **Issue**: Application experiencing SIGKILL errors due to memory exhaustion when processing large Apify datasets
-- **Resolution**: Implemented extremely aggressive memory optimization and resource management
+### 2025-07-09: Fixed Critical Memory Issues and Frontend Errors (COMPLETED)
+- **Issue**: Application experiencing SIGKILL errors due to memory exhaustion and frontend showing "unexpected error"
+- **Resolution**: Implemented extremely aggressive memory optimization and fixed frontend/backend sync issues
 - **Changes Made**:
   - **Aggressive Batch Processing**: Reduced batch size from 20 to 10 items with forced garbage collection
   - **Item Limits**: Reduced maximum item limit from 1000 to 300 to prevent memory overflow
@@ -20,8 +20,13 @@ This is a Flask-based Instagram lead generation and outreach automation tool tha
   - **Username Limits**: Added hard limit of 50 usernames processed per request
   - **Frequent GC**: Added forced garbage collection after each batch and processing delay (0.3s)
   - **Processing Delay**: Increased delays between operations to reduce memory pressure
+  - **Frontend Fixes**: 
+    - Updated search limit validation from 100 to 50
+    - Fixed timeout alignment (190s frontend vs 180s backend)
+    - Improved error handling to ignore browser extension rejections
+    - Added detailed error logging for debugging
   - **Frontend Update**: Updated UI to reflect new search limits (max 50, default 25)
-- **Status**: Memory usage heavily optimized, SIGKILL errors should be resolved, server stability maximized
+- **Status**: Memory usage heavily optimized, SIGKILL errors resolved, frontend/backend errors fixed, Apify processing working successfully
 
 ### 2025-07-09: Integrated PostgreSQL Database
 - **Issue**: Application was using in-memory storage which lost data on restart

@@ -11,7 +11,11 @@ document.addEventListener('DOMContentLoaded', function() {
 // Global error handler for unhandled promise rejections
 window.addEventListener('unhandledrejection', function(event) {
     console.error('Unhandled promise rejection:', event.reason);
-    showToast('An unexpected error occurred', 'error');
+    
+    // Only show toast for non-user-rejected errors (avoid showing for browser extension rejections)
+    if (event.reason && event.reason.code !== 4001 && !event.reason.message?.includes('User rejected')) {
+        showToast('An unexpected error occurred', 'error');
+    }
     event.preventDefault();
 });
 
@@ -72,15 +76,15 @@ async function saveSessionId() {
 
 async function processKeyword() {
     const keyword = document.getElementById('keywordInput').value.trim();
-    const searchLimit = parseInt(document.getElementById('searchLimitInput').value) || 100;
+    const searchLimit = parseInt(document.getElementById('searchLimitInput').value) || 25;
     
     if (!keyword) {
         showToast('Please enter a keyword', 'error');
         return;
     }
     
-    if (searchLimit < 1 || searchLimit > 100) {
-        showToast('Search limit must be between 1 and 100', 'error');
+    if (searchLimit < 1 || searchLimit > 50) {
+        showToast('Search limit must be between 1 and 50 (memory safety)', 'error');
         return;
     }
     
@@ -97,7 +101,7 @@ async function processKeyword() {
     try {
         // Add timeout to match backend timeout
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 200000); // 3.3 minutes (slightly longer than backend)
+        const timeoutId = setTimeout(() => controller.abort(), 190000); // 3.17 minutes (slightly longer than backend's 180s)
         
         const response = await fetch('/process', {
             method: 'POST',
@@ -117,6 +121,7 @@ async function processKeyword() {
             showToast(`Successfully processed ${result.leads.length} leads`, 'success');
         } else {
             const errorMessage = result.error || 'Processing failed';
+            console.error('Server error response:', result);
             showToast(errorMessage, 'error');
             
             // If it's a session ID error, show the modal
@@ -128,8 +133,10 @@ async function processKeyword() {
         console.error('Error processing keyword:', error);
         if (error.name === 'AbortError') {
             showToast('Request timed out. Please try again with a smaller search limit.', 'error');
+        } else if (error.message && error.message.includes('fetch')) {
+            showToast('Network error. Please check your connection and try again.', 'error');
         } else {
-            showToast('Failed to process keyword. Please check your internet connection and try again.', 'error');
+            showToast(`Processing error: ${error.message || 'Unknown error'}`, 'error');
         }
     } finally {
         // Hide processing status
