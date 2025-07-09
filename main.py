@@ -3,6 +3,7 @@ import asyncio
 import logging
 import json
 import base64
+import hashlib
 from datetime import datetime
 from email.mime.text import MIMEText
 from concurrent.futures import ThreadPoolExecutor
@@ -24,13 +25,28 @@ app = Flask(__name__)
 app.secret_key = os.environ.get("SESSION_SECRET",
                                 "dev-secret-key-change-in-production")
 
+# Database configuration
+app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL")
+app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
+    "pool_recycle": 300,
+    "pool_pre_ping": True,
+}
+
+# Initialize database
+from models import db, Lead, ProcessingSession
+db.init_app(app)
+
 # Initialize OpenAI client
 # the newest OpenAI model is "gpt-4o" which was released May 13, 2024.
 # do not change this unless explicitly requested by the user
 openai_client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
 
-# Global storage for results (in production, use a proper database)
-app_data = {'leads': [], 'processing_status': None}
+# Create database tables
+with app.app_context():
+    db.create_all()
+
+# Global storage for processing status (only for status, data is in DB)
+app_data = {'processing_status': None}
 
 
 def deduplicate_profiles(profiles):
@@ -203,9 +219,14 @@ def index():
     """Main page"""
     ig_sessionid = session.get('ig_sessionid') or os.environ.get(
         'IG_SESSIONID')
+    
+    # Get leads from database
+    leads = Lead.query.order_by(Lead.created_at.desc()).all()
+    leads_dict = [lead.to_dict() for lead in leads]
+    
     return render_template('index.html',
                            ig_sessionid=ig_sessionid,
-                           leads=app_data['leads'],
+                           leads=leads_dict,
                            processing_status=app_data['processing_status'])
 
 
@@ -294,7 +315,7 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit):
         if not apify_token or not apify_token.strip():
             missing_keys.append('APIFY_TOKEN')
         if not perplexity_key or not perplexity_key.strip():
-   https://console.apify.com/actors/DrF9mzPPEuVizVF4l/runs/kY6IqYVnGyfjupWYy         missing_keys.append('PERPLEXITY_API_KEY')
+            missing_keys.append('PERPLEXITY_API_KEY')
         raise ValueError(
             f"Missing or empty API tokens: {', '.join(missing_keys)}")
 
@@ -378,10 +399,65 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit):
         else:
             lead['is_duplicate'] = False
 
-    # Store results
-    app_data['leads'].extend(enriched_leads)
-
-    return enriched_leads
+    # Store results in database
+    saved_leads = []
+    for lead_data in enriched_leads:
+        try:
+            # Check if lead already exists
+            existing_lead = Lead.query.filter_by(
+                username=lead_data['username'],
+                hashtag=keyword
+            ).first()
+            
+            if existing_lead:
+                # Update existing lead
+                existing_lead.full_name = lead_data.get('fullName', '')
+                existing_lead.bio = lead_data.get('bio', '')
+                existing_lead.email = lead_data.get('email', '')
+                existing_lead.phone = lead_data.get('phone', '')
+                existing_lead.website = lead_data.get('website', '')
+                existing_lead.followers_count = lead_data.get('followersCount', 0)
+                existing_lead.following_count = lead_data.get('followingCount', 0)
+                existing_lead.posts_count = lead_data.get('postsCount', 0)
+                existing_lead.is_verified = lead_data.get('isVerified', False)
+                existing_lead.profile_pic_url = lead_data.get('profilePicUrl', '')
+                existing_lead.is_duplicate = lead_data.get('is_duplicate', False)
+                existing_lead.updated_at = datetime.utcnow()
+                saved_leads.append(existing_lead)
+            else:
+                # Create new lead
+                new_lead = Lead(
+                    username=lead_data['username'],
+                    hashtag=keyword,
+                    full_name=lead_data.get('fullName', ''),
+                    bio=lead_data.get('bio', ''),
+                    email=lead_data.get('email', ''),
+                    phone=lead_data.get('phone', ''),
+                    website=lead_data.get('website', ''),
+                    followers_count=lead_data.get('followersCount', 0),
+                    following_count=lead_data.get('followingCount', 0),
+                    posts_count=lead_data.get('postsCount', 0),
+                    is_verified=lead_data.get('isVerified', False),
+                    profile_pic_url=lead_data.get('profilePicUrl', ''),
+                    is_duplicate=lead_data.get('is_duplicate', False)
+                )
+                db.session.add(new_lead)
+                saved_leads.append(new_lead)
+                
+        except Exception as e:
+            logger.error(f"Failed to save lead {lead_data.get('username', 'unknown')}: {e}")
+            continue
+    
+    try:
+        db.session.commit()
+        logger.info(f"Successfully saved {len(saved_leads)} leads to database")
+    except Exception as e:
+        logger.error(f"Failed to commit leads to database: {e}")
+        db.session.rollback()
+        raise
+    
+    # Return dictionary format for API response
+    return [lead.to_dict() for lead in saved_leads]
 
 
 @app.route('/draft/<username>', methods=['POST'])
@@ -394,9 +470,8 @@ def draft_email(username):
     body_prompt = data.get('body_prompt',
                            'Generate a personalized outreach email')
 
-    # Find the lead
-    lead = next((l for l in app_data['leads'] if l['username'] == username),
-                None)
+    # Find the lead in database
+    lead = Lead.query.filter_by(username=username).first()
     if not lead:
         return {"error": "Lead not found"}, 404
 
@@ -411,7 +486,7 @@ def draft_email(username):
                 "role":
                 "user",
                 "content":
-                f"Profile: @{lead['username']}, Name: {lead['fullName']}, Bio: {lead['bio']}"
+                f"Profile: @{lead.username}, Name: {lead.full_name}, Bio: {lead.bio}"
             }],
             response_format={"type": "json_object"},
             max_tokens=100)
@@ -428,7 +503,7 @@ def draft_email(username):
                 "role":
                 "user",
                 "content":
-                f"Profile: @{lead['username']}, Name: {lead['fullName']}, Bio: {lead['bio']}, Email: {lead['email']}"
+                f"Profile: @{lead.username}, Name: {lead.full_name}, Bio: {lead.bio}, Email: {lead.email}"
             }],
             response_format={"type": "json_object"},
             max_tokens=500)
@@ -437,13 +512,16 @@ def draft_email(username):
         body_data = json.loads(body_response.choices[0].message.content)
 
         # Update lead with generated content
-        lead['subject'] = subject_data.get('subject',
-                                           'Collaboration Opportunity')
-        lead['emailBody'] = body_data.get(
+        lead.subject = subject_data.get('subject',
+                                       'Collaboration Opportunity')
+        lead.email_body = body_data.get(
             'body',
             'Hello, I would like to discuss a collaboration opportunity.')
+        
+        # Save to database
+        db.session.commit()
 
-        return {"subject": lead['subject'], "body": lead['emailBody']}
+        return {"subject": lead.subject, "body": lead.email_body}
 
     except Exception as e:
         logger.error(f"Email drafting failed: {e}")
@@ -457,13 +535,12 @@ def send_email(username):
     subject = data.get('subject', '')
     body = data.get('body', '')
 
-    # Find the lead
-    lead = next((l for l in app_data['leads'] if l['username'] == username),
-                None)
+    # Find the lead in database
+    lead = Lead.query.filter_by(username=username).first()
     if not lead:
         return {"error": "Lead not found"}, 404
 
-    if not lead.get('email'):
+    if not lead.email:
         return {"error": "No email address available"}, 400
 
     try:
@@ -484,7 +561,7 @@ def send_email(username):
 
         # Create email message
         message = MIMEText(body)
-        message['to'] = lead['email']
+        message['to'] = lead.email
         message['subject'] = subject
 
         # Encode message
@@ -497,10 +574,13 @@ def send_email(username):
                                                       }).execute()
 
         # Update lead status
-        lead['sent'] = True
-        lead['sentAt'] = datetime.now().isoformat()
-        lead['subject'] = subject
-        lead['emailBody'] = body
+        lead.sent = True
+        lead.sent_at = datetime.now()
+        lead.subject = subject
+        lead.email_body = body
+        
+        # Save to database
+        db.session.commit()
 
         return {"success": True, "messageId": send_result['id']}
 
@@ -512,7 +592,9 @@ def send_email(username):
 @app.route('/export/<format>')
 def export_data(format):
     """Export data in different formats"""
-    if not app_data['leads']:
+    # Get leads from database
+    leads = Lead.query.all()
+    if not leads:
         return {"error": "No data to export"}, 400
 
     try:
@@ -526,9 +608,10 @@ def export_data(format):
                                         'isVerified'
                                     ])
             writer.writeheader()
-            for lead in app_data['leads']:
+            for lead in leads:
+                lead_dict = lead.to_dict()
                 writer.writerow(
-                    {k: lead.get(k, '')
+                    {k: lead_dict.get(k, '')
                      for k in writer.fieldnames})
 
             return {
@@ -539,9 +622,10 @@ def export_data(format):
             }
 
         elif format == 'json':
+            leads_data = [lead.to_dict() for lead in leads]
             return {
                 "data":
-                json.dumps(app_data['leads'], indent=2),
+                json.dumps(leads_data, indent=2),
                 "filename":
                 f"leads_export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
             }
@@ -557,9 +641,18 @@ def export_data(format):
 @app.route('/clear')
 def clear_data():
     """Clear all stored data"""
-    app_data['leads'] = []
-    app_data['processing_status'] = None
-    return {"success": True}
+    try:
+        # Clear leads from database
+        Lead.query.delete()
+        ProcessingSession.query.delete()
+        db.session.commit()
+        
+        app_data['processing_status'] = None
+        return {"success": True}
+    except Exception as e:
+        logger.error(f"Failed to clear data: {e}")
+        db.session.rollback()
+        return {"error": "Failed to clear data"}, 500
 
 
 if __name__ == '__main__':

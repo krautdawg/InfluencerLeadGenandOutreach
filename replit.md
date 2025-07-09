@@ -6,6 +6,18 @@ This is a Flask-based Instagram lead generation and outreach automation tool tha
 
 ## Recent Changes
 
+### 2025-07-09: Integrated PostgreSQL Database
+- **Issue**: Application was using in-memory storage which lost data on restart
+- **Resolution**: Added PostgreSQL database integration using Flask-SQLAlchemy
+- **Changes Made**:
+  - Created `models.py` with Lead and ProcessingSession database models
+  - Updated main.py to use SQLAlchemy database operations
+  - Replaced in-memory `app_data['leads']` storage with database persistence
+  - Added proper error handling and transaction management
+  - Updated all CRUD operations to work with database models
+  - Maintained existing API compatibility with to_dict() serialization
+- **Status**: Database successfully integrated, data now persists between sessions
+
 ### 2025-07-09: Fixed Frontend Error Handling and Server Stability
 - **Issue**: Frontend showing "unexpected error occurred" and server crashes during processing
 - **Resolution**: Improved error handling, logging, and stability
@@ -43,9 +55,11 @@ Preferred communication style: Simple, everyday language.
 
 ### Backend Architecture
 - **Framework**: Flask (Python web framework)
+- **Database**: PostgreSQL with Flask-SQLAlchemy ORM
+- **Models**: Lead and ProcessingSession tables for persistent data storage
 - **Concurrency**: asyncio and httpx for asynchronous operations
 - **Session Management**: Flask sessions for storing user state
-- **Data Storage**: In-memory storage using global app_data dictionary (not persistent)
+- **Data Storage**: PostgreSQL database with proper transaction management
 - **Logging**: Python logging module for debugging and monitoring
 
 ### API Integration Pattern
@@ -118,10 +132,11 @@ Preferred communication style: Simple, everyday language.
 - **Development Mode**: Local development using `python main.py`
 
 ### Production Considerations
-- **Database**: Currently uses in-memory storage; requires proper database for production
+- **Database**: PostgreSQL with proper connection pooling and transaction management
 - **Session Management**: Flask sessions suitable for single-instance deployment
 - **Scaling**: Concurrent processing limited to prevent API rate limiting
 - **Security**: Session secrets and API keys must be properly secured
+- **Data Persistence**: All lead data now persists between application restarts
 
 ### Key Environment Variables
 - `IG_SESSIONID`: Instagram session ID for API access
