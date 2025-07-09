@@ -199,9 +199,9 @@ async def enrich_profile_batch(usernames, ig_sessionid, apify_token,
 
                 # Check if contact info is missing and use Perplexity fallback
                 if not any([
-                        profile_info.get('email'),
-                        profile_info.get('phone'),
-                        profile_info.get('website')
+                        profile_info.get('public_email'),
+                        profile_info.get('contact_phone_number'),
+                        profile_info.get('external_url')
                 ]):
                     try:
                         contact_info = await call_perplexity_api(
@@ -214,26 +214,26 @@ async def enrich_profile_batch(usernames, ig_sessionid, apify_token,
                 enriched_profiles.append({
                     'username':
                     username,
-                    'fullName':
-                    profile_info.get('fullName', ''),
-                    'bio':
-                    profile_info.get('bio', ''),
-                    'email':
-                    profile_info.get('email', ''),
-                    'phone':
-                    profile_info.get('phone', ''),
-                    'website':
-                    profile_info.get('website', ''),
-                    'followersCount':
-                    profile_info.get('followersCount', 0),
-                    'followingCount':
-                    profile_info.get('followingCount', 0),
-                    'postsCount':
-                    profile_info.get('postsCount', 0),
-                    'isVerified':
-                    profile_info.get('isVerified', False),
-                    'profilePicUrl':
-                    profile_info.get('profilePicUrl', ''),
+                    'full_name':
+                    profile_info.get('full_name', ''),
+                    'biography':
+                    profile_info.get('biography', ''),
+                    'public_email':
+                    profile_info.get('public_email', ''),
+                    'contact_phone_number':
+                    profile_info.get('contact_phone_number', ''),
+                    'external_url':
+                    profile_info.get('external_url', ''),
+                    'follower_count':
+                    profile_info.get('follower_count', 0),
+                    'following_count':
+                    profile_info.get('following_count', 0),
+                    'media_count':
+                    profile_info.get('media_count', 0),
+                    'is_verified':
+                    profile_info.get('is_verified', False),
+                    'profile_pic_url':
+                    profile_info.get('profile_pic_url', ''),
                     'subject':
                     '',
                     'emailBody':
@@ -468,16 +468,16 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit):
                 
                 if existing_lead:
                     # Update existing lead
-                    existing_lead.full_name = lead_data.get('fullName', '')
-                    existing_lead.bio = lead_data.get('bio', '')
-                    existing_lead.email = lead_data.get('email', '')
-                    existing_lead.phone = lead_data.get('phone', '')
-                    existing_lead.website = lead_data.get('website', '')
-                    existing_lead.followers_count = lead_data.get('followersCount', 0)
-                    existing_lead.following_count = lead_data.get('followingCount', 0)
-                    existing_lead.posts_count = lead_data.get('postsCount', 0)
-                    existing_lead.is_verified = lead_data.get('isVerified', False)
-                    existing_lead.profile_pic_url = lead_data.get('profilePicUrl', '')
+                    existing_lead.full_name = lead_data.get('full_name', '')
+                    existing_lead.bio = lead_data.get('biography', '')
+                    existing_lead.email = lead_data.get('public_email', '')
+                    existing_lead.phone = lead_data.get('contact_phone_number', '')
+                    existing_lead.website = lead_data.get('external_url', '')
+                    existing_lead.followers_count = lead_data.get('follower_count', 0)
+                    existing_lead.following_count = lead_data.get('following_count', 0)
+                    existing_lead.posts_count = lead_data.get('media_count', 0)
+                    existing_lead.is_verified = lead_data.get('is_verified', False)
+                    existing_lead.profile_pic_url = lead_data.get('profile_pic_url', '')
                     existing_lead.is_duplicate = lead_data.get('is_duplicate', False)
                     existing_lead.updated_at = datetime.utcnow()
                     saved_leads.append(existing_lead)
@@ -486,16 +486,16 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit):
                     new_lead = Lead(
                         username=lead_data['username'],
                         hashtag=keyword,
-                        full_name=lead_data.get('fullName', ''),
-                        bio=lead_data.get('bio', ''),
-                        email=lead_data.get('email', ''),
-                        phone=lead_data.get('phone', ''),
-                        website=lead_data.get('website', ''),
-                        followers_count=lead_data.get('followersCount', 0),
-                        following_count=lead_data.get('followingCount', 0),
-                        posts_count=lead_data.get('postsCount', 0),
-                        is_verified=lead_data.get('isVerified', False),
-                        profile_pic_url=lead_data.get('profilePicUrl', ''),
+                        full_name=lead_data.get('full_name', ''),
+                        bio=lead_data.get('biography', ''),
+                        email=lead_data.get('public_email', ''),
+                        phone=lead_data.get('contact_phone_number', ''),
+                        website=lead_data.get('external_url', ''),
+                        followers_count=lead_data.get('follower_count', 0),
+                        following_count=lead_data.get('following_count', 0),
+                        posts_count=lead_data.get('media_count', 0),
+                        is_verified=lead_data.get('is_verified', False),
+                        profile_pic_url=lead_data.get('profile_pic_url', ''),
                         is_duplicate=lead_data.get('is_duplicate', False)
                     )
                     db.session.add(new_lead)
