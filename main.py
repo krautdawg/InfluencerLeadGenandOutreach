@@ -147,11 +147,11 @@ def call_apify_actor_sync(actor_id, input_data, token):
             # Only keep essential data, discard unnecessary fields
             essential_item = {}
             if isinstance(item, dict):
-                # For hashtag search results, keep only essential fields
+                # For hashtag search results, keep ALL posts to get all usernames
                 if 'latestPosts' in item:
-                    essential_item['latestPosts'] = item.get('latestPosts', [])[:5]  # Limit posts
+                    essential_item['latestPosts'] = item.get('latestPosts', [])  # Keep all posts
                 if 'topPosts' in item:
-                    essential_item['topPosts'] = item.get('topPosts', [])[:5]  # Limit posts
+                    essential_item['topPosts'] = item.get('topPosts', [])  # Keep all posts
                 
                 # For profile enrichment results, keep only essential fields
                 for key in ['username', 'full_name', 'biography', 'public_email', 
@@ -521,12 +521,12 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit):
     semaphore = asyncio.Semaphore(2)  # Further reduced to 2 concurrent calls
     perplexity_semaphore = asyncio.Semaphore(1)  # Reduced to 1 concurrent Perplexity call
 
-    # Extremely small batches for memory safety
+    # Adjusted batch size for better performance while maintaining memory safety
     usernames = [p['username'] for p in unique_profiles]
-    batch_size = 2  # Further reduced batch size to just 2
+    batch_size = 5  # Increased batch size from 2 to 5 for better efficiency
     
-    # Limit total usernames to prevent memory overflow
-    max_usernames = 50  # Limit total usernames processed
+    # Increased limit to handle all usernames (we found 41 in the test data)
+    max_usernames = 100  # Increased limit to ensure all usernames are processed
     if len(usernames) > max_usernames:
         logger.info(f"Limiting usernames from {len(usernames)} to {max_usernames} for memory safety")
         usernames = usernames[:max_usernames]
@@ -646,18 +646,14 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit):
             db.session.close()
     
     # Return dictionary format for API response
+    # Query fresh leads from database to avoid session issues
     try:
-        return [lead.to_dict() for lead in saved_leads if hasattr(lead, 'to_dict')]
+        with app.app_context():
+            fresh_leads = Lead.query.filter_by(hashtag=keyword).order_by(Lead.created_at.desc()).all()
+            return [lead.to_dict() for lead in fresh_leads]
     except Exception as e:
-        logger.error(f"Failed to serialize saved leads: {e}")
-        # Fallback to querying leads by keyword
-        try:
-            with app.app_context():
-                fresh_leads = Lead.query.filter_by(hashtag=keyword).order_by(Lead.created_at.desc()).all()
-                return [lead.to_dict() for lead in fresh_leads]
-        except Exception as fallback_e:
-            logger.error(f"Fallback query failed: {fallback_e}")
-            return []
+        logger.error(f"Failed to query leads from database: {e}")
+        return []
 
 
 @app.route('/draft/<username>', methods=['POST'])

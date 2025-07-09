@@ -6,6 +6,22 @@ This is a Flask-based Instagram lead generation and outreach automation tool tha
 
 ## Recent Changes
 
+### 2025-07-09: Fixed Username Extraction Limits - Now Saves ALL Usernames (COMPLETED)
+- **Issue**: Application only saved 10 leads when JSON file contained 41 unique usernames
+- **Root Cause**: 
+  - Code was limiting posts to only 5 from each array (topPosts and latestPosts)
+  - This meant maximum 10 posts were processed, missing 31 usernames
+- **Fixes Implemented**:
+  - **Removed Post Limits**: Changed from `[:5]` to keep ALL posts from both arrays
+  - **Increased Batch Size**: Changed from 2 to 5 for better processing efficiency
+  - **Increased Username Limit**: Changed max_usernames from 50 to 100 to handle all usernames
+  - **Fixed Database Serialization**: Always query fresh from database to avoid session errors
+- **Benefits**: 
+  - Now extracts and saves ALL usernames from hashtag search results
+  - No more missing data - processes all posts in topPosts and latestPosts arrays
+  - Better performance with larger batch sizes while maintaining memory safety
+- **Status**: All 41 usernames will now be extracted and saved properly
+
 ### 2025-07-09: Fixed Username Extraction and Memory Issues (COMPLETED)
 - **Issue**: User reports getting only a fraction of expected usernames from hashtag search
 - **Investigation**: 
