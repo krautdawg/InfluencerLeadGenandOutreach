@@ -174,7 +174,7 @@ def set_session():
     return {"success": True}
 
 @app.route('/process', methods=['POST'])
-def process_keyword():
+async def process_keyword():
     """Process keyword and generate leads"""
     data = request.get_json()
     keyword = data.get('keyword', '').strip()
@@ -190,11 +190,8 @@ def process_keyword():
     app_data['processing_status'] = 'Processing...'
     
     try:
-        # Run the async processing
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        result = loop.run_until_complete(process_keyword_async(keyword, ig_sessionid))
-        loop.close()
+        # Run the async processing directly
+        result = await process_keyword_async(keyword, ig_sessionid)
         
         app_data['processing_status'] = None
         return {"success": True, "leads": result}
