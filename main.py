@@ -113,17 +113,36 @@ async def enrich_profile_batch(usernames, ig_sessionid, apify_token,
     """Enrich a batch of profiles with concurrent processing"""
     async with semaphore:
         try:
-            # Call Apify profile enrichment actor
-            input_data = {"usernames": usernames, "sessionid": ig_sessionid}
+            # Call Apify profile enrichment actor with correct format
+            instagram_urls = [f"https://www.instagram.com/{username}" for username in usernames]
+            input_data = {
+                "instagram_ids": instagram_urls,
+                "SessionID": ig_sessionid,
+                "proxy": {
+                    "useApifyProxy": True,
+                    "groups": ["RESIDENTIAL"],
+                }
+            }
 
-            profile_data = await call_apify_actor("8WEn9FvZnhE7lM3oA",
-                                                  input_data, apify_token)
+            profile_data = call_apify_actor_sync("8WEn9FvZnhE7lM3oA",
+                                                 input_data, apify_token)
             enriched_profiles = []
 
-            # Process each profile
+            # Process each profile from the returned data
+            profile_items = profile_data.get('items', [])
+            
+            # Create a mapping of username to profile data
+            profile_map = {}
+            for item in profile_items:
+                # Extract username from URL or directly from item
+                if 'url' in item:
+                    username_from_url = item['url'].split('/')[-2] if item['url'].endswith('/') else item['url'].split('/')[-1]
+                    profile_map[username_from_url] = item
+                elif 'username' in item:
+                    profile_map[item['username']] = item
+
             for username in usernames:
-                profile_info = profile_data.get(
-                    'items', [{}])[0] if profile_data.get('items') else {}
+                profile_info = profile_map.get(username, {})
 
                 # Check if contact info is missing and use Perplexity fallback
                 if not any([

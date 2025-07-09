@@ -4,6 +4,18 @@
 
 This is a Flask-based Instagram lead generation and outreach automation tool that crawls Instagram hashtags, enriches profile data, and generates personalized email outreach campaigns. The application uses a minimalist design inspired by Kasimir Lieselotte's aesthetic, featuring elegant serif typography with Cormorant Garamond font.
 
+## Recent Changes
+
+### 2025-07-09: Fixed Apify API Integration
+- **Issue**: API calls were timing out due to incorrect input format and direct HTTP calls
+- **Resolution**: Updated to use official Apify client library with correct API formats
+- **Changes Made**:
+  - Hashtag search now uses: `{"search": keyword, "searchType": "hashtag", "searchLimit": 100}`
+  - Profile enrichment uses: `{"instagram_ids": [urls], "SessionID": sessionid, "proxy": {...}}`
+  - Replaced direct HTTP calls with `ApifyClient` library for better reliability
+  - Fixed data processing to handle multiple profile results correctly
+- **Status**: First API call (hashtag search) confirmed working, processes results successfully
+
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
