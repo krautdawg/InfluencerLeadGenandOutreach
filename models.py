@@ -27,6 +27,13 @@ class Lead(db.Model):
     profile_pic_url = db.Column(db.String(500))
     is_duplicate = db.Column(db.Boolean, default=False)
     
+    # Location/Address fields
+    address_street = db.Column(db.String(300))
+    city_name = db.Column(db.String(100))
+    zip = db.Column(db.String(20))
+    latitude = db.Column(db.Float)
+    longitude = db.Column(db.Float)
+    
     # Email outreach fields
     subject = db.Column(db.String(200))
     email_body = db.Column(db.Text)
@@ -57,6 +64,11 @@ class Lead(db.Model):
             'isVerified': self.is_verified,
             'profilePicUrl': self.profile_pic_url,
             'is_duplicate': self.is_duplicate,
+            'addressStreet': self.address_street,
+            'cityName': self.city_name,
+            'zip': self.zip,
+            'latitude': self.latitude,
+            'longitude': self.longitude,
             'subject': self.subject,
             'emailBody': self.email_body,
             'sent': self.sent,

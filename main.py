@@ -231,6 +231,80 @@ async def call_perplexity_api(username, api_key):
             return {"email": "", "phone": "", "website": ""}
 
 
+def save_leads_incrementally(enriched_leads, keyword):
+    """Save leads to database incrementally to prevent data loss"""
+    saved_count = 0
+    try:
+        with app.app_context():
+            for lead_data in enriched_leads:
+                try:
+                    # Check if lead already exists
+                    existing_lead = Lead.query.filter_by(
+                        username=lead_data['username'],
+                        hashtag=keyword
+                    ).first()
+                    
+                    if existing_lead:
+                        # Update existing lead
+                        existing_lead.full_name = lead_data.get('full_name', '')
+                        existing_lead.bio = lead_data.get('biography', '')
+                        existing_lead.email = lead_data.get('public_email', '')
+                        existing_lead.phone = lead_data.get('contact_phone_number', '')
+                        existing_lead.website = lead_data.get('external_url', '')
+                        existing_lead.followers_count = lead_data.get('follower_count', 0)
+                        existing_lead.following_count = lead_data.get('following_count', 0)
+                        existing_lead.posts_count = lead_data.get('media_count', 0)
+                        existing_lead.is_verified = lead_data.get('is_verified', False)
+                        existing_lead.profile_pic_url = lead_data.get('profile_pic_url', '')
+                        existing_lead.address_street = lead_data.get('address_street', '')
+                        existing_lead.city_name = lead_data.get('city_name', '')
+                        existing_lead.zip = lead_data.get('zip', '')
+                        existing_lead.latitude = lead_data.get('latitude')
+                        existing_lead.longitude = lead_data.get('longitude')
+                        existing_lead.is_duplicate = lead_data.get('is_duplicate', False)
+                        existing_lead.updated_at = datetime.utcnow()
+                    else:
+                        # Create new lead
+                        new_lead = Lead(
+                            username=lead_data['username'],
+                            hashtag=keyword,
+                            full_name=lead_data.get('full_name', ''),
+                            bio=lead_data.get('biography', ''),
+                            email=lead_data.get('public_email', ''),
+                            phone=lead_data.get('contact_phone_number', ''),
+                            website=lead_data.get('external_url', ''),
+                            followers_count=lead_data.get('follower_count', 0),
+                            following_count=lead_data.get('following_count', 0),
+                            posts_count=lead_data.get('media_count', 0),
+                            is_verified=lead_data.get('is_verified', False),
+                            profile_pic_url=lead_data.get('profile_pic_url', ''),
+                            address_street=lead_data.get('address_street', ''),
+                            city_name=lead_data.get('city_name', ''),
+                            zip=lead_data.get('zip', ''),
+                            latitude=lead_data.get('latitude'),
+                            longitude=lead_data.get('longitude'),
+                            is_duplicate=lead_data.get('is_duplicate', False)
+                        )
+                        db.session.add(new_lead)
+                    
+                    # Commit each lead immediately
+                    db.session.commit()
+                    saved_count += 1
+                    logger.info(f"Saved lead {lead_data['username']} to database")
+                    
+                except Exception as e:
+                    logger.error(f"Failed to save lead {lead_data.get('username', 'unknown')}: {e}")
+                    db.session.rollback()
+                    continue
+            
+            logger.info(f"Incremental save completed: {saved_count} leads saved")
+            
+    except Exception as e:
+        logger.error(f"Error during incremental save: {e}")
+    
+    return saved_count
+
+
 async def enrich_profile_batch(usernames, ig_sessionid, apify_token,
                                perplexity_key, semaphore):
     """Enrich a batch of profiles with concurrent processing"""
@@ -304,6 +378,16 @@ async def enrich_profile_batch(usernames, ig_sessionid, apify_token,
                     profile_info.get('is_verified', False),
                     'profile_pic_url':
                     profile_info.get('profile_pic_url', ''),
+                    'address_street':
+                    profile_info.get('address_street', ''),
+                    'city_name':
+                    profile_info.get('city_name', ''),
+                    'zip':
+                    profile_info.get('zip', ''),
+                    'latitude':
+                    profile_info.get('latitude'),
+                    'longitude':
+                    profile_info.get('longitude'),
                     'subject':
                     '',
                     'emailBody':
@@ -532,7 +616,7 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit):
     ]
 
     # Process batches sequentially to minimize memory usage
-    enriched_leads = []
+    total_saved_leads = 0
     import gc
     
     for i, batch in enumerate(batches):
@@ -543,10 +627,22 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit):
             result = await enrich_profile_batch(batch, ig_sessionid, apify_token,
                                               perplexity_key, semaphore)
             
-            if isinstance(result, list):
-                enriched_leads.extend(result)
+            if isinstance(result, list) and result:
+                # Mark duplicates and add hashtag information for this batch
+                for lead in result:
+                    if lead['username'] in duplicates:
+                        lead['is_duplicate'] = True
+                    else:
+                        lead['is_duplicate'] = False
+                    # Use search keyword as hashtag
+                    lead['hashtag'] = keyword
+                
+                # Save this batch immediately to prevent data loss
+                saved_count = save_leads_incrementally(result, keyword)
+                total_saved_leads += saved_count
+                logger.info(f"Batch {i+1}: Saved {saved_count} leads incrementally")
             else:
-                logger.warning(f"Unexpected result type from batch {i+1}: {type(result)}")
+                logger.warning(f"Batch {i+1}: No results or unexpected type: {type(result)}")
             
             # Force garbage collection after each batch
             gc.collect()
@@ -557,88 +653,10 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit):
             
         except Exception as e:
             logger.error(f"Batch {i+1} processing error: {e}")
+            # Continue processing other batches even if one fails
             continue
 
-    logger.info(f"Successfully enriched {len(enriched_leads)} leads")
-
-    # Mark duplicates and add hashtag information
-    for lead in enriched_leads:
-        if lead['username'] in duplicates:
-            lead['is_duplicate'] = True
-        else:
-            lead['is_duplicate'] = False
-        # Use search keyword as hashtag
-        lead['hashtag'] = keyword
-
-    # Store results in database with memory optimization
-    saved_leads = []
-    batch_commit_size = 20  # Commit in smaller batches to reduce memory usage
-    
-    with app.app_context():
-        try:
-            for i, lead_data in enumerate(enriched_leads):
-                try:
-                    # Check if lead already exists using the search keyword
-                    existing_lead = Lead.query.filter_by(
-                        username=lead_data['username'],
-                        hashtag=keyword
-                    ).first()
-                    
-                    if existing_lead:
-                        # Update existing lead
-                        existing_lead.full_name = lead_data.get('full_name', '')
-                        existing_lead.bio = lead_data.get('biography', '')
-                        existing_lead.email = lead_data.get('public_email', '')
-                        existing_lead.phone = lead_data.get('contact_phone_number', '')
-                        existing_lead.website = lead_data.get('external_url', '')
-                        existing_lead.followers_count = lead_data.get('follower_count', 0)
-                        existing_lead.following_count = lead_data.get('following_count', 0)
-                        existing_lead.posts_count = lead_data.get('media_count', 0)
-                        existing_lead.is_verified = lead_data.get('is_verified', False)
-                        existing_lead.profile_pic_url = lead_data.get('profile_pic_url', '')
-                        existing_lead.is_duplicate = lead_data.get('is_duplicate', False)
-                        existing_lead.updated_at = datetime.utcnow()
-                        saved_leads.append(existing_lead)
-                    else:
-                        # Create new lead with search keyword
-                        new_lead = Lead(
-                            username=lead_data['username'],
-                            hashtag=keyword,
-                            full_name=lead_data.get('full_name', ''),
-                            bio=lead_data.get('biography', ''),
-                            email=lead_data.get('public_email', ''),
-                            phone=lead_data.get('contact_phone_number', ''),
-                            website=lead_data.get('external_url', ''),
-                            followers_count=lead_data.get('follower_count', 0),
-                            following_count=lead_data.get('following_count', 0),
-                            posts_count=lead_data.get('media_count', 0),
-                            is_verified=lead_data.get('is_verified', False),
-                            profile_pic_url=lead_data.get('profile_pic_url', ''),
-                            is_duplicate=lead_data.get('is_duplicate', False)
-                        )
-                        db.session.add(new_lead)
-                        saved_leads.append(new_lead)
-                    
-                    # Commit in batches to manage memory
-                    if (i + 1) % batch_commit_size == 0:
-                        db.session.commit()
-                        logger.info(f"Committed batch {i + 1} leads to database")
-                        
-                except Exception as e:
-                    logger.error(f"Failed to save lead {lead_data.get('username', 'unknown')}: {e}")
-                    continue
-            
-            # Final commit for remaining items
-            db.session.commit()
-            logger.info(f"Successfully saved {len(saved_leads)} leads to database")
-            
-        except Exception as e:
-            logger.error(f"Failed to commit leads to database: {e}")
-            db.session.rollback()
-            raise
-        finally:
-            # Ensure session cleanup
-            db.session.close()
+    logger.info(f"Total enrichment complete: {total_saved_leads} leads saved to database")
     
     # Return dictionary format for API response
     # Query fresh leads from database to avoid session issues

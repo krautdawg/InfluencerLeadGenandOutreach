@@ -6,6 +6,22 @@ This is a Flask-based Instagram lead generation and outreach automation tool tha
 
 ## Recent Changes
 
+### 2025-07-09: Incremental Save and Address Fields Added (COMPLETED)
+- **Issue**: No Lead records in database despite successful hashtag extraction
+- **Root Cause**: 
+  - Profile enrichment process was getting killed (SIGKILL) due to memory issues before saving any data
+  - All leads were being saved at the end of processing, so crashes resulted in total data loss
+- **Fixes Implemented**:
+  - **Incremental Saves**: Modified to save leads immediately after each batch is enriched
+  - **New Address Fields**: Added address_street, city_name, zip, latitude, longitude to Lead model
+  - **Batch-by-Batch Persistence**: Each batch of 2 profiles is saved to database before processing next batch
+  - **Crash Recovery**: If process crashes, all previously processed leads are preserved in database
+- **Benefits**: 
+  - No more total data loss on crashes - partial results are always saved
+  - Can track progress through database even if enrichment fails midway
+  - Address/location data now captured for enhanced lead information
+- **Status**: Incremental save system implemented, ready for testing
+
 ### 2025-07-09: Extreme Memory Optimization with Streaming Processing (COMPLETED)
 - **Issue**: Persistent SIGKILL errors despite previous memory optimizations
 - **Root Cause**: 
