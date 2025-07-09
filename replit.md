@@ -6,6 +6,27 @@ This is a Flask-based Instagram lead generation and outreach automation tool tha
 
 ## Recent Changes
 
+### 2025-07-09: Fixed Hashtag Extraction to Capture All Username Results (COMPLETED)
+- **Issue**: Only 6 hashtag_username_pairs were being saved despite increased limits
+- **Root Cause**: 
+  - Incorrect assumption about response structure from DrF9mzPPEuVizVF4l actor
+  - Was looking for nested posts arrays when actor returns flat profile data
+- **Fixes Implemented**:
+  - **Response Structure Fix**: Updated extraction logic to handle flat profile data
+    - Check 'username', 'ownerUsername', and 'owner.username' fields directly
+    - Added detailed logging to understand actual data structure
+  - **Maximum Extraction Limits**:
+    - Increased max_items to 1000 (was 200) for comprehensive extraction
+    - Increased batch_size to 50 for efficient processing
+    - Minimal delay (0.2s) for hashtag extraction
+    - No username limit for hashtag extraction
+  - **Enhanced Logging**: Added detailed structure logging for first 3 items
+- **Benefits**: 
+  - Properly extracts all usernames from hashtag search results
+  - Comprehensive logging helps debug data structure issues
+  - Maximum possible hashtag_username_pair extraction
+- **Status**: Fixed extraction logic to handle actual response format
+
 ### 2025-07-09: Balanced Memory Optimization with Maximum Hashtag Extraction (COMPLETED)
 - **Issue**: User requested maximum hashtag_username_pair extraction while preventing SIGKILL errors
 - **Root Cause**: 

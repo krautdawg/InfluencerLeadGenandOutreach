@@ -127,10 +127,10 @@ def call_apify_actor_sync(actor_id, input_data, token):
         
         # Different limits based on actor type
         if actor_id == "DrF9mzPPEuVizVF4l":  # Hashtag crawling actor
-            # More generous limits for hashtag extraction to maximize results
-            max_items = 200   # Allow more items for hashtag extraction
-            batch_size = 20   # Larger batches for efficiency
-            processing_delay = 0.5  # Shorter delay
+            # Maximum limits for hashtag extraction to get all results
+            max_items = 1000   # Very high limit to get all available items
+            batch_size = 50    # Large batches for efficiency
+            processing_delay = 0.2  # Minimal delay for hashtag extraction
             max_usernames = None  # No username limit for hashtag extraction
         else:
             # Keep conservative limits for profile enrichment
@@ -164,39 +164,60 @@ def call_apify_actor_sync(actor_id, input_data, token):
             # Extract usernames immediately without storing the item
             try:
                 if isinstance(item, dict):
-                    # Process all posts for hashtag extraction
-                    posts_to_check = []
-                    
-                    # Extract from latestPosts
-                    if 'latestPosts' in item and isinstance(item['latestPosts'], list):
-                        if actor_id == "DrF9mzPPEuVizVF4l":
-                            # Process all posts for hashtag extraction
-                            posts_to_check.extend(item['latestPosts'])
+                    # For hashtag actor, the response is flat profile data
+                    if actor_id == "DrF9mzPPEuVizVF4l":
+                        # Direct username extraction from profile results
+                        username = None
+                        
+                        # Try different possible username fields
+                        if 'username' in item:
+                            username = item.get('username')
+                        elif 'ownerUsername' in item:
+                            username = item.get('ownerUsername')
+                        elif 'owner' in item and isinstance(item['owner'], dict):
+                            username = item['owner'].get('username')
+                        
+                        if username and isinstance(username, str) and len(username) > 0:
+                            all_usernames.add(username)
+                            logger.debug(f"Found username: {username}")
                         else:
-                            # Limit posts for profile enrichment
+                            # Log the first few items in detail to understand structure
+                            if total_processed <= 3:
+                                logger.info(f"Item {total_processed} structure - Keys: {list(item.keys())[:10]}")
+                                # Log sample values for debugging
+                                for key in list(item.keys())[:5]:
+                                    value = item[key]
+                                    if isinstance(value, (str, int, bool)):
+                                        logger.info(f"  {key}: {value}")
+                                    elif isinstance(value, dict):
+                                        logger.info(f"  {key}: dict with keys {list(value.keys())[:5]}")
+                                    elif isinstance(value, list):
+                                        logger.info(f"  {key}: list with {len(value)} items")
+                    
+                    else:
+                        # For profile enrichment actor, check nested structures
+                        posts_to_check = []
+                        
+                        # Extract from latestPosts
+                        if 'latestPosts' in item and isinstance(item['latestPosts'], list):
                             posts_to_check.extend(item['latestPosts'][:3])
-                    
-                    # Extract from topPosts
-                    if 'topPosts' in item and isinstance(item['topPosts'], list):
-                        if actor_id == "DrF9mzPPEuVizVF4l":
-                            # Process all posts for hashtag extraction
-                            posts_to_check.extend(item['topPosts'])
-                        else:
-                            # Limit posts for profile enrichment
+                        
+                        # Extract from topPosts
+                        if 'topPosts' in item and isinstance(item['topPosts'], list):
                             posts_to_check.extend(item['topPosts'][:3])
-                    
-                    # Process posts
-                    for post in posts_to_check:
-                        if max_usernames and len(all_usernames) >= max_usernames:
-                            break
-                            
-                        if isinstance(post, dict) and 'ownerUsername' in post:
-                            username = post.get('ownerUsername')
-                            if username and isinstance(username, str) and len(username) > 0:
-                                all_usernames.add(username)
-                    
-                    # Clear references immediately
-                    posts_to_check = None
+                        
+                        # Process posts
+                        for post in posts_to_check:
+                            if max_usernames and len(all_usernames) >= max_usernames:
+                                break
+                                
+                            if isinstance(post, dict) and 'ownerUsername' in post:
+                                username = post.get('ownerUsername')
+                                if username and isinstance(username, str) and len(username) > 0:
+                                    all_usernames.add(username)
+                        
+                        # Clear references immediately
+                        posts_to_check = None
                     
             except Exception as e:
                 logger.warning(f"Error processing item {total_processed}: {e}")
