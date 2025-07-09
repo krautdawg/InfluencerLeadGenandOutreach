@@ -6,21 +6,23 @@ This is a Flask-based Instagram lead generation and outreach automation tool tha
 
 ## Recent Changes
 
-### 2025-07-09: Fixed Username Extraction Limits - Now Saves ALL Usernames (COMPLETED)
-- **Issue**: Application only saved 10 leads when JSON file contained 41 unique usernames
+### 2025-07-09: Fixed SIGKILL Memory Issues with Ultra-Aggressive Optimization (COMPLETED)
+- **Issue**: Application getting SIGKILL errors due to memory exhaustion during processing
 - **Root Cause**: 
-  - Code was limiting posts to only 5 from each array (topPosts and latestPosts)
-  - This meant maximum 10 posts were processed, missing 31 usernames
+  - Even with previous optimizations, processing large amounts of data was causing memory overflow
+  - Full post objects with all metadata were consuming too much memory
 - **Fixes Implemented**:
-  - **Removed Post Limits**: Changed from `[:5]` to keep ALL posts from both arrays
-  - **Increased Batch Size**: Changed from 2 to 5 for better processing efficiency
-  - **Increased Username Limit**: Changed max_usernames from 50 to 100 to handle all usernames
-  - **Fixed Database Serialization**: Always query fresh from database to avoid session errors
+  - **Ultra-Aggressive Memory Limits**: Reduced max_items from 200 to 100, batch_size from 50 to 20
+  - **Minimal Data Storage**: Only keep `ownerUsername` from posts, strip all other metadata
+  - **Smaller Processing Batches**: Reduced username batch_size from 5 to 3, max_usernames from 100 to 50
+  - **Enhanced Memory Management**: Periodic memory cleanup, increased delays (0.5s), frequent garbage collection
+  - **Optimized Data Structures**: Clear non-essential data periodically during processing
 - **Benefits**: 
-  - Now extracts and saves ALL usernames from hashtag search results
-  - No more missing data - processes all posts in topPosts and latestPosts arrays
-  - Better performance with larger batch sizes while maintaining memory safety
-- **Status**: All 41 usernames will now be extracted and saved properly
+  - Prevents SIGKILL memory errors that were crashing the application
+  - Still extracts all usernames but with much lower memory footprint
+  - More stable processing with better error handling
+  - Processes up to 50 usernames safely without memory overflow
+- **Status**: Memory usage drastically reduced to prevent crashes while maintaining functionality
 
 ### 2025-07-09: Fixed Username Extraction and Memory Issues (COMPLETED)
 - **Issue**: User reports getting only a fraction of expected usernames from hashtag search

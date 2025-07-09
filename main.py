@@ -125,10 +125,10 @@ def call_apify_actor_sync(actor_id, input_data, token):
         # Run the Actor and wait for it to finish
         run = client.actor(actor_id).call(run_input=input_data)
         
-        # Extremely aggressive memory optimization
-        max_items = 200  # Further reduced from 300 to 200
-        batch_size = 50  # Reduced batch size from 100 to 50
-        processing_delay = 0.3  # Increased delay to reduce memory pressure
+        # Ultra-aggressive memory optimization to prevent SIGKILL
+        max_items = 100  # Drastically reduced from 200 to 100
+        batch_size = 20  # Reduced batch size from 50 to 20
+        processing_delay = 0.5  # Increased delay to reduce memory pressure
         
         dataset = client.dataset(run["defaultDatasetId"])
         
@@ -147,11 +147,23 @@ def call_apify_actor_sync(actor_id, input_data, token):
             # Only keep essential data, discard unnecessary fields
             essential_item = {}
             if isinstance(item, dict):
-                # For hashtag search results, keep ALL posts to get all usernames
+                # For hashtag search results, keep essential posts but limit to prevent memory issues
                 if 'latestPosts' in item:
-                    essential_item['latestPosts'] = item.get('latestPosts', [])  # Keep all posts
+                    posts = item.get('latestPosts', [])
+                    # Keep only essential fields to reduce memory usage
+                    essential_posts = []
+                    for post in posts:
+                        if isinstance(post, dict) and 'ownerUsername' in post:
+                            essential_posts.append({'ownerUsername': post['ownerUsername']})
+                    essential_item['latestPosts'] = essential_posts
                 if 'topPosts' in item:
-                    essential_item['topPosts'] = item.get('topPosts', [])  # Keep all posts
+                    posts = item.get('topPosts', [])
+                    # Keep only essential fields to reduce memory usage
+                    essential_posts = []
+                    for post in posts:
+                        if isinstance(post, dict) and 'ownerUsername' in post:
+                            essential_posts.append({'ownerUsername': post['ownerUsername']})
+                    essential_item['topPosts'] = essential_posts
                 
                 # For profile enrichment results, keep only essential fields
                 for key in ['username', 'full_name', 'biography', 'public_email', 
@@ -171,6 +183,22 @@ def call_apify_actor_sync(actor_id, input_data, token):
                 import time
                 time.sleep(processing_delay)
                 logger.debug(f"Processed {total_processed} items, forced GC")
+                
+                # Clear processed items periodically to prevent memory buildup
+                if total_processed % (batch_size * 2) == 0:
+                    # Keep only essential data and clear the rest
+                    essential_only = []
+                    for item in processed_items:
+                        if isinstance(item, dict):
+                            essential = {}
+                            for key in ['latestPosts', 'topPosts']:
+                                if key in item:
+                                    essential[key] = item[key]
+                            if essential:
+                                essential_only.append(essential)
+                    processed_items = essential_only
+                    gc.collect()
+                    logger.debug(f"Cleared non-essential data, memory optimized")
         
         # Final cleanup
         gc.collect()
@@ -521,12 +549,12 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit):
     semaphore = asyncio.Semaphore(2)  # Further reduced to 2 concurrent calls
     perplexity_semaphore = asyncio.Semaphore(1)  # Reduced to 1 concurrent Perplexity call
 
-    # Adjusted batch size for better performance while maintaining memory safety
+    # Ultra-small batches for memory safety to prevent SIGKILL
     usernames = [p['username'] for p in unique_profiles]
-    batch_size = 5  # Increased batch size from 2 to 5 for better efficiency
+    batch_size = 3  # Reduced batch size from 5 to 3 for memory safety
     
-    # Increased limit to handle all usernames (we found 41 in the test data)
-    max_usernames = 100  # Increased limit to ensure all usernames are processed
+    # Reduced limit to prevent memory overflow
+    max_usernames = 50  # Reduced limit from 100 to 50 for memory safety
     if len(usernames) > max_usernames:
         logger.info(f"Limiting usernames from {len(usernames)} to {max_usernames} for memory safety")
         usernames = usernames[:max_usernames]
@@ -558,7 +586,7 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit):
             
             # Add delay between batches to reduce memory pressure
             import time
-            time.sleep(0.3)
+            time.sleep(0.5)  # Increased delay to reduce memory pressure
             
         except Exception as e:
             logger.error(f"Batch {i+1} processing error: {e}")
