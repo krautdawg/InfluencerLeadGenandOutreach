@@ -8,6 +8,13 @@ document.addEventListener('DOMContentLoaded', function() {
     checkSessionId();
 });
 
+// Global error handler for unhandled promise rejections
+window.addEventListener('unhandledrejection', function(event) {
+    console.error('Unhandled promise rejection:', event.reason);
+    showToast('An unexpected error occurred', 'error');
+    event.preventDefault();
+});
+
 function initializeEventListeners() {
     // Session modal
     document.getElementById('saveSession')?.addEventListener('click', saveSessionId);
