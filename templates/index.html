@@ -45,10 +45,17 @@
         <div class="main-content">
             <!-- Keyword Input -->
             <div class="row mb-4">
-                <div class="col-md-8">
+                <div class="col-md-6">
                     <div class="form-group">
                         <label for="keywordInput">Keyword eingeben...</label>
                         <input type="text" class="form-control" id="keywordInput" placeholder="z.B. fitness, travel, food...">
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="form-group">
+                        <label for="searchLimitInput">Search Limit</label>
+                        <input type="number" class="form-control" id="searchLimitInput" value="100" min="1" max="500" placeholder="100">
+                        <small class="form-text text-muted">Max results</small>
                     </div>
                 </div>
                 <div class="col-md-4">

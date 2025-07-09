@@ -231,9 +231,18 @@ def process_keyword():
     """Process keyword and generate leads"""
     data = request.get_json()
     keyword = data.get('keyword', '').strip()
+    search_limit = data.get('searchLimit', 100)
 
     if not keyword:
         return {"error": "Keyword is required"}, 400
+    
+    # Validate search limit
+    try:
+        search_limit = int(search_limit)
+        if search_limit < 1 or search_limit > 500:
+            return {"error": "Search limit must be between 1 and 500"}, 400
+    except (ValueError, TypeError):
+        return {"error": "Invalid search limit value"}, 400
 
     ig_sessionid = session.get('ig_sessionid') or os.environ.get(
         'IG_SESSIONID')
@@ -246,7 +255,7 @@ def process_keyword():
     try:
         # Run the async processing in a thread pool
         with ThreadPoolExecutor(max_workers=1) as executor:
-            future = executor.submit(run_async_process, keyword, ig_sessionid)
+            future = executor.submit(run_async_process, keyword, ig_sessionid, search_limit)
             result = future.result(timeout=300)  # 5 minute timeout
 
         app_data['processing_status'] = None
@@ -258,7 +267,7 @@ def process_keyword():
         return {"error": str(e)}, 500
 
 
-def run_async_process(keyword, ig_sessionid):
+def run_async_process(keyword, ig_sessionid, search_limit):
     """Run async processing in a separate thread"""
     try:
         # Create new event loop for this thread
@@ -266,7 +275,7 @@ def run_async_process(keyword, ig_sessionid):
         asyncio.set_event_loop(loop)
         try:
             return loop.run_until_complete(
-                process_keyword_async(keyword, ig_sessionid))
+                process_keyword_async(keyword, ig_sessionid, search_limit))
         finally:
             loop.close()
     except Exception as e:
@@ -274,7 +283,7 @@ def run_async_process(keyword, ig_sessionid):
         raise
 
 
-async def process_keyword_async(keyword, ig_sessionid):
+async def process_keyword_async(keyword, ig_sessionid, search_limit):
     """Async processing of keyword"""
     apify_token = os.environ.get('APIFY_TOKEN')
     perplexity_key = os.environ.get('PERPLEXITY_API_KEY')
@@ -289,11 +298,11 @@ async def process_keyword_async(keyword, ig_sessionid):
         raise ValueError(
             f"Missing or empty API tokens: {', '.join(missing_keys)}")
 
-    # Step 1: Hashtag crawl - Using correct Apify API format
+    # Step 1: Hashtag crawl - Using correct Apify API format with user-defined limit
     hashtag_input = {
         "search": keyword,
         "searchType": "hashtag",
-        "searchLimit": 100
+        "searchLimit": search_limit
     }
 
     hashtag_data = call_apify_actor_sync("DrF9mzPPEuVizVF4l", hashtag_input,

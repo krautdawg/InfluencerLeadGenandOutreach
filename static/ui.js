@@ -72,9 +72,15 @@ async function saveSessionId() {
 
 async function processKeyword() {
     const keyword = document.getElementById('keywordInput').value.trim();
+    const searchLimit = parseInt(document.getElementById('searchLimitInput').value) || 100;
     
     if (!keyword) {
         showToast('Please enter a keyword', 'error');
+        return;
+    }
+    
+    if (searchLimit < 1 || searchLimit > 500) {
+        showToast('Search limit must be between 1 and 500', 'error');
         return;
     }
     
@@ -84,7 +90,7 @@ async function processKeyword() {
     const runButton = document.getElementById('runButton');
     
     statusDiv.style.display = 'block';
-    statusText.textContent = 'Processing keyword and gathering leads...';
+    statusText.textContent = `Processing keyword and gathering up to ${searchLimit} leads...`;
     runButton.disabled = true;
     runButton.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Processing...';
     
@@ -94,7 +100,7 @@ async function processKeyword() {
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ keyword: keyword })
+            body: JSON.stringify({ keyword: keyword, searchLimit: searchLimit })
         });
         
         const result = await response.json();
