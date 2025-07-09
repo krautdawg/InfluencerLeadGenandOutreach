@@ -453,6 +453,11 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit):
     hashtag_items = hashtag_data.get('items', [])
     logger.info(f"Processing {len(hashtag_items)} hashtag items")
     
+    # Debug: Log the structure of the first item
+    if hashtag_items:
+        logger.debug(f"First item structure: {list(hashtag_items[0].keys()) if isinstance(hashtag_items[0], dict) else type(hashtag_items[0])}")
+        logger.debug(f"First item sample: {str(hashtag_items[0])[:200]}")
+    
     usernames_set = set()  # Use set for deduplication
     
     # Extract usernames from the processed items (these already contain ownerUsername)
@@ -466,6 +471,8 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit):
             username = item.get('ownerUsername')
             if username and isinstance(username, str):
                 usernames_set.add(username)
+            else:
+                logger.debug(f"Item without ownerUsername: {list(item.keys()) if isinstance(item, dict) else 'not a dict'}")
     
     except Exception as e:
         logger.error(f"Error during username extraction: {e}")
