@@ -396,14 +396,16 @@ def process_keyword():
 
 
 def run_async_process(keyword, ig_sessionid, search_limit):
-    """Run async processing in a separate thread"""
+    """Run async processing in a separate thread with Flask app context"""
     try:
         # Create new event loop for this thread
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         try:
-            return loop.run_until_complete(
-                process_keyword_async(keyword, ig_sessionid, search_limit))
+            # Run with Flask application context
+            with app.app_context():
+                return loop.run_until_complete(
+                    process_keyword_async(keyword, ig_sessionid, search_limit))
         finally:
             loop.close()
     except Exception as e:
@@ -605,10 +607,9 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit):
         # Ensure session cleanup
         db.session.close()
     
-    # Return dictionary format for API response (create new session for reading)
-    with app.app_context():
-        fresh_leads = Lead.query.filter_by(hashtag=keyword).order_by(Lead.created_at.desc()).all()
-        return [lead.to_dict() for lead in fresh_leads]
+    # Return dictionary format for API response (already in app context)
+    fresh_leads = Lead.query.filter_by(hashtag=keyword).order_by(Lead.created_at.desc()).all()
+    return [lead.to_dict() for lead in fresh_leads]
 
 
 @app.route('/draft/<username>', methods=['POST'])
