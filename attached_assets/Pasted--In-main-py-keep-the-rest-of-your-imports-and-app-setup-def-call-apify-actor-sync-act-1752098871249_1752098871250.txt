@@ -1,0 +1,123 @@
+# In main.py
+
+# ... (keep the rest of your imports and app setup)
+
+def call_apify_actor_sync(actor_id, input_data, token):
+    """
+    Call Apify actor and YIELD usernames as a stream to save memory.
+    This is now a generator function.
+    """
+    client = ApifyClient(token)
+    
+    try:
+        run = client.actor(actor_id).call(run_input=input_data)
+        dataset = client.dataset(run["defaultDatasetId"])
+        
+        # Use a set to track yielded usernames to avoid duplicates within the stream
+        yielded_usernames = set()
+        max_items = 50  # Keep this limit for safety
+        processed_count = 0
+
+        logger.info(f"Starting to stream usernames from Apify dataset...")
+
+        for item in dataset.iterate_items():
+            if processed_count >= max_items:
+                logger.warning(f"Reached max item limit of {max_items} for this run.")
+                break
+
+            if isinstance(item, dict):
+                # The streaming process should directly yield the username
+                username = item.get('ownerUsername')
+                if username and isinstance(username, str) and username not in yielded_usernames:
+                    yielded_usernames.add(username)
+                    yield username # Yield the username instead of storing it
+
+            processed_count += 1
+        
+        logger.info(f"Finished streaming. Yielded {len(yielded_usernames)} unique usernames.")
+
+    except Exception as e:
+        logger.error(f"Apify actor call or streaming failed: {e}")
+        return # Stop the generator on error
+
+async def process_keyword_async(keyword, ig_sessionid, search_limit):
+    """
+    Async processing of keyword with one-by-one processing to save memory.
+    """
+    apify_token = os.environ.get('APIFY_TOKEN')
+    perplexity_key = os.environ.get('PERPLEXITY_API_KEY')
+
+    if not all([apify_token, perplexity_key]):
+        raise ValueError("Missing API tokens: APIFY_TOKEN or PERPLEXITY_API_KEY")
+
+    # Step 1: Hashtag crawl input
+    hashtag_input = {
+        "search": keyword,
+        "searchType": "hashtag",
+        "searchLimit": search_limit
+    }
+
+    total_leads_saved = 0
+    
+    # Use a semaphore for profile enrichment concurrency
+    semaphore = asyncio.Semaphore(2) # Limit concurrency to 2 to be safe
+
+    # Use a ThreadPoolExecutor for the sync Apify call
+    with ThreadPoolExecutor(max_workers=1) as executor:
+        # The hashtag_data is now a generator
+        username_generator = await asyncio.get_event_loop().run_in_executor(
+            executor, 
+            call_apify_actor_sync, 
+            "DrF9mzPPEuVizVF4l", 
+            hashtag_input, 
+            apify_token
+        )
+
+        tasks = []
+        for username in username_generator:
+            # For each username, create a task to enrich and save it
+            task = asyncio.create_task(
+                enrich_and_save_profile(
+                    username, keyword, ig_sessionid, apify_token, perplexity_key, semaphore
+                )
+            )
+            tasks.append(task)
+
+        # Wait for all the tasks to complete
+        results = await asyncio.gather(*tasks)
+        total_leads_saved = sum(results)
+
+
+    logger.info(f"Processing complete. Total leads saved to database: {total_leads_saved}")
+    
+    # Query the database for the newly created leads to return them
+    with app.app_context():
+        fresh_leads = Lead.query.filter_by(hashtag=keyword).order_by(Lead.created_at.desc()).all()
+        return [lead.to_dict() for lead in fresh_leads]
+
+
+async def enrich_and_save_profile(username, keyword, ig_sessionid, apify_token, perplexity_key, semaphore):
+    """
+    Enriches a single profile and saves it to the database.
+    """
+    try:
+        # Use the existing enrich_profile_batch function for a single user
+        enriched_profiles = await enrich_profile_batch([username], ig_sessionid, apify_token, perplexity_key, semaphore)
+        
+        if enriched_profiles:
+            # We are processing one at a time, so we can save it directly
+            saved_count = save_leads_incrementally(enriched_profiles, keyword)
+            if saved_count > 0:
+                logger.info(f"Successfully processed and saved lead: {username}")
+                return 1
+    except Exception as e:
+        logger.error(f"Failed to process profile for {username}: {e}")
+    
+    return 0
+
+# You will also need to slightly modify the enrich_profile_batch function.
+# The current one is designed for batches, but it can be used for a single profile.
+# No changes are needed there for now, but be mindful of its overhead.
+
+# Also, make sure save_leads_incrementally can handle a list with a single lead.
+# Your current implementation already does this, so no changes are needed there either.
