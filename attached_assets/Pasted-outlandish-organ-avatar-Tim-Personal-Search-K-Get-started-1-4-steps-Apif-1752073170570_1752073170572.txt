@@ -1,0 +1,160 @@
+outlandish_organ avatar
+Tim
+
+Personal
+
+
+Search...
+
+K
+
+
+Get started
+
+1 / 4 steps
+
+Apify Store
+Home
+Actors
+Runs
+Saved tasks
+Integrations
+Schedules
+Development
+My Actors
+Insights
+Messaging
+Proxy
+Storage
+Billing
+Settings
+RAM
+1 GB
+/
+32 GB
+Usage
+$1.22
+/
+$39
+
+
+All Actors
+Instagram Search Scraper avatar
+Instagram Search Scraper
+from $1.50 / 1,000 results
+apify/instagram-search-scraper
+
+
+3.4
+
+(5)
+
+52
+1.5K
+377
+Crafted by
+apify avatar
+Apify
+Maintained by Apify
+
+Start
+Create task
+API
+
+Scrape and download Instagram posts, profiles, places, hashtags, photos without login. Supports search keywords and URL lists. Download your data as HTML table, JSON, CSV, Excel, XML, and RSS feed.
+
+
+Input
+Information
+Runs
+13
+
+Builds
+57
+
+Integrations
+0
+
+Monitoring
+Issues
+0
+
+Saved tasks
+1
+
+Reviews
+
+Manual
+
+
+JSON
+
+
+Provide a search query which will be used to search Instagram for profiles, hashtags or places.
+
+
+Search query (optional)
+Vitalpilze
+Search type
+(optional)
+Search hashtags
+Search results limit
+(optional)
+100
+
+
+Run options
+MAXIMUM RESULTS
+
+Unlimited
+
+BUILD
+
+latest
+
+TIMEOUT
+
+0s
+
+MEMORY
+
+1 GB
+
+Start
+Save
+Restore default input
+
+Note that the above settings only apply to Actor runs started from Apify Console. Learn how to provide input when starting the Actor via the API.
+
+API clients
+
+API token
+Default API token created on sign up.
+
+Manage tokens
+View documentation
+Node.js
+
+Python
+
+cURL
+
+from apify_client import ApifyClient
+
+# Initialize the ApifyClient with your API token
+client = ApifyClient("<YOUR_API_TOKEN>")
+
+# Prepare the Actor input
+run_input = {
+    "search": "restaurant",
+    "searchType": "hashtag",
+    "searchLimit": 1,
+}
+
+# Run the Actor and wait for it to finish
+run = client.actor("DrF9mzPPEuVizVF4l").call(run_input=run_input)
+
+# Fetch and print Actor results from the run's dataset (if there are any)
+for item in client.dataset(run["defaultDatasetId"]).iterate_items():
+    print(item)
+

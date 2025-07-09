@@ -12,6 +12,7 @@ from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
 from openai import OpenAI
+from apify_client import ApifyClient
 import csv
 import io
 
@@ -49,18 +50,18 @@ def deduplicate_profiles(profiles):
     return unique_profiles, duplicates
 
 
-async def call_apify_actor(actor_id, input_data, token):
-    """Call Apify actor with run-sync"""
-    url = f"https://api.apify.com/v2/acts/{actor_id}/run-sync"
-    headers = {
-        "Authorization": f"Bearer {token}",
-        "Content-Type": "application/json"
-    }
-
-    async with httpx.AsyncClient(timeout=300.0) as client:
-        response = await client.post(url, headers=headers, json=input_data)
-        response.raise_for_status()
-        return response.json()
+def call_apify_actor_sync(actor_id, input_data, token):
+    """Call Apify actor using official client - synchronous version"""
+    client = ApifyClient(token)
+    
+    # Run the Actor and wait for it to finish
+    run = client.actor(actor_id).call(run_input=input_data)
+    
+    # Fetch results from the run's dataset
+    dataset_items = list(client.dataset(run["defaultDatasetId"]).iterate_items())
+    
+    # Return in format compatible with existing code
+    return {"items": dataset_items}
 
 
 async def call_perplexity_api(username, api_key):
@@ -269,15 +270,15 @@ async def process_keyword_async(keyword, ig_sessionid):
         raise ValueError(
             f"Missing or empty API tokens: {', '.join(missing_keys)}")
 
-    # Step 1: Hashtag crawl
+    # Step 1: Hashtag crawl - Using correct Apify API format
     hashtag_input = {
-        "hashtags": [keyword],
-        "sessionid": ig_sessionid,
-        "resultsLimit": 100
+        "search": keyword,
+        "searchType": "hashtag",
+        "searchLimit": 100
     }
 
-    hashtag_data = await call_apify_actor("DrF9mzPPEuVizVF4l", hashtag_input,
-                                          apify_token)
+    hashtag_data = call_apify_actor_sync("DrF9mzPPEuVizVF4l", hashtag_input,
+                                         apify_token)
 
     # Step 2: Flatten and deduplicate
     all_posts = []
