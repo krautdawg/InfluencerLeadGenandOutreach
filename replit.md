@@ -6,6 +6,18 @@ This is a Flask-based Instagram lead generation and outreach automation tool tha
 
 ## Recent Changes
 
+### 2025-07-09: Fixed Frontend Error Handling and Server Stability
+- **Issue**: Frontend showing "unexpected error occurred" and server crashes during processing
+- **Resolution**: Improved error handling, logging, and stability
+- **Changes Made**:
+  - Added comprehensive error handling for missing Instagram session ID
+  - Implemented request timeout protection (5 minutes) on frontend
+  - Added automatic session modal display for missing credentials
+  - Enhanced logging throughout the processing pipeline
+  - Added fallback handling for empty results
+  - Improved exception handling to prevent server crashes
+- **Status**: Application now properly handles errors and provides clear user feedback
+
 ### 2025-07-09: Fixed Apify API Integration
 - **Issue**: API calls were timing out due to incorrect input format and direct HTTP calls
 - **Resolution**: Updated to use official Apify client library with correct API formats
@@ -14,7 +26,7 @@ This is a Flask-based Instagram lead generation and outreach automation tool tha
   - Profile enrichment uses: `{"instagram_ids": [urls], "SessionID": sessionid, "proxy": {...}}`
   - Replaced direct HTTP calls with `ApifyClient` library for better reliability
   - Fixed data processing to handle multiple profile results correctly
-- **Status**: First API call (hashtag search) confirmed working, processes results successfully
+- **Status**: Backend API integration confirmed working, processes results successfully
 
 ## User Preferences
 

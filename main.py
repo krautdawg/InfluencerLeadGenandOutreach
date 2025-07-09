@@ -310,9 +310,12 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit):
 
     # Step 2: Flatten and deduplicate
     all_posts = []
+    logger.info(f"Processing {len(hashtag_data.get('items', []))} hashtag items")
     for item in hashtag_data.get('items', []):
         all_posts.extend(item.get('latestPosts', []))
         all_posts.extend(item.get('topPosts', []))
+    
+    logger.info(f"Found {len(all_posts)} total posts")
 
     # Extract unique usernames
     profiles = []
@@ -323,7 +326,15 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit):
                 'username': post['ownerUsername']
             })
 
+    logger.info(f"Found {len(profiles)} profiles")
+    
+    # If no profiles found, return empty result
+    if not profiles:
+        logger.warning("No profiles found in hashtag data")
+        return []
+
     unique_profiles, duplicates = deduplicate_profiles(profiles)
+    logger.info(f"After deduplication: {len(unique_profiles)} unique profiles")
 
     # Step 3: Profile enrichment with concurrency
     semaphore = asyncio.Semaphore(10)  # Limit to 10 concurrent calls
@@ -345,6 +356,7 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit):
                                     perplexity_key, semaphore)
         tasks.append(task)
 
+    logger.info(f"Processing {len(tasks)} batches concurrently")
     results = await asyncio.gather(*tasks, return_exceptions=True)
 
     # Flatten results
@@ -352,8 +364,12 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit):
     for result in results:
         if isinstance(result, list):
             enriched_leads.extend(result)
-        else:
+        elif isinstance(result, Exception):
             logger.error(f"Batch processing error: {result}")
+        else:
+            logger.warning(f"Unexpected result type: {type(result)}")
+
+    logger.info(f"Successfully enriched {len(enriched_leads)} leads")
 
     # Mark duplicates
     for lead in enriched_leads:
