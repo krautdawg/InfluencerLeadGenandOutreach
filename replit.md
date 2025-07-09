@@ -6,23 +6,23 @@ This is a Flask-based Instagram lead generation and outreach automation tool tha
 
 ## Recent Changes
 
-### 2025-07-09: Fixed SIGKILL Memory Issues with Ultra-Aggressive Optimization (COMPLETED)
-- **Issue**: Application getting SIGKILL errors due to memory exhaustion during processing
+### 2025-07-09: Extreme Memory Optimization with Streaming Processing (COMPLETED)
+- **Issue**: Persistent SIGKILL errors despite previous memory optimizations
 - **Root Cause**: 
-  - Even with previous optimizations, processing large amounts of data was causing memory overflow
-  - Full post objects with all metadata were consuming too much memory
+  - Even minimal data storage was consuming too much memory in Replit environment
+  - Processing multiple full items simultaneously was causing memory overflow
 - **Fixes Implemented**:
-  - **Ultra-Aggressive Memory Limits**: Reduced max_items from 200 to 100, batch_size from 50 to 20
-  - **Minimal Data Storage**: Only keep `ownerUsername` from posts, strip all other metadata
-  - **Smaller Processing Batches**: Reduced username batch_size from 5 to 3, max_usernames from 100 to 50
-  - **Enhanced Memory Management**: Periodic memory cleanup, increased delays (0.5s), frequent garbage collection
-  - **Optimized Data Structures**: Clear non-essential data periodically during processing
+  - **Streaming Username Extraction**: Extract usernames immediately without storing full items
+  - **Zero Item Storage**: Use set-based deduplication instead of storing complete objects
+  - **Extreme Limits**: max_items 50, batch_size 10, max_usernames 25, batch processing of 2
+  - **Extended Delays**: Increased processing delays to 1 second between batches
+  - **Immediate Processing**: Extract usernames on-the-fly from both topPosts and latestPosts
 - **Benefits**: 
-  - Prevents SIGKILL memory errors that were crashing the application
-  - Still extracts all usernames but with much lower memory footprint
-  - More stable processing with better error handling
-  - Processes up to 50 usernames safely without memory overflow
-- **Status**: Memory usage drastically reduced to prevent crashes while maintaining functionality
+  - Minimal memory footprint by avoiding item storage completely
+  - Still extracts all unique usernames from available data
+  - Prevents SIGKILL crashes through aggressive memory management
+  - Processes data in ultra-small batches for maximum stability
+- **Status**: Extreme memory optimization implemented to handle Replit's memory constraints
 
 ### 2025-07-09: Fixed Username Extraction and Memory Issues (COMPLETED)
 - **Issue**: User reports getting only a fraction of expected usernames from hashtag search

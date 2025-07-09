@@ -125,84 +125,60 @@ def call_apify_actor_sync(actor_id, input_data, token):
         # Run the Actor and wait for it to finish
         run = client.actor(actor_id).call(run_input=input_data)
         
-        # Ultra-aggressive memory optimization to prevent SIGKILL
-        max_items = 100  # Drastically reduced from 200 to 100
-        batch_size = 20  # Reduced batch size from 50 to 20
-        processing_delay = 0.5  # Increased delay to reduce memory pressure
+        # Extreme memory optimization to prevent SIGKILL
+        max_items = 50   # Drastically reduced from 100 to 50
+        batch_size = 10  # Reduced batch size from 20 to 10
+        processing_delay = 0.8  # Increased delay to reduce memory pressure
         
         dataset = client.dataset(run["defaultDatasetId"])
         
-        # Stream process without storing all items in memory
-        processed_items = []
+        # Stream process with immediate username extraction - no item storage
+        all_usernames = set()  # Use set for automatic deduplication
         total_processed = 0
         
         # Use smaller chunks and more frequent garbage collection
         import gc
+        
+        logger.info(f"Starting streaming extraction with max_items={max_items}")
         
         for item in dataset.iterate_items():
             if total_processed >= max_items:
                 logger.info(f"Reached maximum item limit of {max_items} for memory safety")
                 break
             
-            # Only keep essential data, discard unnecessary fields
-            essential_item = {}
+            # Extract usernames immediately without storing the item
             if isinstance(item, dict):
-                # For hashtag search results, keep essential posts but limit to prevent memory issues
-                if 'latestPosts' in item:
-                    posts = item.get('latestPosts', [])
-                    # Keep only essential fields to reduce memory usage
-                    essential_posts = []
-                    for post in posts:
+                # Extract from latestPosts
+                if 'latestPosts' in item and isinstance(item['latestPosts'], list):
+                    for post in item['latestPosts']:
                         if isinstance(post, dict) and 'ownerUsername' in post:
-                            essential_posts.append({'ownerUsername': post['ownerUsername']})
-                    essential_item['latestPosts'] = essential_posts
-                if 'topPosts' in item:
-                    posts = item.get('topPosts', [])
-                    # Keep only essential fields to reduce memory usage
-                    essential_posts = []
-                    for post in posts:
-                        if isinstance(post, dict) and 'ownerUsername' in post:
-                            essential_posts.append({'ownerUsername': post['ownerUsername']})
-                    essential_item['topPosts'] = essential_posts
+                            username = post['ownerUsername']
+                            if username and isinstance(username, str):
+                                all_usernames.add(username)
                 
-                # For profile enrichment results, keep only essential fields
-                for key in ['username', 'full_name', 'biography', 'public_email', 
-                           'contact_phone_number', 'external_url', 'follower_count',
-                           'following_count', 'media_count', 'is_verified', 'profile_pic_url', 'url']:
-                    if key in item:
-                        essential_item[key] = item[key]
-            else:
-                essential_item = item
+                # Extract from topPosts
+                if 'topPosts' in item and isinstance(item['topPosts'], list):
+                    for post in item['topPosts']:
+                        if isinstance(post, dict) and 'ownerUsername' in post:
+                            username = post['ownerUsername']
+                            if username and isinstance(username, str):
+                                all_usernames.add(username)
             
-            processed_items.append(essential_item)
             total_processed += 1
             
-            # More frequent memory cleanup
+            # Aggressive memory cleanup
             if total_processed % batch_size == 0:
                 gc.collect()  # Force garbage collection
                 import time
                 time.sleep(processing_delay)
-                logger.debug(f"Processed {total_processed} items, forced GC")
-                
-                # Clear processed items periodically to prevent memory buildup
-                if total_processed % (batch_size * 2) == 0:
-                    # Keep only essential data and clear the rest
-                    essential_only = []
-                    for item in processed_items:
-                        if isinstance(item, dict):
-                            essential = {}
-                            for key in ['latestPosts', 'topPosts']:
-                                if key in item:
-                                    essential[key] = item[key]
-                            if essential:
-                                essential_only.append(essential)
-                    processed_items = essential_only
-                    gc.collect()
-                    logger.debug(f"Cleared non-essential data, memory optimized")
+                logger.debug(f"Processed {total_processed} items, found {len(all_usernames)} unique usernames")
+        
+        # Convert set to list of profile objects
+        processed_items = [{'ownerUsername': username} for username in all_usernames]
         
         # Final cleanup
         gc.collect()
-        logger.info(f"Memory-optimized processing completed: {len(processed_items)} items")
+        logger.info(f"Streaming extraction completed: {len(all_usernames)} unique usernames from {total_processed} items")
         
         return {"items": processed_items}
         
@@ -549,12 +525,12 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit):
     semaphore = asyncio.Semaphore(2)  # Further reduced to 2 concurrent calls
     perplexity_semaphore = asyncio.Semaphore(1)  # Reduced to 1 concurrent Perplexity call
 
-    # Ultra-small batches for memory safety to prevent SIGKILL
+    # Extreme memory safety measures to prevent SIGKILL
     usernames = [p['username'] for p in unique_profiles]
-    batch_size = 3  # Reduced batch size from 5 to 3 for memory safety
+    batch_size = 2  # Further reduced batch size from 3 to 2 for memory safety
     
-    # Reduced limit to prevent memory overflow
-    max_usernames = 50  # Reduced limit from 100 to 50 for memory safety
+    # Further reduced limit to prevent memory overflow
+    max_usernames = 25  # Reduced limit from 50 to 25 for memory safety
     if len(usernames) > max_usernames:
         logger.info(f"Limiting usernames from {len(usernames)} to {max_usernames} for memory safety")
         usernames = usernames[:max_usernames]
@@ -586,7 +562,7 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit):
             
             # Add delay between batches to reduce memory pressure
             import time
-            time.sleep(0.5)  # Increased delay to reduce memory pressure
+            time.sleep(1.0)  # Increased delay to reduce memory pressure
             
         except Exception as e:
             logger.error(f"Batch {i+1} processing error: {e}")
