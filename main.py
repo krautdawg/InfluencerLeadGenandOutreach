@@ -174,7 +174,7 @@ def set_session():
     return {"success": True}
 
 @app.route('/process', methods=['POST'])
-async def process_keyword():
+def process_keyword():
     """Process keyword and generate leads"""
     data = request.get_json()
     keyword = data.get('keyword', '').strip()
@@ -186,12 +186,14 @@ async def process_keyword():
     if not ig_sessionid:
         return {"error": "Instagram Session ID not found"}, 400
     
-    # Start processing in background
+    # Start processing in background using ThreadPoolExecutor
     app_data['processing_status'] = 'Processing...'
     
     try:
-        # Run the async processing directly
-        result = await process_keyword_async(keyword, ig_sessionid)
+        # Run the async processing in a thread pool
+        with ThreadPoolExecutor(max_workers=1) as executor:
+            future = executor.submit(run_async_process, keyword, ig_sessionid)
+            result = future.result(timeout=300)  # 5 minute timeout
         
         app_data['processing_status'] = None
         return {"success": True, "leads": result}
@@ -200,6 +202,20 @@ async def process_keyword():
         logger.error(f"Processing failed: {e}")
         app_data['processing_status'] = None
         return {"error": str(e)}, 500
+
+def run_async_process(keyword, ig_sessionid):
+    """Run async processing in a separate thread"""
+    try:
+        # Create new event loop for this thread
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        try:
+            return loop.run_until_complete(process_keyword_async(keyword, ig_sessionid))
+        finally:
+            loop.close()
+    except Exception as e:
+        logger.error(f"Async processing failed: {e}")
+        raise
 
 async def process_keyword_async(keyword, ig_sessionid):
     """Async processing of keyword"""
