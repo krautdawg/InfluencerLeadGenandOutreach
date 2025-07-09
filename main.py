@@ -33,7 +33,7 @@ app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
 }
 
 # Initialize database
-from models import db, Lead, ProcessingSession
+from models import db, Lead, ProcessingSession, HashtagUsernamePair
 db.init_app(app)
 
 # Initialize OpenAI client
@@ -64,6 +64,56 @@ def deduplicate_profiles(profiles):
             unique_profiles.append(profile)
 
     return unique_profiles, duplicates
+
+
+def save_hashtag_username_pairs(profiles, duplicates):
+    """Save deduplicated hashtag-username pairs to database"""
+    saved_pairs = []
+    batch_size = 50  # Process in batches for better performance
+    
+    try:
+        for i, profile in enumerate(profiles):
+            hashtag = profile.get('hashtag', '')
+            username = profile.get('username', '')
+            
+            if not hashtag or not username:
+                continue
+            
+            # Check if pair already exists
+            existing_pair = HashtagUsernamePair.query.filter_by(
+                hashtag=hashtag,
+                username=username
+            ).first()
+            
+            if existing_pair:
+                # Update existing pair
+                existing_pair.is_duplicate = username in duplicates
+                saved_pairs.append(existing_pair)
+            else:
+                # Create new pair
+                new_pair = HashtagUsernamePair(
+                    hashtag=hashtag,
+                    username=username,
+                    is_duplicate=username in duplicates
+                )
+                db.session.add(new_pair)
+                saved_pairs.append(new_pair)
+            
+            # Commit in batches
+            if (i + 1) % batch_size == 0:
+                db.session.commit()
+                logger.info(f"Committed batch {i + 1} hashtag-username pairs to database")
+        
+        # Final commit for remaining items
+        db.session.commit()
+        logger.info(f"Successfully saved {len(saved_pairs)} hashtag-username pairs to database")
+        
+        return saved_pairs
+        
+    except Exception as e:
+        logger.error(f"Failed to save hashtag-username pairs: {e}")
+        db.session.rollback()
+        raise
 
 
 def call_apify_actor_sync(actor_id, input_data, token):
@@ -407,6 +457,14 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit):
     unique_profiles, duplicates = deduplicate_profiles(profiles)
     logger.info(f"After deduplication: {len(unique_profiles)} unique profiles")
 
+    # Save deduplicated hashtag-username pairs to database
+    try:
+        saved_pairs = save_hashtag_username_pairs(unique_profiles, duplicates)
+        logger.info(f"Saved {len(saved_pairs)} hashtag-username pairs to database")
+    except Exception as e:
+        logger.error(f"Failed to save hashtag-username pairs: {e}")
+        # Continue processing even if saving pairs fails
+
     # Step 3: Profile enrichment with reduced memory footprint
     semaphore = asyncio.Semaphore(3)  # Reduced to 3 concurrent calls to save memory
     perplexity_semaphore = asyncio.Semaphore(
@@ -710,9 +768,10 @@ def export_data(format):
 def clear_data():
     """Clear all stored data"""
     try:
-        # Clear leads from database
+        # Clear all data from database
         Lead.query.delete()
         ProcessingSession.query.delete()
+        HashtagUsernamePair.query.delete()
         db.session.commit()
         
         app_data['processing_status'] = None

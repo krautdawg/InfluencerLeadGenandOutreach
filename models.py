@@ -65,6 +65,28 @@ class Lead(db.Model):
         }
 
 
+class HashtagUsernamePair(db.Model):
+    """Model for storing deduplicated hashtag-username pairs"""
+    id = db.Column(db.Integer, primary_key=True)
+    hashtag = db.Column(db.String(100), nullable=False)
+    username = db.Column(db.String(100), nullable=False)
+    is_duplicate = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Composite unique constraint to prevent duplicates
+    __table_args__ = (db.UniqueConstraint('hashtag', 'username', name='unique_hashtag_username_pair'),)
+    
+    def to_dict(self):
+        """Convert HashtagUsernamePair object to dictionary"""
+        return {
+            'id': self.id,
+            'hashtag': self.hashtag,
+            'username': self.username,
+            'is_duplicate': self.is_duplicate,
+            'created_at': self.created_at.isoformat() if self.created_at else None
+        }
+
+
 class ProcessingSession(db.Model):
     """Model for tracking processing sessions"""
     id = db.Column(db.Integer, primary_key=True)
