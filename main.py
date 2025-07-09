@@ -294,7 +294,7 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit):
         if not apify_token or not apify_token.strip():
             missing_keys.append('APIFY_TOKEN')
         if not perplexity_key or not perplexity_key.strip():
-            missing_keys.append('PERPLEXITY_API_KEY')
+   https://console.apify.com/actors/DrF9mzPPEuVizVF4l/runs/kY6IqYVnGyfjupWYy         missing_keys.append('PERPLEXITY_API_KEY')
         raise ValueError(
             f"Missing or empty API tokens: {', '.join(missing_keys)}")
 
