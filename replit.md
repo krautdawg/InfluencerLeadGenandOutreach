@@ -6,6 +6,22 @@ This is a Flask-based Instagram lead generation and outreach automation tool tha
 
 ## Recent Changes
 
+### 2025-07-09: Enhanced Hashtag Data Extraction (COMPLETED)
+- **Issue**: Application was using search keyword as hashtag for all results, missing actual hashtag associations from posts
+- **Resolution**: Updated data extraction to use actual hashtag data from Instagram posts
+- **Changes Made**:
+  - **Hashtag-Username Pairs**: Extract actual hashtags from post data instead of using search keyword
+  - **Multiple Hashtags**: Now captures all hashtags associated with each username from posts
+  - **Database Updates**: Modified lead creation to use actual hashtag from each profile
+  - **Fallback Logic**: Falls back to search keyword if no hashtags found in post
+  - **Return Logic**: Updated to return all leads from current search session with their actual hashtags
+- **Benefits**: 
+  - hashtag_username_pair table now contains real hashtag associations
+  - More accurate and comprehensive lead data
+  - Multiple hashtags per username captured as separate entries
+  - Better reflects actual Instagram hashtag usage patterns
+- **Status**: Successfully implemented, now extracts rich hashtag data from Instagram posts
+
 ### 2025-07-09: Fixed Critical Memory Issues and Frontend Errors (COMPLETED)
 - **Issue**: Application experiencing SIGKILL errors due to memory exhaustion and frontend showing "unexpected error"
 - **Resolution**: Implemented extremely aggressive memory optimization and fixed frontend/backend sync issues

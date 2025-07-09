@@ -71,12 +71,6 @@ def save_hashtag_username_pairs(profiles, duplicates):
     saved_pairs = []
     batch_size = 50  # Process in batches for better performance
     
-    # Ensure we're in Flask application context
-    from flask import has_app_context
-    if not has_app_context():
-        logger.error("No Flask application context available for saving hashtag-username pairs")
-        return []
-    
     try:
         for i, profile in enumerate(profiles):
             hashtag = profile.get('hashtag', '')
@@ -84,11 +78,6 @@ def save_hashtag_username_pairs(profiles, duplicates):
             
             if not hashtag or not username:
                 continue
-            
-            # Double-check app context before database operations
-            if not has_app_context():
-                logger.error(f"Lost Flask app context at pair {i}")
-                break
             
             # Check if pair already exists
             existing_pair = HashtagUsernamePair.query.filter_by(
@@ -112,29 +101,18 @@ def save_hashtag_username_pairs(profiles, duplicates):
             
             # Commit in batches
             if (i + 1) % batch_size == 0:
-                try:
-                    db.session.commit()
-                    logger.info(f"Committed batch {i + 1} hashtag-username pairs to database")
-                except Exception as commit_e:
-                    logger.error(f"Failed to commit hashtag-username pair batch {i + 1}: {commit_e}")
-                    db.session.rollback()
+                db.session.commit()
+                logger.info(f"Committed batch {i + 1} hashtag-username pairs to database")
         
         # Final commit for remaining items
-        try:
-            db.session.commit()
-            logger.info(f"Successfully saved {len(saved_pairs)} hashtag-username pairs to database")
-        except Exception as final_e:
-            logger.error(f"Failed final commit for hashtag-username pairs: {final_e}")
-            db.session.rollback()
+        db.session.commit()
+        logger.info(f"Successfully saved {len(saved_pairs)} hashtag-username pairs to database")
         
         return saved_pairs
         
     except Exception as e:
         logger.error(f"Failed to save hashtag-username pairs: {e}")
-        try:
-            db.session.rollback()
-        except:
-            pass
+        db.session.rollback()
         raise
 
 
@@ -148,7 +126,7 @@ def call_apify_actor_sync(actor_id, input_data, token):
         
         # Extremely aggressive memory optimization
         max_items = 300  # Further reduced from 1000 to 300
-        batch_size = 10  # Reduced batch size from 20 to 10
+        batch_size = 100  # Reduced batch size from 20 to 10
         processing_delay = 0.2  # Increased delay to reduce memory pressure
         
         dataset = client.dataset(run["defaultDatasetId"])
@@ -418,16 +396,14 @@ def process_keyword():
 
 
 def run_async_process(keyword, ig_sessionid, search_limit):
-    """Run async processing in a separate thread with Flask app context"""
+    """Run async processing in a separate thread"""
     try:
         # Create new event loop for this thread
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         try:
-            # Run with Flask application context
-            with app.app_context():
-                return loop.run_until_complete(
-                    process_keyword_async(keyword, ig_sessionid, search_limit))
+            return loop.run_until_complete(
+                process_keyword_async(keyword, ig_sessionid, search_limit))
         finally:
             loop.close()
     except Exception as e:
@@ -460,31 +436,54 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit):
     hashtag_data = call_apify_actor_sync("DrF9mzPPEuVizVF4l", hashtag_input,
                                          apify_token)
 
-    # Step 2: Memory-efficient processing - extract usernames without storing all posts
-    usernames_set = set()  # Use set for deduplication
+    # Step 2: Memory-efficient processing - extract hashtag-username pairs from posts
+    hashtag_username_pairs = set()  # Use set for deduplication of hashtag-username pairs
     hashtag_items = hashtag_data.get('items', [])
     logger.info(f"Processing {len(hashtag_items)} hashtag items")
     
     for item in hashtag_items:
         # Process posts directly without storing them all in memory
         for post in item.get('latestPosts', []):
-            if post.get('ownerUsername'):
-                usernames_set.add(post['ownerUsername'])
+            username = post.get('ownerUsername')
+            if username:
+                # Extract hashtags from the post
+                post_hashtags = post.get('hashtags', [])
+                if post_hashtags:
+                    # Use actual hashtags from the post
+                    for hashtag in post_hashtags:
+                        hashtag_clean = hashtag.replace('#', '').strip()
+                        if hashtag_clean:
+                            hashtag_username_pairs.add((hashtag_clean, username))
+                else:
+                    # Fallback to search keyword if no hashtags found in post
+                    hashtag_username_pairs.add((keyword, username))
+        
         for post in item.get('topPosts', []):
-            if post.get('ownerUsername'):
-                usernames_set.add(post['ownerUsername'])
+            username = post.get('ownerUsername')
+            if username:
+                # Extract hashtags from the post
+                post_hashtags = post.get('hashtags', [])
+                if post_hashtags:
+                    # Use actual hashtags from the post
+                    for hashtag in post_hashtags:
+                        hashtag_clean = hashtag.replace('#', '').strip()
+                        if hashtag_clean:
+                            hashtag_username_pairs.add((hashtag_clean, username))
+                else:
+                    # Fallback to search keyword if no hashtags found in post
+                    hashtag_username_pairs.add((keyword, username))
     
     # Clear hashtag_data from memory to help with garbage collection
     hashtag_data = None
     hashtag_items = None
     
-    logger.info(f"Found {len(usernames_set)} unique usernames from posts")
+    logger.info(f"Found {len(hashtag_username_pairs)} unique hashtag-username pairs from posts")
 
-    # Convert to profiles list
-    profiles = [{'hashtag': keyword, 'username': username} for username in usernames_set]
+    # Convert to profiles list using actual hashtag data
+    profiles = [{'hashtag': hashtag, 'username': username} for hashtag, username in hashtag_username_pairs]
     
-    # Clear usernames_set from memory
-    usernames_set = None
+    # Clear hashtag_username_pairs from memory
+    hashtag_username_pairs = None
 
     logger.info(f"Found {len(profiles)} profiles")
     
@@ -508,8 +507,19 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit):
     semaphore = asyncio.Semaphore(2)  # Further reduced to 2 concurrent calls
     perplexity_semaphore = asyncio.Semaphore(1)  # Reduced to 1 concurrent Perplexity call
 
+    # Create a mapping of username to hashtag for lead creation
+    username_to_hashtag = {}
+    for profile in unique_profiles:
+        username = profile['username']
+        hashtag = profile['hashtag']
+        # If username appears with multiple hashtags, keep the first one
+        if username not in username_to_hashtag:
+            username_to_hashtag[username] = hashtag
+    
     # Extremely small batches for memory safety
     usernames = [p['username'] for p in unique_profiles]
+    # Remove duplicate usernames for enrichment while maintaining hashtag mapping
+    usernames = list(set(usernames))
     batch_size = 2  # Further reduced batch size to just 2
     
     # Limit total usernames to prevent memory overflow
@@ -553,35 +563,28 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit):
 
     logger.info(f"Successfully enriched {len(enriched_leads)} leads")
 
-    # Mark duplicates
+    # Mark duplicates and add hashtag information
     for lead in enriched_leads:
-        if lead['username'] in duplicates:
+        username = lead['username']
+        if username in duplicates:
             lead['is_duplicate'] = True
         else:
             lead['is_duplicate'] = False
+        # Add hashtag information to lead data
+        lead['hashtag'] = username_to_hashtag.get(username, keyword)
 
-    # Store results in database with Flask app context maintained
+    # Store results in database with memory optimization
     saved_leads = []
-    batch_commit_size = 10  # Further reduced commit batch size to save memory
-    
-    # Ensure we're in Flask application context for database operations
-    from flask import has_app_context
-    if not has_app_context():
-        logger.error("No Flask application context available for database operations")
-        return []
+    batch_commit_size = 20  # Commit in smaller batches to reduce memory usage
     
     try:
         for i, lead_data in enumerate(enriched_leads):
             try:
-                # Double-check app context before each database operation
-                if not has_app_context():
-                    logger.error(f"Lost Flask app context at lead {i}")
-                    break
-                
-                # Check if lead already exists
+                # Check if lead already exists using the actual hashtag
+                lead_hashtag = lead_data.get('hashtag', keyword)
                 existing_lead = Lead.query.filter_by(
                     username=lead_data['username'],
-                    hashtag=keyword
+                    hashtag=lead_hashtag
                 ).first()
                 
                 if existing_lead:
@@ -600,10 +603,10 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit):
                     existing_lead.updated_at = datetime.utcnow()
                     saved_leads.append(existing_lead)
                 else:
-                    # Create new lead
+                    # Create new lead with actual hashtag
                     new_lead = Lead(
                         username=lead_data['username'],
-                        hashtag=keyword,
+                        hashtag=lead_hashtag,
                         full_name=lead_data.get('full_name', ''),
                         bio=lead_data.get('biography', ''),
                         email=lead_data.get('public_email', ''),
@@ -621,48 +624,42 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit):
                 
                 # Commit in batches to manage memory
                 if (i + 1) % batch_commit_size == 0:
-                    try:
-                        db.session.commit()
-                        logger.info(f"Committed batch {i + 1} leads to database")
-                    except Exception as commit_e:
-                        logger.error(f"Failed to commit batch {i + 1}: {commit_e}")
-                        db.session.rollback()
+                    db.session.commit()
+                    logger.info(f"Committed batch {i + 1} leads to database")
                     
             except Exception as e:
                 logger.error(f"Failed to save lead {lead_data.get('username', 'unknown')}: {e}")
-                db.session.rollback()  # Rollback on individual lead failure
                 continue
         
         # Final commit for remaining items
-        try:
-            db.session.commit()
-            logger.info(f"Successfully saved {len(saved_leads)} leads to database")
-        except Exception as final_commit_e:
-            logger.error(f"Failed final commit: {final_commit_e}")
-            db.session.rollback()
+        db.session.commit()
+        logger.info(f"Successfully saved {len(saved_leads)} leads to database")
         
     except Exception as e:
         logger.error(f"Failed to commit leads to database: {e}")
         db.session.rollback()
         raise
     finally:
-        # Ensure session cleanup but don't close session as it may be needed later
-        try:
-            db.session.rollback()  # Clean rollback to ensure clean state
-        except:
-            pass
+        # Ensure session cleanup
+        db.session.close()
     
-    # Return dictionary format for API response (check app context again)
+    # Return dictionary format for API response - return all leads from this session
     try:
-        if has_app_context():
-            fresh_leads = Lead.query.filter_by(hashtag=keyword).order_by(Lead.created_at.desc()).all()
-            return [lead.to_dict() for lead in fresh_leads]
-        else:
-            logger.warning("Lost Flask app context for final query, returning saved leads data")
-            return [lead.to_dict() for lead in saved_leads if hasattr(lead, 'to_dict')]
+        return [lead.to_dict() for lead in saved_leads if hasattr(lead, 'to_dict')]
     except Exception as e:
-        logger.error(f"Failed to query fresh leads: {e}")
-        return []
+        logger.error(f"Failed to serialize saved leads: {e}")
+        # Fallback to querying all hashtags from this session
+        try:
+            with app.app_context():
+                session_hashtags = list(username_to_hashtag.values())
+                if session_hashtags:
+                    fresh_leads = Lead.query.filter(Lead.hashtag.in_(session_hashtags)).order_by(Lead.created_at.desc()).all()
+                    return [lead.to_dict() for lead in fresh_leads]
+                else:
+                    return []
+        except Exception as fallback_e:
+            logger.error(f"Fallback query failed: {fallback_e}")
+            return []
 
 
 @app.route('/draft/<username>', methods=['POST'])
