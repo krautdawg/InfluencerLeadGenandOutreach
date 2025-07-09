@@ -173,7 +173,7 @@
             
             // Load existing leads if available
             {% if leads %}
-                const leads = {{ leads | tojsonfilter }};
+                const leads = {{ leads | tojson }};
                 displayResults(leads);
             {% endif %}
         });

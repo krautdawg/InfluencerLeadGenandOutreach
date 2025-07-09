@@ -436,8 +436,8 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit):
     hashtag_data = call_apify_actor_sync("DrF9mzPPEuVizVF4l", hashtag_input,
                                          apify_token)
 
-    # Step 2: Memory-efficient processing - extract hashtag-username pairs from posts
-    hashtag_username_pairs = set()  # Use set for deduplication of hashtag-username pairs
+    # Step 2: Memory-efficient processing - extract unique usernames only
+    usernames_set = set()  # Use set for deduplication
     hashtag_items = hashtag_data.get('items', [])
     logger.info(f"Processing {len(hashtag_items)} hashtag items")
     
@@ -446,44 +446,24 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit):
         for post in item.get('latestPosts', []):
             username = post.get('ownerUsername')
             if username:
-                # Extract hashtags from the post
-                post_hashtags = post.get('hashtags', [])
-                if post_hashtags:
-                    # Use actual hashtags from the post
-                    for hashtag in post_hashtags:
-                        hashtag_clean = hashtag.replace('#', '').strip()
-                        if hashtag_clean:
-                            hashtag_username_pairs.add((hashtag_clean, username))
-                else:
-                    # Fallback to search keyword if no hashtags found in post
-                    hashtag_username_pairs.add((keyword, username))
+                usernames_set.add(username)
         
         for post in item.get('topPosts', []):
             username = post.get('ownerUsername')
             if username:
-                # Extract hashtags from the post
-                post_hashtags = post.get('hashtags', [])
-                if post_hashtags:
-                    # Use actual hashtags from the post
-                    for hashtag in post_hashtags:
-                        hashtag_clean = hashtag.replace('#', '').strip()
-                        if hashtag_clean:
-                            hashtag_username_pairs.add((hashtag_clean, username))
-                else:
-                    # Fallback to search keyword if no hashtags found in post
-                    hashtag_username_pairs.add((keyword, username))
+                usernames_set.add(username)
     
     # Clear hashtag_data from memory to help with garbage collection
     hashtag_data = None
     hashtag_items = None
     
-    logger.info(f"Found {len(hashtag_username_pairs)} unique hashtag-username pairs from posts")
+    logger.info(f"Found {len(usernames_set)} unique usernames from posts")
 
-    # Convert to profiles list using actual hashtag data
-    profiles = [{'hashtag': hashtag, 'username': username} for hashtag, username in hashtag_username_pairs]
+    # Convert to profiles list using search keyword as hashtag
+    profiles = [{'hashtag': keyword, 'username': username} for username in usernames_set]
     
-    # Clear hashtag_username_pairs from memory
-    hashtag_username_pairs = None
+    # Clear usernames_set from memory
+    usernames_set = None
 
     logger.info(f"Found {len(profiles)} profiles")
     
@@ -507,19 +487,8 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit):
     semaphore = asyncio.Semaphore(2)  # Further reduced to 2 concurrent calls
     perplexity_semaphore = asyncio.Semaphore(1)  # Reduced to 1 concurrent Perplexity call
 
-    # Create a mapping of username to hashtag for lead creation
-    username_to_hashtag = {}
-    for profile in unique_profiles:
-        username = profile['username']
-        hashtag = profile['hashtag']
-        # If username appears with multiple hashtags, keep the first one
-        if username not in username_to_hashtag:
-            username_to_hashtag[username] = hashtag
-    
     # Extremely small batches for memory safety
     usernames = [p['username'] for p in unique_profiles]
-    # Remove duplicate usernames for enrichment while maintaining hashtag mapping
-    usernames = list(set(usernames))
     batch_size = 2  # Further reduced batch size to just 2
     
     # Limit total usernames to prevent memory overflow
@@ -565,13 +534,12 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit):
 
     # Mark duplicates and add hashtag information
     for lead in enriched_leads:
-        username = lead['username']
-        if username in duplicates:
+        if lead['username'] in duplicates:
             lead['is_duplicate'] = True
         else:
             lead['is_duplicate'] = False
-        # Add hashtag information to lead data
-        lead['hashtag'] = username_to_hashtag.get(username, keyword)
+        # Use search keyword as hashtag
+        lead['hashtag'] = keyword
 
     # Store results in database with memory optimization
     saved_leads = []
@@ -580,11 +548,10 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit):
     try:
         for i, lead_data in enumerate(enriched_leads):
             try:
-                # Check if lead already exists using the actual hashtag
-                lead_hashtag = lead_data.get('hashtag', keyword)
+                # Check if lead already exists using the search keyword
                 existing_lead = Lead.query.filter_by(
                     username=lead_data['username'],
-                    hashtag=lead_hashtag
+                    hashtag=keyword
                 ).first()
                 
                 if existing_lead:
@@ -603,10 +570,10 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit):
                     existing_lead.updated_at = datetime.utcnow()
                     saved_leads.append(existing_lead)
                 else:
-                    # Create new lead with actual hashtag
+                    # Create new lead with search keyword
                     new_lead = Lead(
                         username=lead_data['username'],
-                        hashtag=lead_hashtag,
+                        hashtag=keyword,
                         full_name=lead_data.get('full_name', ''),
                         bio=lead_data.get('biography', ''),
                         email=lead_data.get('public_email', ''),
@@ -643,20 +610,16 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit):
         # Ensure session cleanup
         db.session.close()
     
-    # Return dictionary format for API response - return all leads from this session
+    # Return dictionary format for API response
     try:
         return [lead.to_dict() for lead in saved_leads if hasattr(lead, 'to_dict')]
     except Exception as e:
         logger.error(f"Failed to serialize saved leads: {e}")
-        # Fallback to querying all hashtags from this session
+        # Fallback to querying leads by keyword
         try:
             with app.app_context():
-                session_hashtags = list(username_to_hashtag.values())
-                if session_hashtags:
-                    fresh_leads = Lead.query.filter(Lead.hashtag.in_(session_hashtags)).order_by(Lead.created_at.desc()).all()
-                    return [lead.to_dict() for lead in fresh_leads]
-                else:
-                    return []
+                fresh_leads = Lead.query.filter_by(hashtag=keyword).order_by(Lead.created_at.desc()).all()
+                return [lead.to_dict() for lead in fresh_leads]
         except Exception as fallback_e:
             logger.error(f"Fallback query failed: {fallback_e}")
             return []

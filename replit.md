@@ -6,21 +6,21 @@ This is a Flask-based Instagram lead generation and outreach automation tool tha
 
 ## Recent Changes
 
-### 2025-07-09: Enhanced Hashtag Data Extraction (COMPLETED)
-- **Issue**: Application was using search keyword as hashtag for all results, missing actual hashtag associations from posts
-- **Resolution**: Updated data extraction to use actual hashtag data from Instagram posts
+### 2025-07-09: Simplified Hashtag Logic and Fixed Template Error (COMPLETED)
+- **Issue**: Complex hashtag extraction causing issues and template error with missing filter
+- **Resolution**: Simplified logic to use search keyword as hashtag and fixed template
 - **Changes Made**:
-  - **Hashtag-Username Pairs**: Extract actual hashtags from post data instead of using search keyword
-  - **Multiple Hashtags**: Now captures all hashtags associated with each username from posts
-  - **Database Updates**: Modified lead creation to use actual hashtag from each profile
-  - **Fallback Logic**: Falls back to search keyword if no hashtags found in post
-  - **Return Logic**: Updated to return all leads from current search session with their actual hashtags
+  - **Simplified Processing**: Only extract unique ownerUsername from posts, no hashtag filtering
+  - **Database Logic**: Use initial search keyword for hashtag column in all database operations
+  - **Template Fix**: Changed `tojsonfilter` to `tojson` to fix template rendering error
+  - **Clean Logic**: Removed complex hashtag mapping and regex processing
+  - **Consistent Storage**: All leads use search keyword as hashtag for consistency
 - **Benefits**: 
-  - hashtag_username_pair table now contains real hashtag associations
-  - More accurate and comprehensive lead data
-  - Multiple hashtags per username captured as separate entries
-  - Better reflects actual Instagram hashtag usage patterns
-- **Status**: Successfully implemented, now extracts rich hashtag data from Instagram posts
+  - Simpler, more reliable code
+  - Faster processing without complex hashtag extraction
+  - Fixed template errors that were causing application crashes
+  - Consistent hashtag data based on search terms
+- **Status**: Successfully simplified and application running without errors
 
 ### 2025-07-09: Fixed Critical Memory Issues and Frontend Errors (COMPLETED)
 - **Issue**: Application experiencing SIGKILL errors due to memory exhaustion and frontend showing "unexpected error"
