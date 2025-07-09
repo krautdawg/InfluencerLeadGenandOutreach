@@ -247,7 +247,7 @@ def process_keyword():
     ig_sessionid = session.get('ig_sessionid') or os.environ.get(
         'IG_SESSIONID')
     if not ig_sessionid:
-        return {"error": "Instagram Session ID not found"}, 400
+        return {"error": "Instagram Session ID not found. Please provide your Instagram session ID first."}, 400
 
     # Start processing in background using ThreadPoolExecutor
     app_data['processing_status'] = 'Processing...'

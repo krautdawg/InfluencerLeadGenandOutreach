@@ -95,13 +95,20 @@ async function processKeyword() {
     runButton.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Processing...';
     
     try {
+        // Add timeout to prevent hanging
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 300000); // 5 minutes
+        
         const response = await fetch('/process', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ keyword: keyword, searchLimit: searchLimit })
+            body: JSON.stringify({ keyword: keyword, searchLimit: searchLimit }),
+            signal: controller.signal
         });
+        
+        clearTimeout(timeoutId);
         
         const result = await response.json();
         
@@ -109,11 +116,21 @@ async function processKeyword() {
             displayResults(result.leads);
             showToast(`Successfully processed ${result.leads.length} leads`, 'success');
         } else {
-            showToast(result.error || 'Processing failed', 'error');
+            const errorMessage = result.error || 'Processing failed';
+            showToast(errorMessage, 'error');
+            
+            // If it's a session ID error, show the modal
+            if (errorMessage.includes('Instagram Session ID')) {
+                document.getElementById('sessionModal').style.display = 'block';
+            }
         }
     } catch (error) {
         console.error('Error processing keyword:', error);
-        showToast('Failed to process keyword', 'error');
+        if (error.name === 'AbortError') {
+            showToast('Request timed out. Please try again with a smaller search limit.', 'error');
+        } else {
+            showToast('Failed to process keyword. Please check your internet connection and try again.', 'error');
+        }
     } finally {
         // Hide processing status
         statusDiv.style.display = 'none';
