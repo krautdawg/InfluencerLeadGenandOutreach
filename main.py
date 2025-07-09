@@ -8,7 +8,7 @@ from datetime import datetime
 from email.mime.text import MIMEText
 from concurrent.futures import ThreadPoolExecutor
 import httpx
-from flask import Flask, render_template, request, jsonify, session, redirect, url_for
+from flask import Flask, render_template, request, jsonify, session, redirect, url_for, flash
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
@@ -405,9 +405,42 @@ async def enrich_profile_batch(usernames, ig_sessionid, apify_token,
             return []
 
 
+def check_password():
+    """Check if user is authenticated"""
+    return session.get('authenticated', False)
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    """Login page with password protection"""
+    if request.method == 'POST':
+        password = request.form.get('password')
+        app_password = os.environ.get('APP_PASSWORD')
+        
+        if not app_password:
+            flash('Application password not configured. Please contact administrator.', 'error')
+            return render_template('login.html')
+        
+        if password == app_password:
+            session['authenticated'] = True
+            return redirect(url_for('index'))
+        else:
+            flash('Invalid password. Please try again.', 'error')
+            return render_template('login.html')
+    
+    return render_template('login.html')
+
+@app.route('/logout')
+def logout():
+    """Logout and clear session"""
+    session.clear()
+    return redirect(url_for('login'))
+
 @app.route('/')
 def index():
     """Main page"""
+    if not check_password():
+        return redirect(url_for('login'))
+    
     ig_sessionid = session.get('ig_sessionid') or os.environ.get(
         'IG_SESSIONID')
     
@@ -430,6 +463,9 @@ def ping():
 @app.route('/session', methods=['POST'])
 def set_session():
     """Set Instagram session ID"""
+    if not check_password():
+        return {"error": "Authentication required"}, 401
+    
     data = request.get_json()
     if not data or not data.get('ig_sessionid'):
         return {"error": "Instagram Session ID is required"}, 400
@@ -441,6 +477,9 @@ def set_session():
 @app.route('/process', methods=['POST'])
 def process_keyword():
     """Process keyword and generate leads"""
+    if not check_password():
+        return {"error": "Authentication required"}, 401
+    
     data = request.get_json()
     keyword = data.get('keyword', '').strip()
     search_limit = data.get('searchLimit', 100)
@@ -672,6 +711,9 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit):
 @app.route('/draft/<username>', methods=['POST'])
 def draft_email(username):
     """Generate email draft using OpenAI"""
+    if not check_password():
+        return {"error": "Authentication required"}, 401
+    
     data = request.get_json()
     subject_prompt = data.get(
         'subject_prompt',
@@ -740,6 +782,9 @@ def draft_email(username):
 @app.route('/send/<username>', methods=['POST'])
 def send_email(username):
     """Send email using Gmail API"""
+    if not check_password():
+        return {"error": "Authentication required"}, 401
+    
     data = request.get_json()
     subject = data.get('subject', '')
     body = data.get('body', '')
@@ -801,6 +846,9 @@ def send_email(username):
 @app.route('/export/<format>')
 def export_data(format):
     """Export data in different formats"""
+    if not check_password():
+        return {"error": "Authentication required"}, 401
+    
     # Get leads from database
     leads = Lead.query.all()
     if not leads:
@@ -850,6 +898,9 @@ def export_data(format):
 @app.route('/clear')
 def clear_data():
     """Clear all stored data"""
+    if not check_password():
+        return {"error": "Authentication required"}, 401
+    
     try:
         # Clear all data from database
         Lead.query.delete()
