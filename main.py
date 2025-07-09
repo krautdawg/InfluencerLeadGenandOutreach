@@ -448,40 +448,24 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit):
         logger.error(f"Hashtag crawl failed for keyword '{keyword}': {e}")
         return []
 
-    # Step 2: Memory-efficient processing - extract unique usernames only
-    usernames_set = set()  # Use set for deduplication
+    # Step 2: Extract usernames from the processed data
+    # The call_apify_actor_sync function already processed and extracted usernames
     hashtag_items = hashtag_data.get('items', [])
     logger.info(f"Processing {len(hashtag_items)} hashtag items")
     
-    # Add better error handling and memory management
+    usernames_set = set()  # Use set for deduplication
+    
+    # Extract usernames from the processed items (these already contain ownerUsername)
     try:
         for item in hashtag_items:
             if not isinstance(item, dict):
                 logger.warning(f"Skipping non-dict item: {type(item)}")
                 continue
                 
-            # Process posts directly without storing them all in memory
-            # Process latestPosts - this ensures we get all usernames from this array
-            latest_posts = item.get('latestPosts', [])
-            if isinstance(latest_posts, list):
-                for post in latest_posts:
-                    if isinstance(post, dict):
-                        username = post.get('ownerUsername')
-                        if username and isinstance(username, str):
-                            usernames_set.add(username)
-            
-            # Process topPosts - this ensures we get all usernames from this array
-            top_posts = item.get('topPosts', [])
-            if isinstance(top_posts, list):
-                for post in top_posts:
-                    if isinstance(post, dict):
-                        username = post.get('ownerUsername')
-                        if username and isinstance(username, str):
-                            usernames_set.add(username)
-            
-            # Clear individual item from memory immediately
-            latest_posts = None
-            top_posts = None
+            # The streaming process already extracted usernames and stored them as ownerUsername
+            username = item.get('ownerUsername')
+            if username and isinstance(username, str):
+                usernames_set.add(username)
     
     except Exception as e:
         logger.error(f"Error during username extraction: {e}")
