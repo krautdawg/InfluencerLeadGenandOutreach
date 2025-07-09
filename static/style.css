@@ -1,0 +1,417 @@
+/* --- Kasimir Lieselotte Inspired Stylesheet --- */
+
+/* 1. Global Variables & Resets
+------------------------------------------- */
+:root {
+    --font-main: 'Cormorant Garamond', 'EB Garamond', 'Times New Roman', serif; /* Elegant serif font */
+    
+    --color-text: #000000;
+    --color-background: #FFFFFF;
+    --color-background-alt: #F2F2F2; /* Subtle grey for containers */
+    --color-border: #E0E0E0;
+    --color-accent: #A5A5A5; /* A slightly darker grey for hover states */
+    --color-duplicate: #FFA500; /* Orange for duplicate highlighting */
+}
+
+/* Import the recommended Google Font */
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&display=swap');
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+/* 2. Body & Typography
+------------------------------------------- */
+body {
+    font-family: var(--font-main);
+    background-color: var(--color-background);
+    color: var(--color-text);
+    line-height: 1.7; /* Generous line spacing for readability */
+    padding: 2rem;
+    font-size: 18px;
+    -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3 {
+    font-weight: 700; /* Bolder weight for headings */
+    line-height: 1.2;
+    margin-bottom: 1.5rem;
+}
+
+h1 { font-size: 2.5rem; }
+h2 { font-size: 2rem; }
+h3 { font-size: 1.5rem; }
+p { margin-bottom: 1rem; }
+a {
+    color: var(--color-text);
+    text-decoration: none;
+    transition: color 0.2s ease;
+}
+a:hover {
+    color: var(--color-accent);
+}
+
+.lead {
+    font-size: 1.2rem;
+    color: var(--color-accent);
+    font-weight: 400;
+}
+
+/* 3. Forms & Inputs
+------------------------------------------- */
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-control,
+textarea {
+    display: block;
+    width: 100%;
+    padding: 0.75rem 1rem;
+    font-family: var(--font-main);
+    font-size: 1rem;
+    border: 1px solid var(--color-border);
+    background-color: var(--color-background);
+    color: var(--color-text);
+    border-radius: 0; /* Sharp corners */
+    transition: border-color 0.2s ease;
+}
+
+.form-control:focus,
+textarea:focus {
+    outline: none;
+    border-color: var(--color-text);
+    box-shadow: none;
+}
+
+label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+.form-text {
+    font-size: 0.875rem;
+    color: var(--color-accent);
+    margin-top: 0.25rem;
+}
+
+/* 4. Buttons
+------------------------------------------- */
+.btn {
+    padding: 0.75rem 1.5rem;
+    font-family: var(--font-main);
+    font-size: 1rem;
+    font-weight: 600;
+    text-align: center;
+    cursor: pointer;
+    border: 1px solid var(--color-text);
+    background-color: var(--color-text);
+    color: var(--color-background);
+    border-radius: 0;
+    transition: background-color 0.2s ease, color 0.2s ease;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    text-decoration: none;
+}
+
+.btn:hover {
+    background-color: var(--color-background);
+    color: var(--color-text);
+}
+
+.btn:focus {
+    box-shadow: none;
+    outline: 2px solid var(--color-accent);
+}
+
+/* Primary button (overrides Bootstrap) */
+.btn-primary {
+    background-color: var(--color-text);
+    border-color: var(--color-text);
+    color: var(--color-background);
+}
+
+.btn-primary:hover {
+    background-color: var(--color-background);
+    border-color: var(--color-text);
+    color: var(--color-text);
+}
+
+/* Secondary button style (e.g., for "Draft") */
+.btn-secondary {
+    background-color: transparent;
+    color: var(--color-text);
+    border: 1px solid var(--color-border);
+}
+.btn-secondary:hover {
+    background-color: var(--color-background-alt);
+    border-color: var(--color-text);
+    color: var(--color-text);
+}
+
+.btn-link {
+    color: var(--color-text);
+    text-decoration: none;
+    text-transform: none;
+    letter-spacing: normal;
+    padding: 0;
+    border: none;
+    background: none;
+}
+
+.btn-link:hover {
+    color: var(--color-accent);
+}
+
+/* Small buttons */
+.btn-sm {
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+}
+
+/* 5. Layout & Containers
+------------------------------------------- */
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem;
+}
+
+.main-content {
+    background-color: var(--color-background-alt);
+    padding: 2rem;
+    margin-top: 2rem;
+}
+
+/* 6. Table Styles
+------------------------------------------- */
+.results-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 2rem;
+    background-color: var(--color-background);
+}
+
+.results-table th,
+.results-table td {
+    padding: 1rem;
+    text-align: left;
+    border-bottom: 1px solid var(--color-border);
+    vertical-align: top;
+}
+
+.results-table th {
+    font-weight: 700;
+    text-transform: uppercase;
+    font-size: 0.85rem;
+    letter-spacing: 0.05em;
+    background-color: var(--color-background-alt);
+    cursor: pointer;
+    user-select: none;
+}
+
+.results-table th:hover {
+    background-color: var(--color-border);
+}
+
+.results-table tr:last-child td {
+    border-bottom: none;
+}
+
+.results-table tr:nth-child(even) {
+    background-color: var(--color-background-alt);
+}
+
+/* Duplicate highlighting */
+.duplicate-row {
+    background-color: var(--color-duplicate) !important;
+}
+
+/* Table input fields */
+.table-input {
+    border: 1px solid var(--color-border);
+    padding: 0.5rem;
+    font-family: var(--font-main);
+    font-size: 0.875rem;
+    width: 100%;
+    min-width: 150px;
+}
+
+.table-textarea {
+    min-height: 80px;
+    resize: vertical;
+}
+
+/* 7. Modal (for session ID input)
+------------------------------------------- */
+.modal {
+    display: none; /* Hidden by default */
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0,0,0,0.5); /* Dim background */
+}
+
+.modal-content {
+    background-color: var(--color-background);
+    margin: 15% auto;
+    padding: 2rem;
+    width: 90%;
+    max-width: 500px;
+    border: 1px solid var(--color-border);
+}
+
+.modal-header {
+    border-bottom: 1px solid var(--color-border);
+    padding-bottom: 1rem;
+    margin-bottom: 1rem;
+}
+
+.modal-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+}
+
+.modal-footer {
+    border-top: 1px solid var(--color-border);
+    padding-top: 1rem;
+    margin-top: 1rem;
+    text-align: right;
+}
+
+/* 8. Cards
+------------------------------------------- */
+.card {
+    border: 1px solid var(--color-border);
+    border-radius: 0;
+    background-color: var(--color-background);
+}
+
+.card-header {
+    background-color: var(--color-background-alt);
+    border-bottom: 1px solid var(--color-border);
+    padding: 1rem;
+}
+
+.card-body {
+    padding: 1rem;
+}
+
+/* 9. Alerts & Notifications
+------------------------------------------- */
+.alert {
+    border-radius: 0;
+    border: 1px solid var(--color-border);
+    font-family: var(--font-main);
+}
+
+.alert-info {
+    background-color: var(--color-background-alt);
+    border-color: var(--color-border);
+    color: var(--color-text);
+}
+
+/* Toast notifications */
+.toast {
+    border-radius: 0;
+    border: 1px solid var(--color-border);
+    font-family: var(--font-main);
+}
+
+.toast-header {
+    background-color: var(--color-background-alt);
+    border-bottom: 1px solid var(--color-border);
+}
+
+/* 10. Utilities
+------------------------------------------- */
+.text-center {
+    text-align: center;
+}
+
+.mb-4 {
+    margin-bottom: 2rem;
+}
+
+.mb-5 {
+    margin-bottom: 3rem;
+}
+
+.me-2 {
+    margin-right: 0.5rem;
+}
+
+.me-auto {
+    margin-right: auto;
+}
+
+.w-100 {
+    width: 100%;
+}
+
+.table-responsive {
+    overflow-x: auto;
+}
+
+/* Status indicators */
+.status-sent {
+    color: #28a745;
+    font-weight: 600;
+}
+
+.status-draft {
+    color: var(--color-accent);
+    font-style: italic;
+}
+
+/* Loading spinner */
+.fa-spinner {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    body {
+        padding: 1rem;
+        font-size: 16px;
+    }
+    
+    .container {
+        padding: 1rem;
+    }
+    
+    .main-content {
+        padding: 1rem;
+    }
+    
+    h1 { font-size: 2rem; }
+    h2 { font-size: 1.5rem; }
+    
+    .results-table th,
+    .results-table td {
+        padding: 0.5rem;
+        font-size: 0.875rem;
+    }
+}
+
+/* Fix Bootstrap overrides */
+.btn:not(:disabled):not(.disabled) {
+    cursor: pointer;
+}
+
+.form-control:focus {
+    border-color: var(--color-text);
+    box-shadow: none;
+}

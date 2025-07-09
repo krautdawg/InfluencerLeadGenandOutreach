@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Instagram LeadGen</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header class="text-center mb-5">
+            <h1>Instagram LeadGen</h1>
+            <p class="lead">Elegant lead generation and outreach automation</p>
+        </header>
+
+        <!-- Session ID Modal -->
+        <div class="modal" id="sessionModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Instagram Session ID Required</h5>
+                    </div>
+                    <div class="modal-body">
+                        <div class="form-group">
+                            <label for="sessionInput">Please enter your Instagram Session ID:</label>
+                            <input type="text" class="form-control" id="sessionInput" placeholder="Enter IG_SESSIONID...">
+                            <small class="form-text text-muted">
+                                You can find this in your browser's developer tools under Application > Cookies > instagram.com > sessionid
+                            </small>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-primary" id="saveSession">Save Session ID</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Keyword Input -->
+            <div class="row mb-4">
+                <div class="col-md-8">
+                    <div class="form-group">
+                        <label for="keywordInput">Keyword eingeben...</label>
+                        <input type="text" class="form-control" id="keywordInput" placeholder="z.B. fitness, travel, food...">
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label>&nbsp;</label>
+                        <button type="button" class="btn btn-primary w-100" id="runButton">
+                            <i class="fas fa-play me-2"></i>Run
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Processing Status -->
+            <div id="processingStatus" class="alert alert-info" style="display: none;">
+                <i class="fas fa-spinner fa-spin me-2"></i>
+                <span id="statusText">Processing...</span>
+            </div>
+
+            <!-- Settings Panel -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <button class="btn btn-link text-decoration-none" type="button" data-bs-toggle="collapse" data-bs-target="#settingsPanel">
+                            <i class="fas fa-cog me-2"></i>Email Settings
+                        </button>
+                    </h5>
+                </div>
+                <div id="settingsPanel" class="collapse">
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="subjectPrompt">Subject Prompt:</label>
+                                    <textarea class="form-control" id="subjectPrompt" rows="3">Generate a compelling subject line for an outreach email to an Instagram influencer. Respond with JSON format: {"subject": "subject line"}</textarea>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="bodyPrompt">Body Prompt:</label>
+                                    <textarea class="form-control" id="bodyPrompt" rows="3">Generate a personalized, professional outreach email to an Instagram influencer for potential collaboration. Keep it concise and engaging.</textarea>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Export Options -->
+            <div class="row mb-4" id="exportSection" style="display: none;">
+                <div class="col-12">
+                    <div class="btn-group" role="group">
+                        <button type="button" class="btn btn-secondary" onclick="exportData('csv')">
+                            <i class="fas fa-file-csv me-2"></i>Export CSV
+                        </button>
+                        <button type="button" class="btn btn-secondary" onclick="exportData('json')">
+                            <i class="fas fa-file-code me-2"></i>Export JSON
+                        </button>
+                        <button type="button" class="btn btn-secondary" onclick="clearData()">
+                            <i class="fas fa-trash me-2"></i>Clear Data
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Results Table -->
+            <div id="resultsSection" style="display: none;">
+                <h3>Lead Generation Results</h3>
+                <div class="table-responsive">
+                    <table class="table results-table" id="resultsTable">
+                        <thead>
+                            <tr>
+                                <th onclick="sortTable(0)">Username <i class="fas fa-sort"></i></th>
+                                <th onclick="sortTable(1)">Full Name <i class="fas fa-sort"></i></th>
+                                <th onclick="sortTable(2)">Email <i class="fas fa-sort"></i></th>
+                                <th onclick="sortTable(3)">Followers <i class="fas fa-sort"></i></th>
+                                <th>Subject</th>
+                                <th>Email Body</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="resultsBody">
+                            <!-- Results will be populated here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container position-fixed bottom-0 end-0 p-3">
+        <div id="toastMessage" class="toast" role="alert">
+            <div class="toast-header">
+                <strong class="me-auto">Notification</strong>
+                <button type="button" class="btn-close" data-bs-dismiss="toast"></button>
+            </div>
+            <div class="toast-body" id="toastBody">
+                <!-- Toast message content -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Custom JS -->
+    <script src="{{ url_for('static', filename='ui.js') }}"></script>
+    
+    <script>
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check if session ID is available
+            {% if not ig_sessionid %}
+                document.getElementById('sessionModal').style.display = 'block';
+            {% endif %}
+            
+            // Load existing leads if available
+            {% if leads %}
+                const leads = {{ leads | tojsonfilter }};
+                displayResults(leads);
+            {% endif %}
+        });
+    </script>
+</body>
+</html>
