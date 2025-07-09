@@ -71,6 +71,12 @@ def save_hashtag_username_pairs(profiles, duplicates):
     saved_pairs = []
     batch_size = 50  # Process in batches for better performance
     
+    # Ensure we're in Flask application context
+    from flask import has_app_context
+    if not has_app_context():
+        logger.error("No Flask application context available for saving hashtag-username pairs")
+        return []
+    
     try:
         for i, profile in enumerate(profiles):
             hashtag = profile.get('hashtag', '')
@@ -78,6 +84,11 @@ def save_hashtag_username_pairs(profiles, duplicates):
             
             if not hashtag or not username:
                 continue
+            
+            # Double-check app context before database operations
+            if not has_app_context():
+                logger.error(f"Lost Flask app context at pair {i}")
+                break
             
             # Check if pair already exists
             existing_pair = HashtagUsernamePair.query.filter_by(
@@ -101,18 +112,29 @@ def save_hashtag_username_pairs(profiles, duplicates):
             
             # Commit in batches
             if (i + 1) % batch_size == 0:
-                db.session.commit()
-                logger.info(f"Committed batch {i + 1} hashtag-username pairs to database")
+                try:
+                    db.session.commit()
+                    logger.info(f"Committed batch {i + 1} hashtag-username pairs to database")
+                except Exception as commit_e:
+                    logger.error(f"Failed to commit hashtag-username pair batch {i + 1}: {commit_e}")
+                    db.session.rollback()
         
         # Final commit for remaining items
-        db.session.commit()
-        logger.info(f"Successfully saved {len(saved_pairs)} hashtag-username pairs to database")
+        try:
+            db.session.commit()
+            logger.info(f"Successfully saved {len(saved_pairs)} hashtag-username pairs to database")
+        except Exception as final_e:
+            logger.error(f"Failed final commit for hashtag-username pairs: {final_e}")
+            db.session.rollback()
         
         return saved_pairs
         
     except Exception as e:
         logger.error(f"Failed to save hashtag-username pairs: {e}")
-        db.session.rollback()
+        try:
+            db.session.rollback()
+        except:
+            pass
         raise
 
 
@@ -538,13 +560,24 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit):
         else:
             lead['is_duplicate'] = False
 
-    # Store results in database with aggressive memory optimization
+    # Store results in database with Flask app context maintained
     saved_leads = []
     batch_commit_size = 10  # Further reduced commit batch size to save memory
+    
+    # Ensure we're in Flask application context for database operations
+    from flask import has_app_context
+    if not has_app_context():
+        logger.error("No Flask application context available for database operations")
+        return []
     
     try:
         for i, lead_data in enumerate(enriched_leads):
             try:
+                # Double-check app context before each database operation
+                if not has_app_context():
+                    logger.error(f"Lost Flask app context at lead {i}")
+                    break
+                
                 # Check if lead already exists
                 existing_lead = Lead.query.filter_by(
                     username=lead_data['username'],
@@ -588,28 +621,48 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit):
                 
                 # Commit in batches to manage memory
                 if (i + 1) % batch_commit_size == 0:
-                    db.session.commit()
-                    logger.info(f"Committed batch {i + 1} leads to database")
+                    try:
+                        db.session.commit()
+                        logger.info(f"Committed batch {i + 1} leads to database")
+                    except Exception as commit_e:
+                        logger.error(f"Failed to commit batch {i + 1}: {commit_e}")
+                        db.session.rollback()
                     
             except Exception as e:
                 logger.error(f"Failed to save lead {lead_data.get('username', 'unknown')}: {e}")
+                db.session.rollback()  # Rollback on individual lead failure
                 continue
         
         # Final commit for remaining items
-        db.session.commit()
-        logger.info(f"Successfully saved {len(saved_leads)} leads to database")
+        try:
+            db.session.commit()
+            logger.info(f"Successfully saved {len(saved_leads)} leads to database")
+        except Exception as final_commit_e:
+            logger.error(f"Failed final commit: {final_commit_e}")
+            db.session.rollback()
         
     except Exception as e:
         logger.error(f"Failed to commit leads to database: {e}")
         db.session.rollback()
         raise
     finally:
-        # Ensure session cleanup
-        db.session.close()
+        # Ensure session cleanup but don't close session as it may be needed later
+        try:
+            db.session.rollback()  # Clean rollback to ensure clean state
+        except:
+            pass
     
-    # Return dictionary format for API response (already in app context)
-    fresh_leads = Lead.query.filter_by(hashtag=keyword).order_by(Lead.created_at.desc()).all()
-    return [lead.to_dict() for lead in fresh_leads]
+    # Return dictionary format for API response (check app context again)
+    try:
+        if has_app_context():
+            fresh_leads = Lead.query.filter_by(hashtag=keyword).order_by(Lead.created_at.desc()).all()
+            return [lead.to_dict() for lead in fresh_leads]
+        else:
+            logger.warning("Lost Flask app context for final query, returning saved leads data")
+            return [lead.to_dict() for lead in saved_leads if hasattr(lead, 'to_dict')]
+    except Exception as e:
+        logger.error(f"Failed to query fresh leads: {e}")
+        return []
 
 
 @app.route('/draft/<username>', methods=['POST'])
