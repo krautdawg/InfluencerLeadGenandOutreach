@@ -257,11 +257,11 @@ def process_keyword():
     if not keyword:
         return {"error": "Keyword is required"}, 400
     
-    # Validate search limit
+    # Validate search limit - reduced maximum to prevent memory issues
     try:
         search_limit = int(search_limit)
-        if search_limit < 1 or search_limit > 500:
-            return {"error": "Search limit must be between 1 and 500"}, 400
+        if search_limit < 1 or search_limit > 100:
+            return {"error": "Search limit must be between 1 and 100"}, 400
     except (ValueError, TypeError):
         return {"error": "Invalid search limit value"}, 400
 
@@ -274,10 +274,15 @@ def process_keyword():
     app_data['processing_status'] = 'Processing...'
 
     try:
-        # Run the async processing in a thread pool
+        # Run the async processing in a thread pool with memory optimization
         with ThreadPoolExecutor(max_workers=1) as executor:
             future = executor.submit(run_async_process, keyword, ig_sessionid, search_limit)
-            result = future.result(timeout=300)  # 5 minute timeout
+            try:
+                result = future.result(timeout=180)  # Reduced to 3 minutes
+            except TimeoutError:
+                logger.error("Processing timed out after 3 minutes")
+                app_data['processing_status'] = None
+                return {"error": "Processing timed out. Please try with a smaller search limit."}, 408
 
         app_data['processing_status'] = None
         return {"success": True, "leads": result}
@@ -329,23 +334,23 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit):
     hashtag_data = call_apify_actor_sync("DrF9mzPPEuVizVF4l", hashtag_input,
                                          apify_token)
 
-    # Step 2: Flatten and deduplicate
-    all_posts = []
+    # Step 2: Memory-efficient processing - extract usernames without storing all posts
+    usernames_set = set()  # Use set for deduplication
     logger.info(f"Processing {len(hashtag_data.get('items', []))} hashtag items")
-    for item in hashtag_data.get('items', []):
-        all_posts.extend(item.get('latestPosts', []))
-        all_posts.extend(item.get('topPosts', []))
     
-    logger.info(f"Found {len(all_posts)} total posts")
+    for item in hashtag_data.get('items', []):
+        # Process posts directly without storing them all in memory
+        for post in item.get('latestPosts', []):
+            if post.get('ownerUsername'):
+                usernames_set.add(post['ownerUsername'])
+        for post in item.get('topPosts', []):
+            if post.get('ownerUsername'):
+                usernames_set.add(post['ownerUsername'])
+    
+    logger.info(f"Found {len(usernames_set)} unique usernames from posts")
 
-    # Extract unique usernames
-    profiles = []
-    for post in all_posts:
-        if post.get('ownerUsername'):
-            profiles.append({
-                'hashtag': keyword,
-                'username': post['ownerUsername']
-            })
+    # Convert to profiles list
+    profiles = [{'hashtag': keyword, 'username': username} for username in usernames_set]
 
     logger.info(f"Found {len(profiles)} profiles")
     
@@ -357,14 +362,14 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit):
     unique_profiles, duplicates = deduplicate_profiles(profiles)
     logger.info(f"After deduplication: {len(unique_profiles)} unique profiles")
 
-    # Step 3: Profile enrichment with concurrency
-    semaphore = asyncio.Semaphore(10)  # Limit to 10 concurrent calls
+    # Step 3: Profile enrichment with reduced memory footprint
+    semaphore = asyncio.Semaphore(3)  # Reduced to 3 concurrent calls to save memory
     perplexity_semaphore = asyncio.Semaphore(
-        5)  # Limit to 5 concurrent Perplexity calls
+        2)  # Reduced to 2 concurrent Perplexity calls
 
-    # Batch usernames for processing
+    # Batch usernames for processing with smaller batches
     usernames = [p['username'] for p in unique_profiles]
-    batch_size = 5
+    batch_size = 3  # Reduced batch size to lower memory usage
     batches = [
         usernames[i:i + batch_size]
         for i in range(0, len(usernames), batch_size)
@@ -399,65 +404,79 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit):
         else:
             lead['is_duplicate'] = False
 
-    # Store results in database
+    # Store results in database with memory optimization
     saved_leads = []
-    for lead_data in enriched_leads:
-        try:
-            # Check if lead already exists
-            existing_lead = Lead.query.filter_by(
-                username=lead_data['username'],
-                hashtag=keyword
-            ).first()
-            
-            if existing_lead:
-                # Update existing lead
-                existing_lead.full_name = lead_data.get('fullName', '')
-                existing_lead.bio = lead_data.get('bio', '')
-                existing_lead.email = lead_data.get('email', '')
-                existing_lead.phone = lead_data.get('phone', '')
-                existing_lead.website = lead_data.get('website', '')
-                existing_lead.followers_count = lead_data.get('followersCount', 0)
-                existing_lead.following_count = lead_data.get('followingCount', 0)
-                existing_lead.posts_count = lead_data.get('postsCount', 0)
-                existing_lead.is_verified = lead_data.get('isVerified', False)
-                existing_lead.profile_pic_url = lead_data.get('profilePicUrl', '')
-                existing_lead.is_duplicate = lead_data.get('is_duplicate', False)
-                existing_lead.updated_at = datetime.utcnow()
-                saved_leads.append(existing_lead)
-            else:
-                # Create new lead
-                new_lead = Lead(
-                    username=lead_data['username'],
-                    hashtag=keyword,
-                    full_name=lead_data.get('fullName', ''),
-                    bio=lead_data.get('bio', ''),
-                    email=lead_data.get('email', ''),
-                    phone=lead_data.get('phone', ''),
-                    website=lead_data.get('website', ''),
-                    followers_count=lead_data.get('followersCount', 0),
-                    following_count=lead_data.get('followingCount', 0),
-                    posts_count=lead_data.get('postsCount', 0),
-                    is_verified=lead_data.get('isVerified', False),
-                    profile_pic_url=lead_data.get('profilePicUrl', ''),
-                    is_duplicate=lead_data.get('is_duplicate', False)
-                )
-                db.session.add(new_lead)
-                saved_leads.append(new_lead)
-                
-        except Exception as e:
-            logger.error(f"Failed to save lead {lead_data.get('username', 'unknown')}: {e}")
-            continue
+    batch_commit_size = 20  # Commit in smaller batches to reduce memory usage
     
     try:
+        for i, lead_data in enumerate(enriched_leads):
+            try:
+                # Check if lead already exists
+                existing_lead = Lead.query.filter_by(
+                    username=lead_data['username'],
+                    hashtag=keyword
+                ).first()
+                
+                if existing_lead:
+                    # Update existing lead
+                    existing_lead.full_name = lead_data.get('fullName', '')
+                    existing_lead.bio = lead_data.get('bio', '')
+                    existing_lead.email = lead_data.get('email', '')
+                    existing_lead.phone = lead_data.get('phone', '')
+                    existing_lead.website = lead_data.get('website', '')
+                    existing_lead.followers_count = lead_data.get('followersCount', 0)
+                    existing_lead.following_count = lead_data.get('followingCount', 0)
+                    existing_lead.posts_count = lead_data.get('postsCount', 0)
+                    existing_lead.is_verified = lead_data.get('isVerified', False)
+                    existing_lead.profile_pic_url = lead_data.get('profilePicUrl', '')
+                    existing_lead.is_duplicate = lead_data.get('is_duplicate', False)
+                    existing_lead.updated_at = datetime.utcnow()
+                    saved_leads.append(existing_lead)
+                else:
+                    # Create new lead
+                    new_lead = Lead(
+                        username=lead_data['username'],
+                        hashtag=keyword,
+                        full_name=lead_data.get('fullName', ''),
+                        bio=lead_data.get('bio', ''),
+                        email=lead_data.get('email', ''),
+                        phone=lead_data.get('phone', ''),
+                        website=lead_data.get('website', ''),
+                        followers_count=lead_data.get('followersCount', 0),
+                        following_count=lead_data.get('followingCount', 0),
+                        posts_count=lead_data.get('postsCount', 0),
+                        is_verified=lead_data.get('isVerified', False),
+                        profile_pic_url=lead_data.get('profilePicUrl', ''),
+                        is_duplicate=lead_data.get('is_duplicate', False)
+                    )
+                    db.session.add(new_lead)
+                    saved_leads.append(new_lead)
+                
+                # Commit in batches to manage memory
+                if (i + 1) % batch_commit_size == 0:
+                    db.session.commit()
+                    logger.info(f"Committed batch {i + 1} leads to database")
+                    
+            except Exception as e:
+                logger.error(f"Failed to save lead {lead_data.get('username', 'unknown')}: {e}")
+                continue
+        
+        # Final commit for remaining items
         db.session.commit()
         logger.info(f"Successfully saved {len(saved_leads)} leads to database")
+        
     except Exception as e:
         logger.error(f"Failed to commit leads to database: {e}")
         db.session.rollback()
         raise
+    finally:
+        # Ensure session cleanup
+        db.session.close()
     
-    # Return dictionary format for API response
-    return [lead.to_dict() for lead in saved_leads]
+    # Return dictionary format for API response (create new session for reading)
+    with app.app_context():
+        fresh_leads = Lead.query.filter_by(hashtag=keyword).order_by(Lead.created_at.desc()).all()
+        return [lead.to_dict() for lead in fresh_leads]
 
 
 @app.route('/draft/<username>', methods=['POST'])

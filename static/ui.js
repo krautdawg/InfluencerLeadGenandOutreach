@@ -79,8 +79,8 @@ async function processKeyword() {
         return;
     }
     
-    if (searchLimit < 1 || searchLimit > 500) {
-        showToast('Search limit must be between 1 and 500', 'error');
+    if (searchLimit < 1 || searchLimit > 100) {
+        showToast('Search limit must be between 1 and 100', 'error');
         return;
     }
     
@@ -95,9 +95,9 @@ async function processKeyword() {
     runButton.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Processing...';
     
     try {
-        // Add timeout to prevent hanging
+        // Add timeout to match backend timeout
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 300000); // 5 minutes
+        const timeoutId = setTimeout(() => controller.abort(), 200000); // 3.3 minutes (slightly longer than backend)
         
         const response = await fetch('/process', {
             method: 'POST',
