@@ -436,42 +436,71 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit):
     hashtag_data = call_apify_actor_sync("DrF9mzPPEuVizVF4l", hashtag_input,
                                          apify_token)
 
-    # Step 2: Memory-efficient processing - extract hashtag-username pairs from posts
+    # Step 2: Extract ALL hashtag-username pairs from raw data
     hashtag_username_pairs = set()  # Use set for deduplication of hashtag-username pairs
     hashtag_items = hashtag_data.get('items', [])
     logger.info(f"Processing {len(hashtag_items)} hashtag items")
     
+    # Debug: Log raw data structure
+    if hashtag_items:
+        sample_item = hashtag_items[0]
+        logger.info(f"Sample item keys: {list(sample_item.keys())}")
+        if 'latestPosts' in sample_item and sample_item['latestPosts']:
+            sample_post = sample_item['latestPosts'][0]
+            logger.info(f"Sample post keys: {list(sample_post.keys())}")
+    
     for item in hashtag_items:
-        # Process posts directly without storing them all in memory
-        for post in item.get('latestPosts', []):
-            username = post.get('ownerUsername')
-            if username:
-                # Extract hashtags from the post
-                post_hashtags = post.get('hashtags', [])
-                if post_hashtags:
-                    # Use actual hashtags from the post
-                    for hashtag in post_hashtags:
-                        hashtag_clean = hashtag.replace('#', '').strip()
-                        if hashtag_clean:
-                            hashtag_username_pairs.add((hashtag_clean, username))
-                else:
-                    # Fallback to search keyword if no hashtags found in post
-                    hashtag_username_pairs.add((keyword, username))
+        # Process all posts from all categories
+        all_posts = []
         
-        for post in item.get('topPosts', []):
+        # Collect all posts from different categories
+        all_posts.extend(item.get('latestPosts', []))
+        all_posts.extend(item.get('topPosts', []))
+        
+        logger.info(f"Processing {len(all_posts)} total posts in this item")
+        
+        for post in all_posts:
             username = post.get('ownerUsername')
             if username:
-                # Extract hashtags from the post
-                post_hashtags = post.get('hashtags', [])
+                # Try multiple possible hashtag fields
+                post_hashtags = []
+                
+                # Check different possible hashtag field names
+                for hashtag_field in ['hashtags', 'caption', 'text', 'description']:
+                    if hashtag_field in post:
+                        field_value = post[hashtag_field]
+                        if isinstance(field_value, list):
+                            post_hashtags.extend(field_value)
+                        elif isinstance(field_value, str):
+                            # Extract hashtags from text using regex
+                            import re
+                            hashtag_matches = re.findall(r'#(\w+)', field_value)
+                            post_hashtags.extend(hashtag_matches)
+                
                 if post_hashtags:
                     # Use actual hashtags from the post
                     for hashtag in post_hashtags:
-                        hashtag_clean = hashtag.replace('#', '').strip()
+                        hashtag_clean = str(hashtag).replace('#', '').strip()
                         if hashtag_clean:
                             hashtag_username_pairs.add((hashtag_clean, username))
+                            logger.debug(f"Added pair: {hashtag_clean} -> {username}")
                 else:
                     # Fallback to search keyword if no hashtags found in post
                     hashtag_username_pairs.add((keyword, username))
+                    logger.debug(f"Fallback pair: {keyword} -> {username}")
+        
+        # Also check if the item itself contains hashtag information
+        if 'hashtag' in item:
+            item_hashtag = item['hashtag'].replace('#', '').strip()
+            # Get all usernames from this hashtag's posts
+            all_usernames = set()
+            for post in all_posts:
+                if post.get('ownerUsername'):
+                    all_usernames.add(post['ownerUsername'])
+            
+            for username in all_usernames:
+                hashtag_username_pairs.add((item_hashtag, username))
+                logger.debug(f"Added item pair: {item_hashtag} -> {username}")
     
     # Clear hashtag_data from memory to help with garbage collection
     hashtag_data = None
