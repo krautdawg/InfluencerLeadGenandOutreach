@@ -209,8 +209,13 @@ async def process_keyword_async(keyword, ig_sessionid):
     apify_token = os.environ.get('APIFY_TOKEN')
     perplexity_key = os.environ.get('PERPLEXITY_API_KEY')
     
-    if not all([apify_token, perplexity_key]):
-        raise ValueError("Missing required API tokens")
+    if not all([apify_token, perplexity_key]) or not apify_token.strip() or not perplexity_key.strip():
+        missing_keys = []
+        if not apify_token or not apify_token.strip():
+            missing_keys.append('APIFY_TOKEN')
+        if not perplexity_key or not perplexity_key.strip():
+            missing_keys.append('PERPLEXITY_API_KEY')
+        raise ValueError(f"Missing or empty API tokens: {', '.join(missing_keys)}")
     
     # Step 1: Hashtag crawl
     hashtag_input = {
