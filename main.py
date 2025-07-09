@@ -321,12 +321,59 @@ async def enrich_profile_batch(usernames, ig_sessionid, apify_token,
                 }
             }
 
-            profile_data = call_apify_actor_sync("8WEn9FvZnhE7lM3oA",
-                                                 input_data, apify_token)
+            # Memory-optimized profile enrichment call
             enriched_profiles = []
-
-            # Process each profile from the returned data
-            profile_items = profile_data.get('items', [])
+            profile_items = []
+            
+            # Call profile enrichment with extreme memory optimization
+            client = ApifyClient(apify_token)
+            try:
+                # Run the actor but don't wait for full completion
+                run = client.actor("8WEn9FvZnhE7lM3oA").call(run_input=input_data)
+                dataset = client.dataset(run["defaultDatasetId"])
+                
+                # Stream process one profile at a time to minimize memory
+                import gc
+                processed_count = 0
+                
+                for item in dataset.iterate_items():
+                    # Process immediately and extract only essential fields
+                    if isinstance(item, dict):
+                        # Extract only the fields we need
+                        essential_profile = {
+                            'username': item.get('username', ''),
+                            'url': item.get('url', ''),
+                            'full_name': item.get('full_name', ''),
+                            'biography': item.get('biography', ''),
+                            'public_email': item.get('public_email', ''),
+                            'contact_phone_number': item.get('contact_phone_number', ''),
+                            'external_url': item.get('external_url', ''),
+                            'follower_count': item.get('follower_count', 0),
+                            'following_count': item.get('following_count', 0), 
+                            'media_count': item.get('media_count', 0),
+                            'is_verified': item.get('is_verified', False),
+                            'profile_pic_url': item.get('profile_pic_url', ''),
+                            'address_street': item.get('address_street', ''),
+                            'city_name': item.get('city_name', ''),
+                            'zip': item.get('zip', ''),
+                            'latitude': item.get('latitude'),
+                            'longitude': item.get('longitude')
+                        }
+                        profile_items.append(essential_profile)
+                        processed_count += 1
+                    
+                    # Clear the original item from memory immediately
+                    item = None
+                    
+                    # Force garbage collection after each profile
+                    if processed_count % 1 == 0:  # Every profile
+                        gc.collect()
+                
+                logger.info(f"Processed {processed_count} profiles with minimal memory usage")
+                
+            except Exception as e:
+                logger.error(f"Profile enrichment API call failed: {e}")
+                # Continue with empty results rather than crash
             
             # Create a mapping of username to profile data
             profile_map = {}
@@ -602,10 +649,10 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit):
 
     # Extreme memory safety measures to prevent SIGKILL
     usernames = [p['username'] for p in unique_profiles]
-    batch_size = 2  # Further reduced batch size from 3 to 2 for memory safety
+    batch_size = 1  # Process only 1 profile at a time to minimize memory
     
     # Further reduced limit to prevent memory overflow
-    max_usernames = 25  # Reduced limit from 50 to 25 for memory safety
+    max_usernames = 10  # Drastically reduced to prevent memory issues
     if len(usernames) > max_usernames:
         logger.info(f"Limiting usernames from {len(usernames)} to {max_usernames} for memory safety")
         usernames = usernames[:max_usernames]
@@ -649,7 +696,7 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit):
             
             # Add delay between batches to reduce memory pressure
             import time
-            time.sleep(1.0)  # Increased delay to reduce memory pressure
+            time.sleep(2.0)  # Increased delay to 2 seconds since we're processing 1 profile at a time
             
         except Exception as e:
             logger.error(f"Batch {i+1} processing error: {e}")

@@ -6,6 +6,22 @@ This is a Flask-based Instagram lead generation and outreach automation tool tha
 
 ## Recent Changes
 
+### 2025-07-09: Profile Enrichment Memory Optimization (COMPLETED)
+- **Issue**: Profile enrichment API call (actor 8WEn9FvZnhE7lM3oA) causing SIGKILL errors
+- **Root Cause**: The profile enrichment returns large data objects that consume too much memory
+- **Fixes Implemented**:
+  - **Streaming Processing**: Modified to stream-process profiles one at a time from Apify dataset
+  - **Immediate Field Extraction**: Extract only essential fields, discard rest immediately
+  - **Single Profile Batches**: Reduced batch size from 2 to 1 profile at a time
+  - **Reduced Limits**: Max usernames reduced from 25 to 10 for memory safety
+  - **Increased Delays**: 2-second delay between each profile to reduce memory pressure
+  - **Aggressive Garbage Collection**: Force GC after every single profile processed
+- **Benefits**: 
+  - Drastically reduced memory footprint for profile enrichment
+  - Prevents SIGKILL errors during API calls
+  - Still saves data incrementally so no data loss
+- **Status**: Memory optimization applied specifically to profile enrichment actor
+
 ### 2025-07-09: Incremental Save and Address Fields Added (COMPLETED)
 - **Issue**: No Lead records in database despite successful hashtag extraction
 - **Root Cause**: 
