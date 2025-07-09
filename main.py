@@ -513,7 +513,7 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit):
         # Continue processing even if saving pairs fails
 
     # Step 3: Profile enrichment with aggressive memory optimization
-    semaphore = asyncio.Semaphore(2)  # Further reduced to 2 concurrent calls
+    semaphore = asyncio.Semaphore(20)  # Further reduced to 2 concurrent calls
     perplexity_semaphore = asyncio.Semaphore(1)  # Reduced to 1 concurrent Perplexity call
 
     # Extreme memory safety measures to prevent SIGKILL
