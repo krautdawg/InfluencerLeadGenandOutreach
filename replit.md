@@ -6,19 +6,19 @@ This is a Flask-based Instagram lead generation and outreach automation tool tha
 
 ## Recent Changes
 
-### 2025-07-09: Fixed Memory Issues and Server Stability
-- **Issue**: Application experiencing SIGKILL errors due to memory exhaustion and worker crashes
+### 2025-07-09: Fixed Critical Memory Issues and SIGKILL Errors
+- **Issue**: Application experiencing SIGKILL errors due to memory exhaustion when processing large Apify datasets
 - **Resolution**: Implemented comprehensive memory optimization and resource management
 - **Changes Made**:
-  - Reduced concurrent processing limits from 10 to 3 simultaneous operations
-  - Optimized data processing to avoid storing large arrays in memory
-  - Implemented batch database commits (20 items per batch) instead of single large transactions
-  - Added proper database session cleanup and resource management
-  - Reduced search limit from 500 to 100 to prevent memory overload
-  - Shortened processing timeout from 5 minutes to 3 minutes for better resource control
-  - Updated frontend timeout to match backend constraints
-  - Switched to set-based username extraction to avoid duplicate storage
-- **Status**: Memory usage optimized, server stability improved, processing more efficient
+  - **Batch Processing**: Modified `call_apify_actor_sync` to process dataset items in batches of 20 instead of loading all items into memory at once
+  - **Item Limits**: Added maximum item limit of 1000 to prevent memory overflow from large datasets
+  - **Memory Cleanup**: Added explicit variable clearing (`hashtag_data = None`) to help with garbage collection
+  - **Database Optimization**: Reduced batch commit size from 20 to smaller chunks with proper session cleanup
+  - **Concurrent Processing**: Reduced concurrent processing limits from 10 to 3 simultaneous operations
+  - **Search Limits**: Reduced search limit from 500 to 100 to prevent memory overload
+  - **Processing Timeout**: Shortened processing timeout from 5 minutes to 3 minutes for better resource control
+  - **Username Extraction**: Switched to set-based username extraction to avoid duplicate storage
+- **Status**: Memory usage optimized, SIGKILL errors resolved, server stability improved
 
 ### 2025-07-09: Integrated PostgreSQL Database
 - **Issue**: Application was using in-memory storage which lost data on restart

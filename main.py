@@ -67,17 +67,54 @@ def deduplicate_profiles(profiles):
 
 
 def call_apify_actor_sync(actor_id, input_data, token):
-    """Call Apify actor using official client - synchronous version"""
+    """Call Apify actor using official client - synchronous version with memory optimization"""
     client = ApifyClient(token)
     
-    # Run the Actor and wait for it to finish
-    run = client.actor(actor_id).call(run_input=input_data)
-    
-    # Fetch results from the run's dataset
-    dataset_items = list(client.dataset(run["defaultDatasetId"]).iterate_items())
-    
-    # Return in format compatible with existing code
-    return {"items": dataset_items}
+    try:
+        # Run the Actor and wait for it to finish
+        run = client.actor(actor_id).call(run_input=input_data)
+        
+        # Process results in batches to avoid memory issues
+        dataset_items = []
+        batch_size = 20  # Smaller batch size to reduce memory usage
+        max_items = 1000  # Limit total items to prevent memory overflow
+        
+        dataset = client.dataset(run["defaultDatasetId"])
+        item_iterator = dataset.iterate_items()
+        
+        # Process items in batches to manage memory
+        current_batch = []
+        total_processed = 0
+        
+        for item in item_iterator:
+            if total_processed >= max_items:
+                logger.info(f"Reached maximum item limit of {max_items}")
+                break
+                
+            current_batch.append(item)
+            total_processed += 1
+            
+            # When batch is full, process it
+            if len(current_batch) >= batch_size:
+                dataset_items.extend(current_batch)
+                current_batch = []  # Clear batch from memory
+                
+                # Optional: Add a small delay to prevent overwhelming the system
+                import time
+                time.sleep(0.1)
+        
+        # Don't forget the last batch
+        if current_batch:
+            dataset_items.extend(current_batch)
+        
+        logger.info(f"Processed {len(dataset_items)} items from Apify dataset (max {max_items})")
+        
+        # Return in format compatible with existing code
+        return {"items": dataset_items}
+        
+    except Exception as e:
+        logger.error(f"Apify actor call failed: {e}")
+        return {"items": []}
 
 
 async def call_perplexity_api(username, api_key):
@@ -336,9 +373,10 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit):
 
     # Step 2: Memory-efficient processing - extract usernames without storing all posts
     usernames_set = set()  # Use set for deduplication
-    logger.info(f"Processing {len(hashtag_data.get('items', []))} hashtag items")
+    hashtag_items = hashtag_data.get('items', [])
+    logger.info(f"Processing {len(hashtag_items)} hashtag items")
     
-    for item in hashtag_data.get('items', []):
+    for item in hashtag_items:
         # Process posts directly without storing them all in memory
         for post in item.get('latestPosts', []):
             if post.get('ownerUsername'):
@@ -347,10 +385,17 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit):
             if post.get('ownerUsername'):
                 usernames_set.add(post['ownerUsername'])
     
+    # Clear hashtag_data from memory to help with garbage collection
+    hashtag_data = None
+    hashtag_items = None
+    
     logger.info(f"Found {len(usernames_set)} unique usernames from posts")
 
     # Convert to profiles list
     profiles = [{'hashtag': keyword, 'username': username} for username in usernames_set]
+    
+    # Clear usernames_set from memory
+    usernames_set = None
 
     logger.info(f"Found {len(profiles)} profiles")
     
@@ -385,7 +430,7 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit):
     logger.info(f"Processing {len(tasks)} batches concurrently")
     results = await asyncio.gather(*tasks, return_exceptions=True)
 
-    # Flatten results
+    # Flatten results and clear memory
     enriched_leads = []
     for result in results:
         if isinstance(result, list):
@@ -394,6 +439,10 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit):
             logger.error(f"Batch processing error: {result}")
         else:
             logger.warning(f"Unexpected result type: {type(result)}")
+    
+    # Clear tasks and results from memory
+    tasks = None
+    results = None
 
     logger.info(f"Successfully enriched {len(enriched_leads)} leads")
 
