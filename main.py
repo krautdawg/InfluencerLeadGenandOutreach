@@ -240,12 +240,15 @@ async def call_perplexity_api(profile_info, api_key):
 
             try:
                 content = result['choices'][0]['message']['content']
+                logger.info(f"Perplexity API raw response for {username}: {content}")
                 # Try to parse JSON from the response
                 contact_info = json.loads(content)
+                logger.info(f"Perplexity API parsed contact info for {username}: {contact_info}")
                 return contact_info
             except (json.JSONDecodeError, KeyError) as e:
                 logger.error(
                     f"Failed to parse Perplexity response for {username}: {e}")
+                logger.error(f"Raw response content: {content if 'content' in locals() else 'No content'}")
                 return {"email": "", "phone": "", "website": ""}
         except httpx.HTTPStatusError as e:
             logger.error(f"Perplexity API HTTP error for {username}: {e.response.status_code} - {e.response.text}")
