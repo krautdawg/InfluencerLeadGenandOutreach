@@ -723,34 +723,33 @@ def draft_email(username):
         return {"error": "Lead not found"}, 404
 
     try:
-        # Generate subject
+        # Generate subject in German
         subject_response = openai_client.chat.completions.create(
             model="gpt-4o",
             messages=[{
                 "role": "system",
-                "content": subject_prompt
+                "content": "Erstelle eine ansprechende deutsche Betreffzeile für eine professionelle Outreach-E-Mail von Kasimir vom Store KasimirLieselotte. Die Betreffzeile sollte elegant und persönlich sein. Antworte im JSON-Format: {\"subject\": \"betreff text\"}"
             }, {
                 "role":
                 "user",
                 "content":
-                f"Profile: @{lead.username}, Name: {lead.full_name}, Bio: {lead.bio}"
+                f"Profil: @{lead.username}, Name: {lead.full_name}, Bio: {lead.bio}"
             }],
             response_format={"type": "json_object"},
             max_tokens=100)
 
-        # Generate body
+        # Generate body in German with KasimirLieselotte branding
         body_response = openai_client.chat.completions.create(
             model="gpt-4o",
             messages=[{
                 "role":
                 "system",
-                "content":
-                f"{body_prompt} Respond with JSON format: {{\"body\": \"email content\"}}"
+                "content": "Erstelle eine personalisierte, professionelle deutsche E-Mail für potenzielle Kooperationen. Die E-Mail kommt von Kasimir vom eleganten Store KasimirLieselotte. Verwende einen höflichen, professionellen Ton auf Deutsch. Füge am Ende die Signatur mit der Website https://www.kasimirlieselotte.de/ hinzu. Antworte im JSON-Format: {\"body\": \"email inhalt\"}"
             }, {
                 "role":
                 "user",
                 "content":
-                f"Profile: @{lead.username}, Name: {lead.full_name}, Bio: {lead.bio}, Email: {lead.email}"
+                f"Profil: @{lead.username}, Name: {lead.full_name}, Bio: {lead.bio}, Email: {lead.email}"
             }],
             response_format={"type": "json_object"},
             max_tokens=500)
