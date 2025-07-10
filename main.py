@@ -217,7 +217,7 @@ async def call_perplexity_api(profile_info, api_key):
     """
 
     data = {
-        "model": "sonar-small-128k-online",
+        "model": "sonar",
         "messages": [
             {
                 "role": "system",
