@@ -86,11 +86,11 @@ class TestPerplexityAPI:
             # Call the function
             result = await call_perplexity_api(self.profile_data, self.api_key)
             
-            # Verify the result
+            # Verify the result - should prioritize existing website from profile data
             assert result == {
                 "email": "info@azaliah.at",
                 "phone": "+43 123 456 789",
-                "website": "https://azaliah.at"
+                "website": "http://azaliah.at"  # Uses existing website from profile
             }
             
             # Verify the API was called with correct parameters
@@ -130,11 +130,11 @@ class TestPerplexityAPI:
             # Call the function
             result = await call_perplexity_api(self.profile_data, self.api_key)
             
-            # Verify the result includes partial data
+            # Verify the result includes partial data, prioritizing existing website
             assert result == {
                 "email": "contact@azaliah.at",
                 "phone": "",
-                "website": "https://azaliah.at"
+                "website": "http://azaliah.at"  # Uses existing website from profile
             }
     
     @pytest.mark.asyncio
@@ -150,8 +150,8 @@ class TestPerplexityAPI:
             # Call the function
             result = await call_perplexity_api(self.profile_data, self.api_key)
             
-            # Verify fallback response is returned
-            assert result == {"email": "", "phone": "", "website": ""}
+            # Verify fallback response includes existing website
+            assert result == {"email": "", "phone": "", "website": "http://azaliah.at"}
     
     @pytest.mark.asyncio
     async def test_http_error_response(self):
@@ -170,8 +170,8 @@ class TestPerplexityAPI:
             # Call the function
             result = await call_perplexity_api(self.profile_data, self.api_key)
             
-            # Verify fallback response is returned
-            assert result == {"email": "", "phone": "", "website": ""}
+            # Verify fallback response includes existing website
+            assert result == {"email": "", "phone": "", "website": "http://azaliah.at"}
     
     @pytest.mark.asyncio
     async def test_network_error(self):
@@ -183,8 +183,8 @@ class TestPerplexityAPI:
             # Call the function
             result = await call_perplexity_api(self.profile_data, self.api_key)
             
-            # Verify fallback response is returned
-            assert result == {"email": "", "phone": "", "website": ""}
+            # Verify fallback response includes existing website
+            assert result == {"email": "", "phone": "", "website": "http://azaliah.at"}
     
     @pytest.mark.asyncio
     async def test_missing_profile_fields(self):

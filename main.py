@@ -199,7 +199,12 @@ async def call_perplexity_api(profile_info, api_key):
     posts = profile_info.get('media_count', 0)
     is_verified = profile_info.get('is_verified', False)
     
-    # Create detailed profile description
+    # Extract existing contact information from the lead database
+    existing_email = profile_info.get('email', '') or profile_info.get('public_email', '')
+    existing_phone = profile_info.get('phone', '') or profile_info.get('contact_phone_number', '')
+    existing_website = profile_info.get('website', '') or profile_info.get('external_url', '')
+    
+    # Create detailed profile description including existing contact info
     profile_description = f"""
     Instagram Profile Information:
     - Username: {username}
@@ -209,6 +214,11 @@ async def call_perplexity_api(profile_info, api_key):
     - Following: {following}
     - Posts: {posts}
     - Verified: {is_verified}
+    
+    Existing Contact Information:
+    - Email: {existing_email if existing_email else 'Not found'}
+    - Phone: {existing_phone if existing_phone else 'Not found'}
+    - Website: {existing_website if existing_website else 'Not found'}
     """
 
     data = {
@@ -220,7 +230,7 @@ async def call_perplexity_api(profile_info, api_key):
             },
             {
                 "role": "user",
-                "content": f"Basierend auf diesen Instagram-Profilinformationen, suche nach E-Mail-Adresse, Telefonnummer oder Website:\n\n{profile_description}\n\nSuche nach öffentlich verfügbaren Kontaktinformationen für diese Person/dieses Unternehmen. Antworte nur als JSON: {{ \"email\": \"...\", \"phone\": \"...\", \"website\": \"...\" }}"
+                "content": f"Basierend auf diesen Instagram-Profilinformationen, suche nach E-Mail-Adresse, Telefonnummer oder Website:\n\n{profile_description}\n\nWICHTIG: Falls bereits Kontaktinformationen vorhanden sind, verwende diese. Suche nur nach fehlenden Informationen. Wenn eine Website, Email oder Telefonnummer bereits bekannt ist, gib diese zurück und suche nach den fehlenden Daten. Antworte nur als JSON: {{ \"email\": \"...\", \"phone\": \"...\", \"website\": \"...\" }}"
             }
         ],
         "temperature": 0.2,
@@ -259,13 +269,28 @@ async def call_perplexity_api(profile_info, api_key):
                     
                     json_content = content[json_start:json_end]
                     contact_info = json.loads(json_content)
+                    
+                    # Merge existing contact info with new findings
+                    # Prioritize existing data from the lead database
+                    merged_contact = {
+                        "email": existing_email or contact_info.get("email", ""),
+                        "phone": existing_phone or contact_info.get("phone", ""),
+                        "website": existing_website or contact_info.get("website", "")
+                    }
+                    
                     logger.info(f"Perplexity API parsed contact info for {username}: {contact_info}")
+                    logger.info(f"Merged with existing data for {username}: {merged_contact}")
                     print(f"Parsed contact info: {contact_info}")
-                    return contact_info
+                    print(f"Merged contact info: {merged_contact}")
+                    return merged_contact
                 else:
-                    # No JSON found, return empty contact info
+                    # No JSON found, return existing contact info if available
                     logger.warning(f"No JSON found in Perplexity response for {username}")
-                    return {"email": "", "phone": "", "website": ""}
+                    return {
+                        "email": existing_email or "",
+                        "phone": existing_phone or "",
+                        "website": existing_website or ""
+                    }
             except (json.JSONDecodeError, KeyError) as e:
                 logger.error(
                     f"Failed to parse Perplexity response for {username}: {e}")
@@ -274,13 +299,25 @@ async def call_perplexity_api(profile_info, api_key):
                 print(f"Error: {e}")
                 print(f"Raw content: {content if 'content' in locals() else 'No content'}")
                 print("=" * 50)
-                return {"email": "", "phone": "", "website": ""}
+                return {
+                    "email": existing_email or "",
+                    "phone": existing_phone or "",
+                    "website": existing_website or ""
+                }
         except httpx.HTTPStatusError as e:
             logger.error(f"Perplexity API HTTP error for {username}: {e.response.status_code} - {e.response.text}")
-            return {"email": "", "phone": "", "website": ""}
+            return {
+                "email": existing_email or "",
+                "phone": existing_phone or "",
+                "website": existing_website or ""
+            }
         except Exception as e:
             logger.error(f"Perplexity API error for {username}: {e}")
-            return {"email": "", "phone": "", "website": ""}
+            return {
+                "email": existing_email or "",
+                "phone": existing_phone or "",
+                "website": existing_website or ""
+            }
 
 
 def save_leads_incrementally(enriched_leads, keyword):

@@ -6,23 +6,25 @@ This is a Flask-based Instagram lead generation and outreach automation tool tha
 
 ## Recent Changes
 
-### 2025-07-10: Fixed Perplexity API JSON Parsing and Added Comprehensive Tests (COMPLETED)
-- **Issue**: Perplexity API responses include explanatory text after JSON, causing parsing errors
-- **Root Cause**: The API returns valid JSON followed by additional German explanatory text, breaking `json.loads()`
+### 2025-07-10: Enhanced Perplexity API with Existing Contact Data Integration (COMPLETED)
+- **Issue**: Perplexity API was not utilizing existing contact information from the lead database
+- **Root Cause**: Function was ignoring known contact data (email, phone, website) from profile
 - **Resolution**: 
-  - Enhanced JSON extraction to parse only the JSON portion of the response
-  - Added robust brace matching to extract clean JSON from mixed content
-  - Maintained fallback behavior for responses without JSON
-- **Test Suite Created**: 
-  - Comprehensive test suite with 9 test cases covering all scenarios
-  - Tests for successful API calls, partial responses, invalid JSON, HTTP errors, network errors
-  - Tests for missing profile fields, German system messages, and profile description formatting
-  - Real API integration test using provided Instagram profile data
+  - Enhanced function to include existing contact information in API request
+  - Added "Existing Contact Information" section to profile description sent to API
+  - Modified prompt to specifically instruct AI to preserve existing data and only search for missing info
+  - Implemented contact data merging logic that prioritizes existing database values over API findings
+  - Updated all error handling to return existing contact information when API fails
+- **Test Suite Updated**: 
+  - Updated all 9 test cases to expect existing website data preservation
+  - Tests now verify that known contact information is prioritized over API responses
+  - Real API integration confirmed to work with existing contact data
 - **Benefits**: 
-  - Perplexity API now works reliably with German responses
-  - Comprehensive test coverage ensures future reliability
-  - Better error handling for edge cases
-- **Status**: JSON parsing fixed and fully tested with real API data
+  - No loss of existing contact information during API enrichment
+  - More efficient API usage by focusing search on missing data only
+  - Better data consistency and reliability
+  - Existing website data now preserved correctly (e.g., http://azaliah.at)
+- **Status**: Contact data integration implemented and fully tested
 
 ### 2025-07-10: UI Redesign with Left Navigation and Enhanced UX (COMPLETED)
 - **Update**: Complete UI redesign with left navigation bar and improved user experience
