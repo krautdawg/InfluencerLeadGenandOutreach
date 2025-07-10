@@ -187,24 +187,45 @@ def call_apify_actor_sync(actor_id, input_data, token):
         return {"items": []}
 
 
-async def call_perplexity_api(username, api_key):
-    """Call Perplexity API to find contact information"""
+async def call_perplexity_api(profile_info, api_key):
+    """Call Perplexity API to find contact information using full profile data"""
     url = "https://api.perplexity.ai/chat/completions"
     headers = {
         "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json"
     }
 
+    # Build comprehensive profile information for better search results
+    username = profile_info.get('username', '')
+    full_name = profile_info.get('full_name', '')
+    biography = profile_info.get('biography', '')
+    followers = profile_info.get('follower_count', 0)
+    following = profile_info.get('following_count', 0)
+    posts = profile_info.get('media_count', 0)
+    is_verified = profile_info.get('is_verified', False)
+    
+    # Create detailed profile description
+    profile_description = f"""
+    Instagram Profile Information:
+    - Username: {username}
+    - Full Name: {full_name}
+    - Biography: {biography}
+    - Followers: {followers}
+    - Following: {following}
+    - Posts: {posts}
+    - Verified: {is_verified}
+    """
+
     data = {
         "model": "sonar-small-128k-online",
         "messages": [
             {
                 "role": "system",
-                "content": "Du bist ein hilfreicher Recherche-Assistent, finde öffentlich verfügbare Kontaktinfos."
+                "content": "Du bist ein hilfreicher Recherche-Assistent, finde öffentlich verfügbare Kontaktinfos. Verwende die bereitgestellten Profilinformationen um bessere Suchergebnisse zu erzielen."
             },
             {
                 "role": "user",
-                "content": f"Suche nach E-Mail-Adresse, Telefonnummer oder Website des Instagram-Profils https://www.instagram.com/{username}/ Antworte nur als JSON: {{ \"email\": \"...\", \"phone\": \"...\", \"website\": \"...\" }}"
+                "content": f"Basierend auf diesen Instagram-Profilinformationen, suche nach E-Mail-Adresse, Telefonnummer oder Website:\n\n{profile_description}\n\nSuche nach öffentlich verfügbaren Kontaktinformationen für diese Person/dieses Unternehmen. Antworte nur als JSON: {{ \"email\": \"...\", \"phone\": \"...\", \"website\": \"...\" }}"
             }
         ],
         "temperature": 0.2,
@@ -351,8 +372,11 @@ async def enrich_profile_batch(usernames, ig_sessionid, apify_token,
                         profile_info.get('external_url')
                 ]):
                     try:
+                        # Pass full profile info instead of just username
+                        profile_with_username = dict(profile_info)
+                        profile_with_username['username'] = username
                         contact_info = await call_perplexity_api(
-                            username, perplexity_key)
+                            profile_with_username, perplexity_key)
                         profile_info.update(contact_info)
                     except Exception as e:
                         logger.error(
