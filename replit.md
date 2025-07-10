@@ -6,6 +6,24 @@ This is a Flask-based Instagram lead generation and outreach automation tool tha
 
 ## Recent Changes
 
+### 2025-07-10: Fixed Perplexity API JSON Parsing and Added Comprehensive Tests (COMPLETED)
+- **Issue**: Perplexity API responses include explanatory text after JSON, causing parsing errors
+- **Root Cause**: The API returns valid JSON followed by additional German explanatory text, breaking `json.loads()`
+- **Resolution**: 
+  - Enhanced JSON extraction to parse only the JSON portion of the response
+  - Added robust brace matching to extract clean JSON from mixed content
+  - Maintained fallback behavior for responses without JSON
+- **Test Suite Created**: 
+  - Comprehensive test suite with 9 test cases covering all scenarios
+  - Tests for successful API calls, partial responses, invalid JSON, HTTP errors, network errors
+  - Tests for missing profile fields, German system messages, and profile description formatting
+  - Real API integration test using provided Instagram profile data
+- **Benefits**: 
+  - Perplexity API now works reliably with German responses
+  - Comprehensive test coverage ensures future reliability
+  - Better error handling for edge cases
+- **Status**: JSON parsing fixed and fully tested with real API data
+
 ### 2025-07-10: UI Redesign with Left Navigation and Enhanced UX (COMPLETED)
 - **Update**: Complete UI redesign with left navigation bar and improved user experience
 - **Changes Made**:

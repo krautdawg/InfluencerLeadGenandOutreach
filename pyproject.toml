@@ -17,6 +17,9 @@ dependencies = [
     "httpx>=0.28.1",
     "openai>=1.93.2",
     "psycopg2-binary>=2.9.10",
+    "pytest-asyncio>=1.0.0",
     "pytest>=8.4.1",
     "python-dotenv>=1.1.1",
+    "requests>=2.32.4",
+    "sqlalchemy>=2.0.41",
 ]

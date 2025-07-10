@@ -241,11 +241,31 @@ async def call_perplexity_api(profile_info, api_key):
                 print(f"Content: {content}")
                 print("=" * 50)
                 
-                # Try to parse JSON from the response
-                contact_info = json.loads(content)
-                logger.info(f"Perplexity API parsed contact info for {username}: {contact_info}")
-                print(f"Parsed contact info: {contact_info}")
-                return contact_info
+                # Try to extract JSON from the response (may contain additional text)
+                # Find the first { and matching } to extract just the JSON part
+                json_start = content.find('{')
+                if json_start != -1:
+                    # Find the matching closing brace
+                    brace_count = 0
+                    json_end = json_start
+                    for i, char in enumerate(content[json_start:], json_start):
+                        if char == '{':
+                            brace_count += 1
+                        elif char == '}':
+                            brace_count -= 1
+                            if brace_count == 0:
+                                json_end = i + 1
+                                break
+                    
+                    json_content = content[json_start:json_end]
+                    contact_info = json.loads(json_content)
+                    logger.info(f"Perplexity API parsed contact info for {username}: {contact_info}")
+                    print(f"Parsed contact info: {contact_info}")
+                    return contact_info
+                else:
+                    # No JSON found, return empty contact info
+                    logger.warning(f"No JSON found in Perplexity response for {username}")
+                    return {"email": "", "phone": "", "website": ""}
             except (json.JSONDecodeError, KeyError) as e:
                 logger.error(
                     f"Failed to parse Perplexity response for {username}: {e}")
