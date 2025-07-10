@@ -196,38 +196,41 @@ async def call_perplexity_api(username, api_key):
     }
 
     data = {
-        "model":
-        "llama-3.1-sonar-small-128k-online",
-        "messages": [{
-            "role":
-            "system",
-            "content":
-            "Du bist ein hilfreicher Recherche-Assistent, finde öffentlich verfügbare Kontaktinfos."
-        }, {
-            "role":
-            "user",
-            "content":
-            f"Suche nach E-Mail-Adresse, Telefonnummer oder Website des Instagram-Profils https://www.instagram.com/{username}/ Antworte nur als JSON: {{ \"email\": \"...\", \"phone\": \"...\", \"website\": \"...\" }}"
-        }],
-        "temperature":
-        0.2,
-        "stream":
-        False
+        "model": "llama-3.1-sonar-small-128k-online",
+        "messages": [
+            {
+                "role": "system",
+                "content": "Du bist ein hilfreicher Recherche-Assistent, finde öffentlich verfügbare Kontaktinfos."
+            },
+            {
+                "role": "user",
+                "content": f"Suche nach E-Mail-Adresse, Telefonnummer oder Website des Instagram-Profils https://www.instagram.com/{username}/ Antworte nur als JSON: {{ \"email\": \"...\", \"phone\": \"...\", \"website\": \"...\" }}"
+            }
+        ],
+        "temperature": 0.2,
+        "stream": False
     }
 
     async with httpx.AsyncClient(timeout=60.0) as client:
-        response = await client.post(url, headers=headers, json=data)
-        response.raise_for_status()
-        result = response.json()
-
         try:
-            content = result['choices'][0]['message']['content']
-            # Try to parse JSON from the response
-            contact_info = json.loads(content)
-            return contact_info
-        except (json.JSONDecodeError, KeyError) as e:
-            logger.error(
-                f"Failed to parse Perplexity response for {username}: {e}")
+            response = await client.post(url, headers=headers, json=data)
+            response.raise_for_status()
+            result = response.json()
+
+            try:
+                content = result['choices'][0]['message']['content']
+                # Try to parse JSON from the response
+                contact_info = json.loads(content)
+                return contact_info
+            except (json.JSONDecodeError, KeyError) as e:
+                logger.error(
+                    f"Failed to parse Perplexity response for {username}: {e}")
+                return {"email": "", "phone": "", "website": ""}
+        except httpx.HTTPStatusError as e:
+            logger.error(f"Perplexity API HTTP error for {username}: {e.response.status_code} - {e.response.text}")
+            return {"email": "", "phone": "", "website": ""}
+        except Exception as e:
+            logger.error(f"Perplexity API error for {username}: {e}")
             return {"email": "", "phone": "", "website": ""}
 
 
