@@ -759,7 +759,7 @@ def draft_email(username):
             model="gpt-4o",
             messages=[{
                 "role": "system",
-                "content": "Erstelle eine ansprechende deutsche Betreffzeile für eine professionelle Outreach-E-Mail von Kasimir vom Store KasimirLieselotte. Die Betreffzeile sollte elegant und persönlich sein. Antworte im JSON-Format: {\"subject\": \"betreff text\"}"
+                "content": "Erstelle eine ansprechende deutsche Betreffzeile für eine professionelle Outreach-E-Mail von Kasimir vom Store KasimirLieselotte. Die Betreffzeile sollte persönlich sein. Antworte im JSON-Format: {\"subject\": \"betreff text\"}"
             }, {
                 "role":
                 "user",
@@ -775,7 +775,7 @@ def draft_email(username):
             messages=[{
                 "role":
                 "system",
-                "content": "Erstelle eine personalisierte, professionelle deutsche E-Mail für potenzielle Kooperationen. Die E-Mail kommt von Kasimir vom eleganten Store KasimirLieselotte. Verwende einen höflichen, professionellen Ton auf Deutsch. Füge am Ende die Signatur mit der Website https://www.kasimirlieselotte.de/ hinzu. Antworte im JSON-Format: {\"body\": \"email inhalt\"}"
+                "content": "Erstelle eine personalisierte, professionelle deutsche E-Mail, ohne die Betreffzeile, für potenzielle Kooperationen. Die E-Mail kommt von Kasimir vom Store KasimirLieselotte. Verwende einen höflichen, professionellen Ton auf Deutsch aber in DU-Form um es casual im Instagram feel zu bleiben. Füge am Ende die Signatur mit der Website https://www.kasimirlieselotte.de/ hinzu. Antworte im JSON-Format: {\"body\": \"email inhalt\"}"
             }, {
                 "role":
                 "user",

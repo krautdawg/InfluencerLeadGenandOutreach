@@ -44,10 +44,10 @@ This is a Flask-based Instagram lead generation and outreach automation tool tha
 ### 2025-07-10: German Email Generation with KasimirLieselotte Branding (COMPLETED)
 - **Update**: Modified email drafting functionality to generate German content
 - **Changes Made**:
-  - **German Subject Lines**: Updated AI prompts to generate elegant German subject lines
+  - **German Subject Lines**: Updated AI prompts to generate approachable German subject lines
   - **German Email Body**: AI now creates professional German emails from Kasimir at KasimirLieselotte
   - **Branding Integration**: Emails include proper signature with website https://www.kasimirlieselotte.de/
-  - **Professional Tone**: Maintains elegant, professional German language style matching the store's aesthetic
+  - **Professional Tone**: Maintains professional German language style matching the store's aesthetic
 - **Benefits**: 
   - Personalized German outreach emails for better local market engagement
   - Consistent branding with KasimirLieselotte store identity
