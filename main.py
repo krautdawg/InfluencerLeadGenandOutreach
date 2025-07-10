@@ -368,7 +368,8 @@ async def enrich_profile_batch(usernames, ig_sessionid, apify_token,
             for username in usernames:
                 profile_info = profile_map.get(username, {})
 
-                # Check if contact info is missing and use Perplexity fallback
+                # Always try to enrich contact info with Perplexity for missing data
+                perplexity_contact = {}
                 if not any([
                         profile_info.get('public_email'),
                         profile_info.get('contact_phone_number'),
@@ -378,12 +379,14 @@ async def enrich_profile_batch(usernames, ig_sessionid, apify_token,
                         # Pass full profile info instead of just username
                         profile_with_username = dict(profile_info)
                         profile_with_username['username'] = username
-                        contact_info = await call_perplexity_api(
+                        perplexity_contact = await call_perplexity_api(
                             profile_with_username, perplexity_key)
-                        profile_info.update(contact_info)
+                        logger.info(f"Perplexity enrichment for {username}: {perplexity_contact}")
                     except Exception as e:
-                        logger.error(
-                            f"Perplexity API failed for {username}: {e}")
+                        logger.error(f"Perplexity API failed for {username}: {e}")
+
+                # Log the profile info we got from Apify for debugging
+                logger.info(f"Apify profile data for {username}: {profile_info}")
 
                 enriched_profiles.append({
                     'username':
@@ -393,11 +396,11 @@ async def enrich_profile_batch(usernames, ig_sessionid, apify_token,
                     'biography':
                     profile_info.get('biography', ''),
                     'public_email':
-                    profile_info.get('public_email', ''),
+                    profile_info.get('public_email', '') or perplexity_contact.get('email', ''),
                     'contact_phone_number':
-                    profile_info.get('contact_phone_number', ''),
+                    profile_info.get('contact_phone_number', '') or perplexity_contact.get('phone', ''),
                     'external_url':
-                    profile_info.get('external_url', ''),
+                    profile_info.get('external_url', '') or perplexity_contact.get('website', ''),
                     'follower_count':
                     profile_info.get('follower_count', 0),
                     'following_count':

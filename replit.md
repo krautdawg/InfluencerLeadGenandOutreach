@@ -24,6 +24,17 @@ This is a Flask-based Instagram lead generation and outreach automation tool tha
   - Responsive design works on all devices
 - **Status**: UI redesign completed with improved navigation and user experience
 
+### 2025-07-10: Data Structure Analysis and Debugging (IN PROGRESS)
+- **Issue**: Lead generation results not showing follower count, email, and full name information
+- **Investigation**: 
+  - Database structure is correct (snake_case: full_name, followers_count, email)
+  - Frontend JavaScript expects camelCase (fullName, followersCount, email)
+  - Database to_dict() method correctly converts snake_case to camelCase
+  - Profile enrichment from Apify API requires valid Instagram session ID
+  - Test data confirms UI layout and database operations work correctly
+- **Root Cause**: Apify profile enrichment API not returning expected data due to invalid session ID
+- **Status**: Investigating API data structure and field mapping issues
+
 ### 2025-07-10: German Email Generation with KasimirLieselotte Branding (COMPLETED)
 - **Update**: Modified email drafting functionality to generate German content
 - **Changes Made**:

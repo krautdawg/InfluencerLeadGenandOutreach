@@ -157,6 +157,10 @@ function displayResults(leads) {
         return;
     }
     
+    // Debug logging to understand the data structure
+    console.log('Displaying results:', leads);
+    console.log('First lead data structure:', leads[0]);
+    
     const resultsSection = document.getElementById('resultsSection');
     const exportSection = document.getElementById('exportSection');
     const tbody = document.getElementById('resultsBody');
@@ -190,6 +194,7 @@ function createLeadRow(lead, index) {
             </a>
             ${lead.is_duplicate ? '<br><small class="text-warning">Duplicate</small>' : ''}
         </td>
+        <td>${lead.hashtag || '-'}</td>
         <td>${lead.full_name || lead.fullName || '-'}</td>
         <td>${lead.email || '-'}</td>
         <td>${formatNumber(lead.followers_count || lead.followersCount || 0)}</td>
@@ -307,7 +312,7 @@ function sortTable(columnIndex) {
         const bVal = b.cells[columnIndex].textContent.trim();
         
         // Handle numeric values
-        if (columnIndex === 3) { // Followers count
+        if (columnIndex === 4) { // Followers count (updated index)
             const aNum = parseNumber(aVal);
             const bNum = parseNumber(bVal);
             return newDirection === 'asc' ? aNum - bNum : bNum - aNum;
