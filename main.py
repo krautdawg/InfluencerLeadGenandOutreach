@@ -769,12 +769,12 @@ def draft_email(username):
             model="gpt-4o",
             messages=[{
                 "role": "system",
-                "content": "Erstelle eine ansprechende deutsche Betreffzeile für eine professionelle Outreach-E-Mail von Kasimir vom Store KasimirLieselotte. Die Betreffzeile sollte persönlich sein. Antworte im JSON-Format: {\"subject\": \"betreff text\"}"
+                "content": "Schreibe in DU-Form eine persönliche Betreffzeile mit freundlichen Hook für eine Influencer Kooperation mit Kasimir + Liselotte. Nutze persönliche Infos (z.B. Username, BIO, Interessen), sprich sie direkt in DU-Form. .Antworte im JSON-Format: {\"subject\": \"betreff text\"}"
             }, {
                 "role":
                 "user",
                 "content":
-                f"Profil: @{lead.username}, Name: {lead.full_name}, Bio: {lead.bio}"
+                f"Profil: @{lead.username}, Name: {lead.full_name}, Bio: {lead.bio}, Hashtag: {lead.hashtag}"
             }],
             response_format={"type": "json_object"},
             max_tokens=100)
@@ -790,7 +790,7 @@ def draft_email(username):
                 "role":
                 "user",
                 "content":
-                f"Profil: @{lead.username}, Name: {lead.full_name}, Bio: {lead.bio}, Email: {lead.email}"
+                f"Profil: @{lead.username}, Name: {lead.full_name}, Bio: {lead.bio}, Email: {lead.email}, Hashtag: {lead.hashtag}"
             }],
             response_format={"type": "json_object"},
             max_tokens=500)
