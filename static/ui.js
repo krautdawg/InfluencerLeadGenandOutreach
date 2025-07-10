@@ -262,12 +262,24 @@ async function sendEmail(username, index) {
         return;
     }
     
-    if (!confirm(`Send email to @${username}?`)) {
-        return;
-    }
-    
     try {
-        const response = await fetch(`/send/${username}`, {
+        // Get the lead's email address from the database
+        const response = await fetch(`/get-email/${username}`);
+        const result = await response.json();
+        
+        if (!response.ok || !result.email) {
+            showToast(result.error || 'No email address found for this lead', 'error');
+            return;
+        }
+        
+        // Create Gmail compose URL
+        const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(result.email)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+        
+        // Open Gmail compose in new tab
+        window.open(gmailUrl, '_blank');
+        
+        // Mark as sent in database
+        const updateResponse = await fetch(`/mark-sent/${username}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -278,21 +290,20 @@ async function sendEmail(username, index) {
             })
         });
         
-        const result = await response.json();
-        
-        if (response.ok) {
+        if (updateResponse.ok) {
             // Update the row to show sent status
             const row = document.getElementById(`subject_${index}`).closest('tr');
             const actionsCell = row.lastElementChild;
             actionsCell.innerHTML = `<span class="status-sent">Sent<br><small>${formatDate(new Date().toISOString())}</small></span>`;
             
-            showToast('Email sent successfully', 'success');
+            showToast('Gmail opened successfully - please send the email', 'success');
         } else {
-            showToast(result.error || 'Failed to send email', 'error');
+            showToast('Gmail opened, but failed to update send status', 'warning');
         }
+        
     } catch (error) {
-        console.error('Error sending email:', error);
-        showToast('Failed to send email', 'error');
+        console.error('Error opening Gmail:', error);
+        showToast('Failed to open Gmail', 'error');
     }
 }
 

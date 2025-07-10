@@ -2,16 +2,11 @@ import os
 import asyncio
 import logging
 import json
-import base64
 import hashlib
 from datetime import datetime
-from email.mime.text import MIMEText
 from concurrent.futures import ThreadPoolExecutor
 import httpx
 from flask import Flask, render_template, request, jsonify, session, redirect, url_for
-from google.auth.transport.requests import Request
-from google.oauth2.credentials import Credentials
-from googleapiclient.discovery import build
 from openai import OpenAI
 from apify_client import ApifyClient
 import csv
@@ -815,9 +810,23 @@ def draft_email(username):
         return {"error": "Failed to generate email"}, 500
 
 
-@app.route('/send/<username>', methods=['POST'])
-def send_email(username):
-    """Send email using Gmail API"""
+@app.route('/get-email/<username>')
+def get_email(username):
+    """Get email address for a lead"""
+    # Find the lead in database
+    lead = Lead.query.filter_by(username=username).first()
+    if not lead:
+        return {"error": "Lead not found"}, 404
+
+    if not lead.email:
+        return {"error": "No email address available for this lead"}, 400
+
+    return {"email": lead.email}
+
+
+@app.route('/mark-sent/<username>', methods=['POST'])
+def mark_sent(username):
+    """Mark email as sent and update database"""
     data = request.get_json()
     subject = data.get('subject', '')
     body = data.get('body', '')
@@ -827,39 +836,7 @@ def send_email(username):
     if not lead:
         return {"error": "Lead not found"}, 404
 
-    if not lead.email:
-        return {"error": "No email address available"}, 400
-
     try:
-        # Setup Gmail API credentials
-        creds = Credentials(
-            token=None,
-            refresh_token=os.environ.get('GMAIL_REFRESH_TOKEN'),
-            token_uri='https://oauth2.googleapis.com/token',
-            client_id=os.environ.get('GMAIL_CLIENT_ID'),
-            client_secret=os.environ.get('GMAIL_CLIENT_SECRET'))
-
-        # Refresh token if needed
-        if creds.expired:
-            creds.refresh(Request())
-
-        # Build Gmail service
-        service = build('gmail', 'v1', credentials=creds)
-
-        # Create email message
-        message = MIMEText(body)
-        message['to'] = lead.email
-        message['subject'] = subject
-
-        # Encode message
-        raw_message = base64.urlsafe_b64encode(message.as_bytes()).decode()
-
-        # Send email
-        send_result = service.users().messages().send(userId='me',
-                                                      body={
-                                                          'raw': raw_message
-                                                      }).execute()
-
         # Update lead status
         lead.sent = True
         lead.sent_at = datetime.now()
@@ -869,11 +846,11 @@ def send_email(username):
         # Save to database
         db.session.commit()
 
-        return {"success": True, "messageId": send_result['id']}
+        return {"success": True}
 
     except Exception as e:
-        logger.error(f"Email sending failed: {e}")
-        return {"error": f"Failed to send email: {str(e)}"}, 500
+        logger.error(f"Failed to mark email as sent: {e}")
+        return {"error": f"Failed to update send status: {str(e)}"}, 500
 
 
 @app.route('/export/<format>')
