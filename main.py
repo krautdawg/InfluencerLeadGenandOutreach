@@ -196,7 +196,7 @@ async def call_perplexity_api(username, api_key):
     }
 
     data = {
-        "model": "llama-3.1-sonar-small-128k-online",
+        "model": "sonar-small-128k-online",
         "messages": [
             {
                 "role": "system",

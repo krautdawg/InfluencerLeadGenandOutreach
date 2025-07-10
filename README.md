@@ -81,7 +81,7 @@ An elegant Instagram lead generation and outreach automation tool built with Fla
 ### Perplexity API
 1. Sign up at [perplexity.ai](https://perplexity.ai)
 2. Get your API key from the dashboard
-3. Uses `llama-3.1-sonar-small-128k-online` model
+3. Uses `sonar-small-128k-online` model
 
 ### OpenAI API
 1. Sign up at [openai.com](https://openai.com)
