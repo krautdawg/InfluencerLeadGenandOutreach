@@ -332,6 +332,31 @@ def save_leads_incrementally(enriched_leads, keyword):
     return saved_count
 
 
+def call_apify_profile_enrichment(actor_id, input_data, token):
+    """Call Apify profile enrichment actor - returns profile data directly"""
+    client = ApifyClient(token)
+    
+    try:
+        # Run the Actor and wait for it to finish
+        run = client.actor(actor_id).call(run_input=input_data)
+        
+        # Get the dataset
+        dataset = client.dataset(run["defaultDatasetId"])
+        
+        # The profile enrichment API returns profiles directly
+        profiles = []
+        for item in dataset.iterate_items():
+            if isinstance(item, dict):
+                profiles.append(item)
+        
+        logger.info(f"Profile enrichment API returned {len(profiles)} profiles")
+        return profiles
+        
+    except Exception as e:
+        logger.error(f"Apify profile enrichment call failed: {e}")
+        return []
+
+
 async def enrich_profile_batch(usernames, ig_sessionid, apify_token,
                                perplexity_key, semaphore):
     """Enrich a batch of profiles with concurrent processing"""
@@ -348,22 +373,22 @@ async def enrich_profile_batch(usernames, ig_sessionid, apify_token,
                 }
             }
 
-            profile_data = call_apify_actor_sync("8WEn9FvZnhE7lM3oA",
-                                                 input_data, apify_token)
+            # Use dedicated profile enrichment function
+            profile_items = call_apify_profile_enrichment("8WEn9FvZnhE7lM3oA",
+                                                          input_data, apify_token)
             enriched_profiles = []
 
-            # Process each profile from the returned data
-            profile_items = profile_data.get('items', [])
-            
             # Create a mapping of username to profile data
             profile_map = {}
             for item in profile_items:
-                # Extract username from URL or directly from item
-                if 'url' in item:
-                    username_from_url = item['url'].split('/')[-2] if item['url'].endswith('/') else item['url'].split('/')[-1]
-                    profile_map[username_from_url] = item
-                elif 'username' in item:
+                # The API returns username field directly
+                if 'username' in item:
                     profile_map[item['username']] = item
+                # Also check URL field as fallback
+                elif 'URL' in item:
+                    url = item['URL']
+                    username_from_url = url.rstrip('/').split('/')[-1]
+                    profile_map[username_from_url] = item
 
             for username in usernames:
                 profile_info = profile_map.get(username, {})
@@ -386,7 +411,10 @@ async def enrich_profile_batch(usernames, ig_sessionid, apify_token,
                         logger.error(f"Perplexity API failed for {username}: {e}")
 
                 # Log the profile info we got from Apify for debugging
-                logger.info(f"Apify profile data for {username}: {profile_info}")
+                if profile_info:
+                    logger.info(f"Apify profile data for {username}: found with {profile_info.get('follower_count', 0)} followers")
+                else:
+                    logger.info(f"Apify profile data for {username}: not found in response")
 
                 enriched_profiles.append({
                     'username':

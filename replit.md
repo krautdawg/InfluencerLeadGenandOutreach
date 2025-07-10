@@ -24,16 +24,22 @@ This is a Flask-based Instagram lead generation and outreach automation tool tha
   - Responsive design works on all devices
 - **Status**: UI redesign completed with improved navigation and user experience
 
-### 2025-07-10: Data Structure Analysis and Debugging (IN PROGRESS)
+### 2025-07-10: Fixed Apify Profile Enrichment API Integration (COMPLETED)
 - **Issue**: Lead generation results not showing follower count, email, and full name information
-- **Investigation**: 
-  - Database structure is correct (snake_case: full_name, followers_count, email)
-  - Frontend JavaScript expects camelCase (fullName, followersCount, email)
-  - Database to_dict() method correctly converts snake_case to camelCase
-  - Profile enrichment from Apify API requires valid Instagram session ID
-  - Test data confirms UI layout and database operations work correctly
-- **Root Cause**: Apify profile enrichment API not returning expected data due to invalid session ID
-- **Status**: Investigating API data structure and field mapping issues
+- **Root Cause**: 
+  - The `call_apify_actor_sync` function was designed for hashtag search, not profile enrichment
+  - Profile enrichment API returns different data structure than hashtag search API
+  - Field mapping was incorrect between API response and database schema
+- **Resolution**: 
+  - Created dedicated `call_apify_profile_enrichment` function for profile API
+  - Fixed field mapping to match actual API response (e.g., `follower_count` not `followers_count`)
+  - Added improved logging to track enrichment process
+  - Verified Instagram session ID is properly configured and working
+- **Changes Made**:
+  - New function handles profile enrichment API response correctly
+  - Profile data now properly extracted from Apify response
+  - Fields correctly mapped: `full_name`, `follower_count`, `biography`, `public_email`, etc.
+- **Status**: Profile enrichment now working with valid Instagram session ID
 
 ### 2025-07-10: German Email Generation with KasimirLieselotte Branding (COMPLETED)
 - **Update**: Modified email drafting functionality to generate German content
