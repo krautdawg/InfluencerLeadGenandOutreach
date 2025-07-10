@@ -6,6 +6,24 @@ This is a Flask-based Instagram lead generation and outreach automation tool tha
 
 ## Recent Changes
 
+### 2025-07-10: UI Redesign with Left Navigation and Enhanced UX (COMPLETED)
+- **Update**: Complete UI redesign with left navigation bar and improved user experience
+- **Changes Made**:
+  - **Left Navigation Bar**: Created fixed left sidebar (350px) for input controls and settings
+  - **Export Toolbar**: Moved export functionality to compact top-right corner with icon buttons
+  - **Instagram Links**: Username now links directly to Instagram profile (opens in new tab)
+  - **Data Consistency**: Fixed follower count display and handles both snake_case and camelCase field names
+  - **Responsive Design**: Mobile-friendly layout that stacks navigation on smaller screens
+  - **Improved Layout**: Main content area now dedicated to results table with better spacing
+  - **Enhanced Styling**: Better visual hierarchy with Kasimir Lieselotte aesthetic maintained
+- **Benefits**: 
+  - More efficient use of screen space with dedicated input area
+  - Cleaner results presentation with export controls easily accessible
+  - Better user workflow with logical separation of input and output areas
+  - Direct Instagram navigation for quick profile verification
+  - Responsive design works on all devices
+- **Status**: UI redesign completed with improved navigation and user experience
+
 ### 2025-07-10: German Email Generation with KasimirLieselotte Branding (COMPLETED)
 - **Update**: Modified email drafting functionality to generate German content
 - **Changes Made**:

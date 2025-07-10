@@ -185,22 +185,24 @@ function createLeadRow(lead, index) {
     
     row.innerHTML = `
         <td>
-            <strong>@${lead.username}</strong>
+            <a href="https://www.instagram.com/${lead.username}" target="_blank" rel="noopener noreferrer">
+                <strong>@${lead.username}</strong>
+            </a>
             ${lead.is_duplicate ? '<br><small class="text-warning">Duplicate</small>' : ''}
         </td>
-        <td>${lead.fullName || '-'}</td>
+        <td>${lead.full_name || lead.fullName || '-'}</td>
         <td>${lead.email || '-'}</td>
-        <td>${formatNumber(lead.followersCount)}</td>
+        <td>${formatNumber(lead.followers_count || lead.followersCount || 0)}</td>
         <td>
             <textarea class="table-input table-textarea" id="subject_${index}" placeholder="Email subject...">${lead.subject || ''}</textarea>
         </td>
         <td>
-            <textarea class="table-input table-textarea" id="body_${index}" placeholder="Email body..." rows="4">${lead.emailBody || ''}</textarea>
+            <textarea class="table-input table-textarea" id="body_${index}" placeholder="Email body..." rows="4">${lead.email_body || lead.emailBody || ''}</textarea>
         </td>
         <td>
             <div class="btn-group-vertical btn-group-sm">
                 ${lead.sent ? 
-                    `<span class="status-sent">Sent<br><small>${formatDate(lead.sentAt)}</small></span>` :
+                    `<span class="status-sent">Sent<br><small>${formatDate(lead.sent_at || lead.sentAt)}</small></span>` :
                     `<button class="btn btn-secondary btn-sm mb-1" onclick="draftEmail('${lead.username}', ${index})">
                         <i class="fas fa-edit me-1"></i>Draft
                     </button>

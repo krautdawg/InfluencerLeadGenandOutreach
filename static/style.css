@@ -29,7 +29,8 @@ body {
     background-color: var(--color-background);
     color: var(--color-text);
     line-height: 1.7; /* Generous line spacing for readability */
-    padding: 2rem;
+    padding: 0;
+    margin: 0;
     font-size: 18px;
     -webkit-font-smoothing: antialiased;
 }
@@ -98,7 +99,82 @@ label {
     margin-top: 0.25rem;
 }
 
-/* 4. Buttons
+/* 4. Layout Structure
+------------------------------------------- */
+.app-layout {
+    display: flex;
+    min-height: 100vh;
+}
+
+.left-nav {
+    width: 350px;
+    background-color: var(--color-background-alt);
+    padding: 2rem;
+    border-right: 1px solid var(--color-border);
+    overflow-y: auto;
+    position: fixed;
+    height: 100vh;
+    left: 0;
+    top: 0;
+}
+
+.nav-header {
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.nav-header h1 {
+    font-size: 1.8rem;
+    margin-bottom: 0.5rem;
+}
+
+.nav-subtitle {
+    font-size: 0.9rem;
+    color: var(--color-accent);
+    margin-bottom: 0;
+}
+
+.nav-section {
+    margin-bottom: 2rem;
+}
+
+.nav-section h3 {
+    font-size: 1.2rem;
+    margin-bottom: 1rem;
+    color: var(--color-text);
+}
+
+.main-content {
+    flex: 1;
+    margin-left: 350px;
+    padding: 2rem;
+    position: relative;
+}
+
+.export-toolbar {
+    position: absolute;
+    top: 2rem;
+    right: 2rem;
+    z-index: 10;
+}
+
+.export-toolbar .btn-group {
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.export-toolbar .btn {
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--color-border);
+    background-color: var(--color-background);
+    color: var(--color-text);
+}
+
+.export-toolbar .btn:hover {
+    background-color: var(--color-background-alt);
+}
+
+/* 5. Buttons
 ------------------------------------------- */
 .btn {
     padding: 0.75rem 1.5rem;
@@ -172,21 +248,47 @@ label {
     font-size: 0.875rem;
 }
 
-/* 5. Layout & Containers
+/* 6. Responsive Design
 ------------------------------------------- */
-.container {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 2rem;
+@media (max-width: 768px) {
+    .left-nav {
+        position: static;
+        width: 100%;
+        height: auto;
+        border-right: none;
+        border-bottom: 1px solid var(--color-border);
+    }
+    
+    .main-content {
+        margin-left: 0;
+        padding: 1rem;
+    }
+    
+    .app-layout {
+        flex-direction: column;
+    }
+    
+    .export-toolbar {
+        position: static;
+        margin-bottom: 1rem;
+        text-align: center;
+    }
 }
 
-.main-content {
-    background-color: var(--color-background-alt);
-    padding: 2rem;
-    margin-top: 2rem;
+/* 7. Link Styles
+------------------------------------------- */
+.results-table a {
+    color: var(--color-text);
+    text-decoration: none;
+    transition: color 0.2s ease;
 }
 
-/* 6. Table Styles
+.results-table a:hover {
+    color: var(--color-accent);
+    text-decoration: underline;
+}
+
+/* 8. Table Styles
 ------------------------------------------- */
 .results-table {
     width: 100%;
@@ -245,7 +347,7 @@ label {
     resize: vertical;
 }
 
-/* 7. Modal (for session ID input)
+/* 9. Modal (for session ID input)
 ------------------------------------------- */
 .modal {
     display: none; /* Hidden by default */
@@ -286,7 +388,7 @@ label {
     text-align: right;
 }
 
-/* 8. Cards
+/* 10. Cards
 ------------------------------------------- */
 .card {
     border: 1px solid var(--color-border);
@@ -304,7 +406,7 @@ label {
     padding: 1rem;
 }
 
-/* 9. Alerts & Notifications
+/* 11. Alerts & Notifications
 ------------------------------------------- */
 .alert {
     border-radius: 0;
@@ -330,7 +432,7 @@ label {
     border-bottom: 1px solid var(--color-border);
 }
 
-/* 10. Utilities
+/* 12. Utilities
 ------------------------------------------- */
 .text-center {
     text-align: center;

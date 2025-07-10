@@ -12,67 +12,58 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-    <div class="container">
-        <header class="text-center mb-5">
-            <h1>Instagram LeadGen</h1>
-            <p class="lead">Elegant lead generation and outreach automation</p>
-        </header>
-
-        <!-- Session ID Modal -->
-        <div class="modal" id="sessionModal" tabindex="-1">
-            <div class="modal-dialog">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title">Instagram Session ID Required</h5>
+    <!-- Session ID Modal -->
+    <div class="modal" id="sessionModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Instagram Session ID Required</h5>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="sessionInput">Please enter your Instagram Session ID:</label>
+                        <input type="text" class="form-control" id="sessionInput" placeholder="Enter IG_SESSIONID...">
+                        <small class="form-text text-muted">
+                            You can find this in your browser's developer tools under Application > Cookies > instagram.com > sessionid
+                        </small>
                     </div>
-                    <div class="modal-body">
-                        <div class="form-group">
-                            <label for="sessionInput">Please enter your Instagram Session ID:</label>
-                            <input type="text" class="form-control" id="sessionInput" placeholder="Enter IG_SESSIONID...">
-                            <small class="form-text text-muted">
-                                You can find this in your browser's developer tools under Application > Cookies > instagram.com > sessionid
-                            </small>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-primary" id="saveSession">Save Session ID</button>
-                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" id="saveSession">Save Session ID</button>
                 </div>
             </div>
         </div>
+    </div>
 
-        <!-- Main Content -->
-        <div class="main-content">
+    <!-- Main Layout -->
+    <div class="app-layout">
+        <!-- Left Navigation Bar -->
+        <nav class="left-nav">
+            <header class="nav-header">
+                <h1>Instagram LeadGen</h1>
+                <p class="nav-subtitle">Elegant lead generation and outreach automation</p>
+            </header>
+
             <!-- Keyword Input -->
-            <div class="row mb-4">
-                <div class="col-md-6">
-                    <div class="form-group">
-                        <label for="keywordInput">Keyword eingeben...</label>
-                        <input type="text" class="form-control" id="keywordInput" placeholder="z.B. fitness, travel, food...">
-                    </div>
+            <div class="nav-section">
+                <h3>Lead Generation</h3>
+                <div class="form-group">
+                    <label for="keywordInput">Keyword eingeben...</label>
+                    <input type="text" class="form-control" id="keywordInput" placeholder="z.B. fitness, travel, food...">
                 </div>
-                <div class="col-md-2">
-                    <div class="form-group">
-                        <label for="searchLimitInput">Search Limit</label>
-                        <input type="number" class="form-control" id="searchLimitInput" value="25" min="1" max="50" placeholder="25">
-                        <small class="form-text text-muted">Max 50 (reduced for memory safety)</small>
-                    </div>
+                <div class="form-group">
+                    <label for="searchLimitInput">Search Limit</label>
+                    <input type="number" class="form-control" id="searchLimitInput" value="25" min="1" max="50" placeholder="25">
+                    <small class="form-text text-muted">Max 50 (reduced for memory safety)</small>
                 </div>
-                <div class="col-md-2">
-                    <div class="form-group">
-                        <label for="enrichLimitInput">Enrich Limit</label>
-                        <input type="number" class="form-control" id="enrichLimitInput" value="5" min="1" max="25" placeholder="5">
-                        <small class="form-text text-muted">Max 25 (for testing)</small>
-                    </div>
+                <div class="form-group">
+                    <label for="enrichLimitInput">Enrich Limit</label>
+                    <input type="number" class="form-control" id="enrichLimitInput" value="5" min="1" max="25" placeholder="5">
+                    <small class="form-text text-muted">Max 25 (for testing)</small>
                 </div>
-                <div class="col-md-2">
-                    <div class="form-group">
-                        <label>&nbsp;</label>
-                        <button type="button" class="btn btn-primary w-100" id="runButton">
-                            <i class="fas fa-play me-2"></i>Run
-                        </button>
-                    </div>
-                </div>
+                <button type="button" class="btn btn-primary w-100" id="runButton">
+                    <i class="fas fa-play me-2"></i>Run
+                </button>
             </div>
 
             <!-- Processing Status -->
@@ -82,48 +73,39 @@
             </div>
 
             <!-- Settings Panel -->
-            <div class="card mb-4">
-                <div class="card-header">
-                    <h5 class="mb-0">
-                        <button class="btn btn-link text-decoration-none" type="button" data-bs-toggle="collapse" data-bs-target="#settingsPanel">
-                            <i class="fas fa-cog me-2"></i>Email Settings
-                        </button>
-                    </h5>
-                </div>
+            <div class="nav-section">
+                <h3>
+                    <button class="btn btn-link text-decoration-none p-0" type="button" data-bs-toggle="collapse" data-bs-target="#settingsPanel">
+                        <i class="fas fa-cog me-2"></i>Email Settings
+                    </button>
+                </h3>
                 <div id="settingsPanel" class="collapse">
-                    <div class="card-body">
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label for="subjectPrompt">Subject Prompt:</label>
-                                    <textarea class="form-control" id="subjectPrompt" rows="3">Generate a compelling subject line for an outreach email to an Instagram influencer. Respond with JSON format: {"subject": "subject line"}</textarea>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label for="bodyPrompt">Body Prompt:</label>
-                                    <textarea class="form-control" id="bodyPrompt" rows="3">Generate a personalized, professional outreach email to an Instagram influencer for potential collaboration. Keep it concise and engaging.</textarea>
-                                </div>
-                            </div>
-                        </div>
+                    <div class="form-group">
+                        <label for="subjectPrompt">Subject Prompt:</label>
+                        <textarea class="form-control" id="subjectPrompt" rows="3">Generate a compelling subject line for an outreach email to an Instagram influencer. Respond with JSON format: {"subject": "subject line"}</textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="bodyPrompt">Body Prompt:</label>
+                        <textarea class="form-control" id="bodyPrompt" rows="3">Generate a personalized, professional outreach email to an Instagram influencer for potential collaboration. Keep it concise and engaging.</textarea>
                     </div>
                 </div>
             </div>
+        </nav>
 
-            <!-- Export Options -->
-            <div class="row mb-4" id="exportSection" style="display: none;">
-                <div class="col-12">
-                    <div class="btn-group" role="group">
-                        <button type="button" class="btn btn-secondary" onclick="exportData('csv')">
-                            <i class="fas fa-file-csv me-2"></i>Export CSV
-                        </button>
-                        <button type="button" class="btn btn-secondary" onclick="exportData('json')">
-                            <i class="fas fa-file-code me-2"></i>Export JSON
-                        </button>
-                        <button type="button" class="btn btn-secondary" onclick="clearData()">
-                            <i class="fas fa-trash me-2"></i>Clear Data
-                        </button>
-                    </div>
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <!-- Export Options - Top Right -->
+            <div class="export-toolbar" id="exportSection" style="display: none;">
+                <div class="btn-group btn-group-sm" role="group">
+                    <button type="button" class="btn btn-secondary" onclick="exportData('csv')" title="Export CSV">
+                        <i class="fas fa-file-csv"></i>
+                    </button>
+                    <button type="button" class="btn btn-secondary" onclick="exportData('json')" title="Export JSON">
+                        <i class="fas fa-file-code"></i>
+                    </button>
+                    <button type="button" class="btn btn-secondary" onclick="clearData()" title="Clear Data">
+                        <i class="fas fa-trash"></i>
+                    </button>
                 </div>
             </div>
 
@@ -149,7 +131,7 @@
                     </table>
                 </div>
             </div>
-        </div>
+        </main>
     </div>
 
     <!-- Toast Container -->
