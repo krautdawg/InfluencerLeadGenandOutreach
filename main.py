@@ -409,6 +409,15 @@ def call_apify_profile_enrichment(actor_id, input_data, token):
         profiles = []
         for item in dataset.iterate_items():
             if isinstance(item, dict):
+                # Debug: Log the complete item structure
+                logger.info(f"DEBUG: Complete profile item from Apify: {json.dumps(item, indent=2, default=str)}")
+                
+                # Check for follower count fields specifically
+                follower_fields = [k for k in item.keys() if 'follower' in k.lower()]
+                following_fields = [k for k in item.keys() if 'following' in k.lower()]
+                logger.info(f"DEBUG: Follower-related fields in response: {follower_fields}")
+                logger.info(f"DEBUG: Following-related fields in response: {following_fields}")
+                
                 profiles.append(item)
         
         logger.info(f"Profile enrichment API returned {len(profiles)} profiles")
@@ -478,6 +487,31 @@ async def enrich_profile_batch(usernames, ig_sessionid, apify_token,
                 else:
                     logger.info(f"Apify profile data for {username}: not found in response")
 
+                # Try multiple possible field names for follower count
+                follower_count = (
+                    profile_info.get('follower_count', 0) or 
+                    profile_info.get('followers_count', 0) or 
+                    profile_info.get('followers', 0) or 
+                    profile_info.get('followerCount', 0) or 0
+                )
+                
+                following_count = (
+                    profile_info.get('following_count', 0) or 
+                    profile_info.get('followings_count', 0) or 
+                    profile_info.get('following', 0) or 
+                    profile_info.get('followingCount', 0) or 0
+                )
+                
+                media_count = (
+                    profile_info.get('media_count', 0) or 
+                    profile_info.get('posts_count', 0) or 
+                    profile_info.get('posts', 0) or 
+                    profile_info.get('postsCount', 0) or 0
+                )
+                
+                # Log what we found for debugging
+                logger.info(f"Follower count mapping for {username}: follower_count={follower_count}, following_count={following_count}, media_count={media_count}")
+
                 enriched_profiles.append({
                     'username':
                     username,
@@ -492,11 +526,11 @@ async def enrich_profile_batch(usernames, ig_sessionid, apify_token,
                     'external_url':
                     profile_info.get('external_url', '') or perplexity_contact.get('website', ''),
                     'follower_count':
-                    profile_info.get('follower_count', 0),
+                    follower_count,
                     'following_count':
-                    profile_info.get('following_count', 0),
+                    following_count,
                     'media_count':
-                    profile_info.get('media_count', 0),
+                    media_count,
                     'is_verified':
                     profile_info.get('is_verified', False),
                     'profile_pic_url':
