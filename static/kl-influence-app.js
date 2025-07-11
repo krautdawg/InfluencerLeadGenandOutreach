@@ -524,25 +524,33 @@ async function sendEmail(username) {
     
     if (confirm(`Send email to ${lead.email}?`)) {
         try {
+            // Create Gmail compose URL
+            const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(lead.email)}&su=${encodeURIComponent(lead.subject)}&body=${encodeURIComponent(lead.email_body)}`;
+            
+            // Open Gmail compose in new tab
+            window.open(gmailUrl, '_blank');
+            
+            // Mark as sent in database
             const response = await fetch(`/send-email/${username}`, {
                 method: 'POST'
             });
             
             if (response.ok) {
-                showToast('Email sent successfully! 🌱', 'success');
+                showToast('Gmail opened successfully - please send the email', 'success');
                 // Update UI to show sent status
                 const row = document.querySelector(`tr:has(a[href*="${username}"])`);
                 if (row) {
                     const sendButton = row.querySelector('.fa-paper-plane').parentElement;
                     sendButton.disabled = true;
+                    sendButton.textContent = 'Sent';
                 }
             } else {
                 const error = await response.json();
-                showToast(error.error || 'Failed to send email', 'error');
+                showToast('Gmail opened, but failed to update send status', 'warning');
             }
         } catch (error) {
             console.error('Send email error:', error);
-            showToast('An error occurred while sending email', 'error');
+            showToast('An error occurred while opening Gmail', 'error');
         }
     }
 }

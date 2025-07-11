@@ -1349,7 +1349,7 @@ def update_lead(username):
 
 @app.route('/send-email/<username>', methods=['POST'])
 def send_email(username):
-    """Send email to lead"""
+    """Mark email as sent (used with Gmail integration)"""
     # Find the lead in database
     lead = Lead.query.filter_by(username=username).first()
     if not lead:
@@ -1362,19 +1362,18 @@ def send_email(username):
         return {"error": "Email draft not ready"}, 400
 
     try:
-        # Here you would integrate with email service
-        # For now, just mark as sent
+        # Mark as sent since Gmail will handle the actual sending
         lead.sent = True
         lead.sent_at = datetime.now()
         
         # Save to database
         db.session.commit()
 
-        return {"success": True, "message": "Email sent successfully"}
+        return {"success": True, "message": "Email marked as sent"}
 
     except Exception as e:
-        logger.error(f"Failed to send email: {e}")
-        return {"error": f"Failed to send email: {str(e)}"}, 500
+        logger.error(f"Failed to mark email as sent: {e}")
+        return {"error": f"Failed to mark email as sent: {str(e)}"}, 500
 
 
 @app.route('/mark-sent/<username>', methods=['POST'])
