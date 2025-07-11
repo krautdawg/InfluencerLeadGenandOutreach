@@ -6,27 +6,6 @@ This is a Flask-based Instagram lead generation and outreach automation tool tha
 
 ## Recent Changes
 
-### 2025-07-11: Removed Email Settings UI and Implemented Hardcoded German Prompts (COMPLETED)
-- **Update**: Removed customizable email settings panel and replaced with hardcoded German prompts
-- **Changes Made**:
-  - **Removed UI Panel**: Completely removed Email Settings collapsible panel from left navigation
-  - **Simplified JavaScript**: Updated draftEmail function to remove prompt parameters and send empty JSON body
-  - **Hardcoded Backend Prompts**: Updated draft_email function to use fixed German prompts
-  - **Subject Prompt**: "Schreibe in DU-Form eine persönliche Betreffzeile mit freundlichen Hook für eine Influencer Kooperation mit Kasimir + Liselotte..."
-  - **Body Prompt**: "Erstelle eine personalisierte, professionelle deutsche E-Mail, ohne die Betreffzeile, für potenzielle Instagram Influencer Kooperationen..."
-  - **Maintained Functionality**: Email generation still works with same German content and KasimirLieselotte branding
-- **Benefits**: 
-  - Cleaner, simplified UI without unnecessary customization options
-  - Consistent email content using proven German prompts
-  - Reduced user complexity and potential for prompt errors
-  - More professional appearance with fixed, tested prompts
-- **Technical Details**:
-  - Removed subjectPrompt and bodyPrompt DOM elements and references
-  - Backend no longer accepts prompt parameters via request data
-  - Fixed prompts ensure consistent German DU-form communication style
-  - Maintains JSON response format and database integration
-- **Status**: Email settings UI removed, hardcoded German prompts implemented and functional
-
 ### 2025-07-11: Implemented Robust Debug Logging System for Production Deployment (COMPLETED)
 - **Update**: Added comprehensive API monitoring and debug logging system for deployed website
 - **Issue**: Need for robust tracking of API call success/failure status and detailed error analysis in production

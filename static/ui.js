@@ -375,13 +375,19 @@ function createLeadRow(lead, index) {
 }
 
 async function draftEmail(username, index) {
+    const subjectPrompt = document.getElementById('subjectPrompt').value;
+    const bodyPrompt = document.getElementById('bodyPrompt').value;
+    
     try {
         const response = await fetch(`/draft/${username}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({})
+            body: JSON.stringify({
+                subject_prompt: subjectPrompt,
+                body_prompt: bodyPrompt
+            })
         });
         
         const result = await response.json();
