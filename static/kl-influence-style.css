@@ -61,7 +61,7 @@
   /* Layout */
   --container-max: 1200px;
   --sidebar-width: 280px;
-  --header-height: 64px;
+  --header-height: 96px;
   
   /* Transitions */
   --transition-fast: 0.2s ease;
@@ -165,7 +165,7 @@ a:hover {
 }
 
 .nav-logo img {
-  height: 80px;
+  height: 72px;
   width: auto;
 }
 
