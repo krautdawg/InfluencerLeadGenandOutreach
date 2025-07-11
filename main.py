@@ -1186,21 +1186,14 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit, enrich_limi
 
 @app.route('/draft/<username>', methods=['POST'])
 def draft_email(username):
-    """Generate email draft using OpenAI"""
-    data = request.get_json()
-    subject_prompt = data.get(
-        'subject_prompt',
-        'Generate a compelling subject line for an outreach email')
-    body_prompt = data.get('body_prompt',
-                           'Generate a personalized outreach email')
-
+    """Generate email draft using OpenAI with hardcoded prompts"""
     # Find the lead in database
     lead = Lead.query.filter_by(username=username).first()
     if not lead:
         return {"error": "Lead not found"}, 404
 
     try:
-        # Generate subject in German
+        # Generate subject in German with hardcoded prompt
         subject_response = openai_client.chat.completions.create(
             model="gpt-4o",
             messages=[{
@@ -1215,7 +1208,7 @@ def draft_email(username):
             response_format={"type": "json_object"},
             max_tokens=100)
 
-        # Generate body in German with KasimirLieselotte branding
+        # Generate body in German with KasimirLieselotte branding using hardcoded prompt
         body_response = openai_client.chat.completions.create(
             model="gpt-4o",
             messages=[{
