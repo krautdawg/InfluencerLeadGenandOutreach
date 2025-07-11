@@ -39,7 +39,6 @@ class Lead(db.Model):
     email_body = db.Column(db.Text)
     sent = db.Column(db.Boolean, default=False)
     sent_at = db.Column(db.DateTime)
-    send_count = db.Column(db.Integer, default=0)
     
     # Metadata
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
@@ -77,7 +76,6 @@ class Lead(db.Model):
             'email_body': self.email_body,  # Add snake_case alias for compatibility
             'sent': self.sent,
             'sentAt': self.sent_at.isoformat() if self.sent_at else None,
-            'send_count': self.send_count or 0,
             'created_at': self.created_at.isoformat() if self.created_at else None
         }
 

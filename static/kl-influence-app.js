@@ -342,7 +342,7 @@ function createLeadRow(lead, index) {
             ${(lead.email_body || '').substring(0, 50)}${(lead.email_body || '').length > 50 ? '...' : ''}${!lead.email_body ? '<span style="color: var(--color-light-gray);">Click to add</span>' : ''}
         </td>
         <td data-label="Status">
-            ${lead.sent ? `<span style="color: var(--color-natural-green); font-weight: 500;"><i class="fas fa-check-circle"></i> Gesendet (${lead.send_count || 1}x)</span>` : '<span style="color: var(--color-medium-gray);">Entwurf</span>'}
+            ${lead.sent ? '<span style="color: var(--color-natural-green); font-weight: 500;"><i class="fas fa-check-circle"></i> Gesendet</span>' : '<span style="color: var(--color-medium-gray);">Entwurf</span>'}
         </td>
         <td data-label="Actions">
             <div class="d-flex gap-1">
@@ -567,12 +567,10 @@ async function sendEmail(username) {
             });
             
             if (response.ok) {
-                const result = await response.json();
                 showToast('Gmail opened successfully - please send the email', 'success');
                 // Update local lead data
                 lead.sent = true;
                 lead.sent_at = new Date().toISOString();
-                lead.send_count = result.send_count || 1;
                 
                 // Refresh the table to show updated status (but keep send button active)
                 displayResults(leads);

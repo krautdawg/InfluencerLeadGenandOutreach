@@ -6,8 +6,8 @@ K+L Influence is a Flask-based Instagram lead generation and outreach automation
 
 ## Recent Changes
 
-### 2025-07-11: Dynamic Email Template System with Auto-Save (COMPLETED)
-- **Update**: Implemented complete email template synchronization between frontend and backend
+### 2025-07-11: Complete Email Template System and Persistent Send Functionality (COMPLETED)
+- **Update**: Implemented complete email template synchronization and persistent send button functionality
 - **Changes Made**:
   - **EmailTemplate Database Model**: Added model to store subject and body templates persistently
   - **Backend API Endpoints**: Created `/api/email-templates` (GET/POST) for template management
@@ -16,6 +16,8 @@ K+L Influence is a Flask-based Instagram lead generation and outreach automation
   - **Fixed Modal Behavior**: Removed automatic transition from Subject to Email Body modal - now saves and closes
   - **Fixed Save Button**: Resolved "Save Changes" button functionality in edit modals
   - **Click-to-Edit Enhancement**: Enabled click-to-edit for both Subject and Email Body fields in table
+  - **Persistent Send Button**: Send button remains active even after emails are sent, allowing multiple sends
+  - **Status Column**: Added dedicated Status column showing "Gesendet" (sent) or "Entwurf" (draft) status
   - **Improved Error Handling**: Added proper error handling and user feedback for template operations
   - **JavaScript Optimization**: Fixed syntax errors and improved string escaping in dynamic HTML
 - **Features**:
@@ -24,12 +26,15 @@ K+L Influence is a Flask-based Instagram lead generation and outreach automation
   - Visual feedback with toast notifications for save operations
   - Templates used for OpenAI email generation with personalized content
   - Consistent edit experience across all editable fields
+  - Multiple email sends allowed while maintaining status tracking
+  - Clear visual indicators for email status in dedicated column
 - **Benefits**:
   - Customizable email templates without code changes
   - Persistent template storage across sessions
   - Improved user experience with auto-save functionality
   - Better data integrity with proper error handling
-- **Status**: Email template system fully implemented with auto-save and click-to-edit functionality
+  - Flexible email sending workflow with persistent send capability
+- **Status**: Complete email template and send functionality implemented and operational
 
 ### 2025-07-11: K+L Influence Brand Redesign (COMPLETED)
 - **Update**: Complete UI/UX overhaul with K+L Influence branding and modern design system
