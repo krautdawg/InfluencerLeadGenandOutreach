@@ -6,6 +6,51 @@ This is a Flask-based Instagram lead generation and outreach automation tool tha
 
 ## Recent Changes
 
+### 2025-07-11: Implemented Robust Debug Logging System for Production Deployment (COMPLETED)
+- **Update**: Added comprehensive API monitoring and debug logging system for deployed website
+- **Issue**: Need for robust tracking of API call success/failure status and detailed error analysis in production
+- **Solution**: Created complete debug logging infrastructure with structured monitoring
+- **Changes Made**:
+  - **New Debug Logger Module**: Created `debug_logger.py` with comprehensive API call tracking
+  - **Structured JSON Logging**: Implemented JSON-formatted logs for easier parsing and analysis
+  - **API Call Metrics**: Automatic tracking of start/end times, duration, success/failure status
+  - **Error Categorization**: Intelligent error classification (timeout, authentication, rate limit, etc.)
+  - **Recovery Suggestions**: Automatic recovery recommendations based on error types
+  - **Performance Monitoring**: Performance categorization (excellent, good, slow, very slow)
+  - **Data Sanitization**: Automatic removal of sensitive data (API keys, tokens) from logs
+  - **API Metrics Endpoints**: 
+    - `/api-metrics` - Comprehensive metrics with time window filtering
+    - `/api-health` - Real-time health status and service availability
+    - `/debug-logs` - Structured log retrieval with JSON parsing
+    - `/debug` - Interactive dashboard for monitoring
+  - **Enhanced API Functions**: 
+    - Updated Apify hashtag search with detailed logging
+    - Enhanced Perplexity contact enrichment with success/failure tracking
+    - Improved profile enrichment with performance metrics
+    - Added OpenAI email generation monitoring
+  - **Debug Dashboard**: Interactive HTML dashboard for real-time monitoring
+  - **Business Logic Tracking**: Separate tracking for non-API operational errors
+  - **Integration**: Seamlessly integrated with existing Flask application
+- **Features**:
+  - Real-time API success/failure monitoring
+  - Detailed error analysis with stack traces
+  - Performance metrics and trends
+  - Service health status checking
+  - Database connectivity monitoring
+  - Auto-refresh dashboard with 10-second intervals
+  - Historical metrics with configurable time windows
+  - Error type analysis and recovery suggestions
+- **Benefits**:
+  - Production-ready debugging capabilities
+  - Immediate identification of API failures and causes
+  - Performance bottleneck detection
+  - Service dependency monitoring
+  - Proactive error recovery guidance
+  - Comprehensive audit trail for all API interactions
+- **Access**: Visit `/debug` endpoint for interactive monitoring dashboard
+- **Log Files**: Structured logs saved to `api_debug.log` for persistent analysis
+- **Status**: Robust debug logging system fully implemented and operational
+
 ### 2025-07-11: Fixed Perplexity API Enrichment Logic (COMPLETED)
 - **Issue**: Perplexity API contact enrichment was not being called when profiles already had some contact information
 - **Root Cause**: Flawed logic that only called Perplexity when ALL contact fields were missing (using `not any()`)
