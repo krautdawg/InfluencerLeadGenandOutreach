@@ -6,8 +6,8 @@ K+L Influence is a Flask-based Instagram lead generation and outreach automation
 
 ## Recent Changes
 
-### 2025-07-11: Product Selection System with OpenAI Email Integration (COMPLETED)
-- **Update**: Implemented complete product selection functionality with enhanced OpenAI email generation
+### 2025-07-11: Product Selection System with Alternative Prompts (COMPLETED)
+- **Update**: Implemented complete product selection functionality with smart OpenAI email generation that uses different prompts based on product selection
 - **Changes Made**:
   - **Product Database Model**: Created Product model with fields for name, URL, image_url, description, and price
   - **Default Products**: Initialized two products from KasimirLieselotte store:
@@ -18,27 +18,34 @@ K+L Influence is a Flask-based Instagram lead generation and outreach automation
     - Added product dropdown in Email Prompts settings section for default selection
     - Added Product column to results table with click-to-edit functionality
     - Implemented inline product selector with immediate save on change
-  - **Enhanced Email Generation**: 
-    - Updated OpenAI prompts to explicitly include product information
-    - Modified system prompts to ensure product name, URL, and description are incorporated in emails
-    - Added specific instructions for natural product integration in email content
+  - **Smart Email Generation System**: 
+    - **WITH Product**: Uses original prompts with specific product integration instructions
+    - **WITHOUT Product**: Uses alternative prompts that focus on general cooperation without product mentions
+    - Updated system prompts to ensure natural product integration when selected
+    - Added clean alternative prompts that explicitly avoid specific product references
+  - **Alternative Prompt Logic**: 
+    - Dynamic prompt selection based on `lead.selected_product` status
+    - Clean alternative prompts remove all product-specific instructions
+    - Maintains professional German tone and KasimirLieselotte branding in both scenarios
   - **Frontend Integration**: 
     - Products data passed from backend to frontend on page load
     - JavaScript functions for product selection and management
     - Visual indicators for products with "Kein Produkt" (No Product) for unassigned leads
   - **Product Images**: Stored product images in static folder for future integration
 - **Features**:
+  - Smart prompt selection: product-specific vs. general cooperation emails
   - Per-lead product assignment through click-to-edit interface
   - Default product selection for new email generations
-  - Product information automatically included in OpenAI prompts
+  - Product information automatically included in OpenAI prompts when selected
+  - Clean, general cooperation emails when no product is assigned
   - Seamless product switching without page reload
-  - Product URLs and descriptions integrated into generated emails
 - **Benefits**:
-  - Personalized product recommendations in outreach emails
+  - Personalized product recommendations when product is selected
+  - Professional general outreach emails when no specific product is chosen
   - Easy product management through intuitive UI
-  - Consistent product information across all emails
-  - Enhanced email relevance with product-specific content
-- **Status**: Product selection system fully implemented and integrated with email generation
+  - Consistent branding and tone across all email types
+  - Enhanced email relevance with context-appropriate content
+- **Status**: Product selection system with alternative prompts fully implemented and tested
 
 ### 2025-07-11: Complete Email Template System and Persistent Send Functionality (COMPLETED)
 - **Update**: Implemented complete email template synchronization and persistent send button functionality

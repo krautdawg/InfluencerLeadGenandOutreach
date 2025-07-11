@@ -1327,20 +1327,31 @@ def draft_email(username):
         # Build user content with profile and product information
         profile_content = f"Profil: @{lead.username}, Name: {lead.full_name}, Bio: {lead.bio}, Hashtag: {lead.hashtag}"
         
-        # Add product information if selected
+        # Create different prompts based on whether product is selected
         if lead.selected_product:
+            # WITH PRODUCT: Use current prompts with product instructions
             product_info = f"\n\nAusgewähltes Produkt: {lead.selected_product.name}\nProdukt-URL: {lead.selected_product.url}\nBeschreibung: {lead.selected_product.description}"
             profile_content += product_info
             profile_content_with_email = f"Profil: @{lead.username}, Name: {lead.full_name}, Bio: {lead.bio}, Email: {lead.email}, Hashtag: {lead.hashtag}" + product_info
+            
+            # Use current prompts with product instructions
+            final_subject_prompt = subject_prompt
+            final_body_prompt = body_prompt
         else:
+            # WITHOUT PRODUCT: Use alternative prompts without product references
             profile_content_with_email = f"Profil: @{lead.username}, Name: {lead.full_name}, Bio: {lead.bio}, Email: {lead.email}, Hashtag: {lead.hashtag}"
+            
+            # Create clean alternative prompts without any product mentions
+            final_subject_prompt = 'Schreibe in DU-Form eine persönliche Betreffzeile mit freundlichen Hook für eine Influencer Kooperation mit Kasimir + Liselotte. Nutze persönliche Infos (z.B. Username, BIO, Interessen), sprich sie direkt in DU-Form. Fokussiere dich auf die Interessen und den Content des Influencers. Antworte im JSON-Format: {"subject": "betreff text"}'
+            
+            final_body_prompt = 'Erstelle eine personalisierte, professionelle deutsche E-Mail, ohne die Betreffzeile, für potenzielle Instagram Influencer Kooperationen. Die E-Mail kommt von Kasimir vom Store KasimirLieselotte. Verwende einen höflichen, professionellen Ton auf Deutsch aber in DU-Form um es casual im Instagram feel zu bleiben. Fokussiere dich auf eine allgemeine Kooperationsanfrage, die auf die Interessen und den Content des Influencers eingeht. Erwähne deine Begeisterung für ihren Content und schlage eine mögliche Zusammenarbeit vor, ohne spezifische Produkte zu erwähnen. Füge am Ende die Signatur mit der Website https://www.kasimirlieselotte.de/ hinzu. Antworte im JSON-Format: {"body": "email inhalt"}'
         
-        # Generate subject using custom prompt
+        # Generate subject using appropriate prompt
         subject_response = openai_client.chat.completions.create(
             model="gpt-4o",
             messages=[{
                 "role": "system",
-                "content": subject_prompt
+                "content": final_subject_prompt
             }, {
                 "role": "user",
                 "content": profile_content
@@ -1348,12 +1359,12 @@ def draft_email(username):
             response_format={"type": "json_object"},
             max_tokens=100)
 
-        # Generate body using custom prompt
+        # Generate body using appropriate prompt
         body_response = openai_client.chat.completions.create(
             model="gpt-4o",
             messages=[{
                 "role": "system",
-                "content": body_prompt
+                "content": final_body_prompt
             }, {
                 "role": "user",
                 "content": profile_content_with_email
