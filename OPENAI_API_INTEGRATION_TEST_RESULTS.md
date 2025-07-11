@@ -67,11 +67,11 @@ This document shows the exact data sent to and received from the OpenAI API for 
 }
 ```
 
-### Response Received from OpenAI:
+### Response Received from OpenAI (Latest Test):
 ```json
 {
-  "body": "Hallo Waldkraft,\n\nich hoffe, diese Nachricht erreicht Dich in bester Gesundheit. Ich bin Kasimir vom Store KasimirLieselotte und wir sind große Bewunderer Deines Instagram-Contents rund um Naturheilkunde und Vitalpilze. Deine Leidenschaft für die Stärkung von Körper und Geist aus der Natur harmoniert perfekt mit unseren Produkten.\n\nWir möchten Dir gerne unser Zeck Zack Spray vorstellen. Es handelt sich um ein 100% reines Produkt ohne Zusatzstoffe, das in Deutschland hergestellt wird. Du findest es hier direkt: [Zeck Zack Spray](https://www.kasimirlieselotte.de/shop/Zeck-Zack-Spray-50-ml-kaufen).\n\nDa Du auf Deine natürliche Vitalität Wert legst, könnte das Zeck Zack Spray eine ideale Ergänzung für Deine Abonnenten darstellen, um sie bei ihren Outdoor-Abenteuern zu unterstützen und gleichzeitig auf natürliche Inhaltsstoffe zu setzen. \n\nWir wären begeistert, mit Dir zusammenzuarbeiten und freuen uns darauf, von Dir zu hören.\n\nHerzliche Grüße,\nKasimir vom KasimirLieselotte Team\n\n[www.kasimirlieselotte.de](https://www.kasimirlieselotte.de/)",
-  "subject": "Hallo Waldkraft, entdecke die natürliche Kraft von Zeck Zack für deine Vitalpilz-Community 🌿"
+  "body": "Hallo Waldkraft,\n\nich hoffe, dass diese Nachricht Dich bei bester Gesundheit erreicht. Ich bin Kasimir vom Store KasimirLieselotte und ich verfolge begeistert Dein Instagram-Profil @vitalpilze. Deine Expertise in Naturheilkunde und Deine dedizierte Arbeit zur Förderung von natürlicher Vitalität und innerer Kraft sind wirklich inspirierend.\n\nAngesichts Deiner Interessen für Naturprodukte möchte ich Dir unser Zeck Zack Spray vorstellen. Es ist ein 100% reines Spray ohne jegliche Zusatzstoffe und wird komplett in Deutschland hergestellt. Das Produkt könnte eine interessante Ergänzung zu den Naturheilmitteln sein, die Du bereits untersuchst und empfiehlst. Vielleicht möchtest Du mehr darüber erfahren oder es sogar in Deine Routine integrieren, um Deine Community noch besser auf die Kraft der Natur aufmerksam zu machen.\n\nFalls es Dich interessiert, findest Du hier weitere Informationen: [Zeck Zack Spray](https://www.kasimirlieselotte.de/shop/Zeck-Zack-Spray-50-ml-kaufen).\n\nIch würde mich sehr freuen, mit Dir zusammenzuarbeiten und bin gespannt auf Deine Gedanken zum Zeck Zack Spray. Lass mich wissen, ob Du an einer Kooperation interessiert bist.\n\nVielen Dank für Deine Zeit und ich freue mich auf Deine Antwort.\n\nHerzliche Grüße,\n\nKasimir\n\nKasimirLieselotte\n[https://www.kasimirlieselotte.de/](https://www.kasimirlieselotte.de/)",
+  "subject": "Hallo Waldkraft, lass uns zusammen Stärke aus der Natur mit Zeck Zack teilen! 🌿"
 }
 ```
 
