@@ -378,6 +378,14 @@ async function draftEmail(username, index) {
     const subjectPrompt = document.getElementById('subjectPrompt').value;
     const bodyPrompt = document.getElementById('bodyPrompt').value;
     
+    // Get the draft button and store original content
+    const draftButton = document.querySelector(`button[onclick="draftEmail('${username}', ${index})"]`);
+    const originalContent = draftButton.innerHTML;
+    
+    // Show spinner and disable button
+    draftButton.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Drafting...';
+    draftButton.disabled = true;
+    
     try {
         const response = await fetch(`/draft/${username}`, {
             method: 'POST',
@@ -402,6 +410,10 @@ async function draftEmail(username, index) {
     } catch (error) {
         console.error('Error drafting email:', error);
         showToast('Failed to generate email draft', 'error');
+    } finally {
+        // Restore original button content and enable it
+        draftButton.innerHTML = originalContent;
+        draftButton.disabled = false;
     }
 }
 

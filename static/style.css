@@ -287,6 +287,21 @@ label {
     font-size: 0.875rem;
 }
 
+/* Disabled button state */
+.btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    background-color: var(--color-accent);
+    border-color: var(--color-accent);
+    color: var(--color-background);
+}
+
+.btn-secondary:disabled {
+    background-color: var(--color-background-alt);
+    border-color: var(--color-border);
+    color: var(--color-accent);
+}
+
 /* 6. Responsive Design
 ------------------------------------------- */
 @media (max-width: 768px) {
