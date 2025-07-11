@@ -1402,10 +1402,16 @@ def send_email(username):
         lead.sent = True
         lead.sent_at = datetime.now()
         
+        # Increment send count if it exists, otherwise set to 1
+        if lead.send_count:
+            lead.send_count += 1
+        else:
+            lead.send_count = 1
+        
         # Save to database
         db.session.commit()
 
-        return {"success": True, "message": "Email marked as sent"}
+        return {"success": True, "message": "Email marked as sent", "send_count": getattr(lead, 'send_count', 1)}
 
     except Exception as e:
         logger.error(f"Failed to mark email as sent: {e}")
