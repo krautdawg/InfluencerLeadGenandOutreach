@@ -294,6 +294,11 @@ select {
   transition: var(--transition-fast);
 }
 
+/* Sidebar textareas should only resize vertically */
+.sidebar-nav textarea {
+  resize: vertical;
+}
+
 .form-control:focus,
 input:focus,
 textarea:focus,
