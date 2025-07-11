@@ -335,10 +335,10 @@ function createLeadRow(lead, index) {
         <td data-label="Email" class="editable-cell" onclick="startInlineEdit(this, '${lead.username}', 'email')">
             ${lead.email || '<span style="color: var(--color-light-gray);">Click to add</span>'}
         </td>
-        <td data-label="Subject" class="editable-cell" onclick="showEditModal('Edit Subject', 'Subject', '${(lead.subject || '').replace(/'/g, '\\\'').replace(/"/g, '&quot;')}', 'subject'); editingUsername = '${lead.username}';">
+        <td data-label="Subject" class="editable-cell" data-username="${lead.username}" data-field="subject" onclick="editField(this)">
             ${lead.subject || '<span style="color: var(--color-light-gray);">Click to add</span>'}
         </td>
-        <td data-label="Email Body" class="editable-cell" onclick="showEditModal('Edit Email Body', 'Email Body', '${(lead.email_body || '').replace(/'/g, '\\\'').replace(/"/g, '&quot;')}', 'email_body'); editingUsername = '${lead.username}';">
+        <td data-label="Email Body" class="editable-cell" data-username="${lead.username}" data-field="email_body" onclick="editField(this)">
             ${(lead.email_body || '').substring(0, 50)}${(lead.email_body || '').length > 50 ? '...' : ''}${!lead.email_body ? '<span style="color: var(--color-light-gray);">Click to add</span>' : ''}
         </td>
         <td data-label="Actions">
@@ -354,6 +354,25 @@ function createLeadRow(lead, index) {
     `;
     
     return row;
+}
+
+// Edit field handler (for both inline and modal editing)
+function editField(cell) {
+    const username = cell.getAttribute('data-username');
+    const field = cell.getAttribute('data-field');
+    const lead = leads.find(l => l.username === username);
+    
+    if (!lead) return;
+    
+    if (field === 'email') {
+        startInlineEdit(cell, username, field);
+    } else if (field === 'subject') {
+        showEditModal('Edit Subject', 'Subject', lead.subject || '', 'subject');
+        editingUsername = username;
+    } else if (field === 'email_body') {
+        showEditModal('Edit Email Body', 'Email Body', lead.email_body || '', 'email_body');
+        editingUsername = username;
+    }
 }
 
 // Start inline editing
