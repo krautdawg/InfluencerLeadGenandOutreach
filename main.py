@@ -1190,9 +1190,9 @@ def draft_email(username):
     data = request.get_json()
     subject_prompt = data.get(
         'subject_prompt',
-        'Generate a compelling subject line for an outreach email')
+        'Schreibe in DU-Form eine persönliche Betreffzeile mit freundlichen Hook für eine Influencer Kooperation mit Kasimir + Liselotte. Nutze persönliche Infos (z.B. Username, BIO, Interessen), sprich sie direkt in DU-Form. .Antworte im JSON-Format: {"subject": "betreff text"}')
     body_prompt = data.get('body_prompt',
-                           'Generate a personalized outreach email')
+                           'Erstelle eine personalisierte, professionelle deutsche E-Mail, ohne die Betreffzeile, für potenzielle Instagram Influencer Kooperationen. Die E-Mail kommt von Kasimir vom Store KasimirLieselotte. Verwende einen höflichen, professionellen Ton auf Deutsch aber in DU-Form um es casual im Instagram feel zu bleiben. Füge am Ende die Signatur mit der Website https://www.kasimirlieselotte.de/ hinzu. Antworte im JSON-Format: {"body": "email inhalt"}')
 
     # Find the lead in database
     lead = Lead.query.filter_by(username=username).first()
@@ -1200,12 +1200,12 @@ def draft_email(username):
         return {"error": "Lead not found"}, 404
 
     try:
-        # Generate subject in German
+        # Generate subject using custom prompt
         subject_response = openai_client.chat.completions.create(
             model="gpt-4o",
             messages=[{
                 "role": "system",
-                "content": "Schreibe in DU-Form eine persönliche Betreffzeile mit freundlichen Hook für eine Influencer Kooperation mit Kasimir + Liselotte. Nutze persönliche Infos (z.B. Username, BIO, Interessen), sprich sie direkt in DU-Form. .Antworte im JSON-Format: {\"subject\": \"betreff text\"}"
+                "content": subject_prompt
             }, {
                 "role":
                 "user",
@@ -1215,13 +1215,13 @@ def draft_email(username):
             response_format={"type": "json_object"},
             max_tokens=100)
 
-        # Generate body in German with KasimirLieselotte branding
+        # Generate body using custom prompt
         body_response = openai_client.chat.completions.create(
             model="gpt-4o",
             messages=[{
                 "role":
                 "system",
-                "content": "Erstelle eine personalisierte, professionelle deutsche E-Mail, ohne die Betreffzeile, für potenzielle Instagram Influencer Kooperationen. Die E-Mail kommt von Kasimir vom Store KasimirLieselotte. Verwende einen höflichen, professionellen Ton auf Deutsch aber in DU-Form um es casual im Instagram feel zu bleiben. Füge am Ende die Signatur mit der Website https://www.kasimirlieselotte.de/ hinzu. Antworte im JSON-Format: {\"body\": \"email inhalt\"}"
+                "content": body_prompt
             }, {
                 "role":
                 "user",

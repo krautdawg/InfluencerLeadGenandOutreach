@@ -94,17 +94,13 @@
                     </button>
                 </h3>
                 <div id="settingsPanel" class="collapse">
-                    <div class="alert alert-info">
-                        <i class="fas fa-info-circle me-2"></i>
-                        <small>These are the actual prompts used by the OpenAI API for email generation:</small>
-                    </div>
                     <div class="form-group">
-                        <label class="fw-bold">Subject Line Prompt:</label>
-                        <div class="p-3 bg-light border rounded" style="font-size: 0.9em; white-space: pre-wrap;">Schreibe in DU-Form eine persönliche Betreffzeile mit freundlichen Hook für eine Influencer Kooperation mit Kasimir + Liselotte. Nutze persönliche Infos (z.B. Username, BIO, Interessen), sprich sie direkt in DU-Form. .Antworte im JSON-Format: {"subject": "betreff text"}</div>
+                        <label for="subjectPrompt" class="fw-bold">Subject Line Prompt:</label>
+                        <textarea class="form-control" id="subjectPrompt" rows="4" style="font-size: 0.9em;">Schreibe in DU-Form eine persönliche Betreffzeile mit freundlichen Hook für eine Influencer Kooperation mit Kasimir + Liselotte. Nutze persönliche Infos (z.B. Username, BIO, Interessen), sprich sie direkt in DU-Form. .Antworte im JSON-Format: {"subject": "betreff text"}</textarea>
                     </div>
                     <div class="form-group mt-3">
-                        <label class="fw-bold">Email Body Prompt:</label>
-                        <div class="p-3 bg-light border rounded" style="font-size: 0.9em; white-space: pre-wrap;">Erstelle eine personalisierte, professionelle deutsche E-Mail, ohne die Betreffzeile, für potenzielle Instagram Influencer Kooperationen. Die E-Mail kommt von Kasimir vom Store KasimirLieselotte. Verwende einen höflichen, professionellen Ton auf Deutsch aber in DU-Form um es casual im Instagram feel zu bleiben. Füge am Ende die Signatur mit der Website https://www.kasimirlieselotte.de/ hinzu. Antworte im JSON-Format: {"body": "email inhalt"}</div>
+                        <label for="bodyPrompt" class="fw-bold">Email Body Prompt:</label>
+                        <textarea class="form-control" id="bodyPrompt" rows="6" style="font-size: 0.9em;">Erstelle eine personalisierte, professionelle deutsche E-Mail, ohne die Betreffzeile, für potenzielle Instagram Influencer Kooperationen. Die E-Mail kommt von Kasimir vom Store KasimirLieselotte. Verwende einen höflichen, professionellen Ton auf Deutsch aber in DU-Form um es casual im Instagram feel zu bleiben. Füge am Ende die Signatur mit der Website https://www.kasimirlieselotte.de/ hinzu. Antworte im JSON-Format: {"body": "email inhalt"}</textarea>
                     </div>
                 </div>
             </div>
