@@ -33,7 +33,7 @@ app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
 }
 
 # Initialize database
-from models import db, Lead, ProcessingSession, HashtagUsernamePair, LeadBackup, EmailTemplate
+from models import db, Lead, ProcessingSession, HashtagUsernamePair, LeadBackup, EmailTemplate, Product
 db.init_app(app)
 
 # Initialize OpenAI client
@@ -48,8 +48,8 @@ with app.app_context():
     # Initialize default email templates if they don't exist
     def initialize_default_templates():
         """Initialize default email templates if they don't exist"""
-        default_subject_template = 'Schreibe in DU-Form eine persönliche Betreffzeile mit freundlichen Hook für eine Influencer Kooperation mit Kasimir + Liselotte. Nutze persönliche Infos (z.B. Username, BIO, Interessen), sprich sie direkt in DU-Form. .Antworte im JSON-Format: {"subject": "betreff text"}'
-        default_body_template = 'Erstelle eine personalisierte, professionelle deutsche E-Mail, ohne die Betreffzeile, für potenzielle Instagram Influencer Kooperationen. Die E-Mail kommt von Kasimir vom Store KasimirLieselotte. Verwende einen höflichen, professionellen Ton auf Deutsch aber in DU-Form um es casual im Instagram feel zu bleiben. Füge am Ende die Signatur mit der Website https://www.kasimirlieselotte.de/ hinzu. Antworte im JSON-Format: {"body": "email inhalt"}'
+        default_subject_template = 'Schreibe in DU-Form eine persönliche Betreffzeile mit freundlichen Hook für eine Influencer Kooperation mit Kasimir + Liselotte. Nutze persönliche Infos (z.B. Username, BIO, Interessen), sprich sie direkt in DU-Form. Falls ein Produkt ausgewählt ist, erwähne es subtil in der Betreffzeile. Antworte im JSON-Format: {"subject": "betreff text"}'
+        default_body_template = 'Erstelle eine personalisierte, professionelle deutsche E-Mail, ohne die Betreffzeile, für potenzielle Instagram Influencer Kooperationen. Die E-Mail kommt von Kasimir vom Store KasimirLieselotte. Verwende einen höflichen, professionellen Ton auf Deutsch aber in DU-Form um es casual im Instagram feel zu bleiben. Falls ein Produkt ausgewählt ist, erkläre das Produkt natürlich und beziehe es auf die Bio/Interessen des Influencers. Füge am Ende die Signatur mit der Website https://www.kasimirlieselotte.de/ hinzu. Antworte im JSON-Format: {"body": "email inhalt"}'
         
         # Check if subject template exists
         subject_template = EmailTemplate.query.filter_by(name='subject').first()
@@ -66,6 +66,42 @@ with app.app_context():
         db.session.commit()
     
     initialize_default_templates()
+    
+    # Initialize default products if they don't exist
+    def initialize_default_products():
+        """Initialize default product catalog if it doesn't exist"""
+        default_products = [
+            {
+                'name': 'Zeck Zack',
+                'url': 'https://www.kasimirlieselotte.de/shop/Zeck-Zack-Spray-50-ml-kaufen',
+                'image_url': '/static/product-zeck-zack.jpg',
+                'description': 'Zeck Zack Spray 50ml - 100% rein ohne Zusatzstoffe - Hergestellt in Deutschland',
+                'price': '50 ml'
+            },
+            {
+                'name': 'Funghi Funk',
+                'url': 'https://www.kasimirlieselotte.de/shop/Funghi-Funk-Spray-50-ml-kaufen',
+                'image_url': '/static/product-funghi-funk.jpg',
+                'description': 'Funghi Funk Spray 50ml - 100% rein - Hergestellt in Deutschland',
+                'price': '50 ml'
+            }
+        ]
+        
+        for product_data in default_products:
+            existing_product = Product.query.filter_by(name=product_data['name']).first()
+            if not existing_product:
+                product = Product(
+                    name=product_data['name'],
+                    url=product_data['url'],
+                    image_url=product_data['image_url'],
+                    description=product_data['description'],
+                    price=product_data['price']
+                )
+                db.session.add(product)
+        
+        db.session.commit()
+    
+    initialize_default_products()
 
 # Global storage for processing status (only for status, data is in DB)
 app_data = {
@@ -822,11 +858,16 @@ def index():
         'body': body_template.template if body_template else ''
     }
     
+    # Get products
+    products = Product.query.all()
+    products_dict = [product.to_dict() for product in products]
+    
     return render_template('index.html',
                            ig_sessionid=ig_sessionid,
                            leads=leads_dict,
                            processing_status=app_data['processing_status'],
-                           email_templates=templates)
+                           email_templates=templates,
+                           products=products_dict)
 
 
 @app.route('/ping')
@@ -1283,6 +1324,17 @@ def draft_email(username):
         return {"error": "Lead not found"}, 404
 
     try:
+        # Build user content with profile and product information
+        profile_content = f"Profil: @{lead.username}, Name: {lead.full_name}, Bio: {lead.bio}, Hashtag: {lead.hashtag}"
+        
+        # Add product information if selected
+        if lead.selected_product:
+            product_info = f"\n\nAusgewähltes Produkt: {lead.selected_product.name}\nProdukt-URL: {lead.selected_product.url}\nBeschreibung: {lead.selected_product.description}"
+            profile_content += product_info
+            profile_content_with_email = f"Profil: @{lead.username}, Name: {lead.full_name}, Bio: {lead.bio}, Email: {lead.email}, Hashtag: {lead.hashtag}" + product_info
+        else:
+            profile_content_with_email = f"Profil: @{lead.username}, Name: {lead.full_name}, Bio: {lead.bio}, Email: {lead.email}, Hashtag: {lead.hashtag}"
+        
         # Generate subject using custom prompt
         subject_response = openai_client.chat.completions.create(
             model="gpt-4o",
@@ -1290,10 +1342,8 @@ def draft_email(username):
                 "role": "system",
                 "content": subject_prompt
             }, {
-                "role":
-                "user",
-                "content":
-                f"Profil: @{lead.username}, Name: {lead.full_name}, Bio: {lead.bio}, Hashtag: {lead.hashtag}"
+                "role": "user",
+                "content": profile_content
             }],
             response_format={"type": "json_object"},
             max_tokens=100)
@@ -1302,14 +1352,11 @@ def draft_email(username):
         body_response = openai_client.chat.completions.create(
             model="gpt-4o",
             messages=[{
-                "role":
-                "system",
+                "role": "system",
                 "content": body_prompt
             }, {
-                "role":
-                "user",
-                "content":
-                f"Profil: @{lead.username}, Name: {lead.full_name}, Bio: {lead.bio}, Email: {lead.email}, Hashtag: {lead.hashtag}"
+                "role": "user",
+                "content": profile_content_with_email
             }],
             response_format={"type": "json_object"},
             max_tokens=500)
@@ -1555,6 +1602,48 @@ def save_email_templates():
         logger.error(f"Failed to save email templates: {e}")
         db.session.rollback()
         return {"error": "Failed to save email templates"}, 500
+
+
+@app.route('/api/products', methods=['GET'])
+def get_products():
+    """Get all available products for email generation"""
+    try:
+        products = Product.query.all()
+        return jsonify({
+            'products': [product.to_dict() for product in products]
+        })
+    except Exception as e:
+        logger.error(f"Failed to get products: {e}")
+        return {"error": "Failed to get products"}, 500
+
+
+@app.route('/api/leads/<username>/product', methods=['POST'])
+def update_lead_product(username):
+    """Update the selected product for a lead"""
+    try:
+        data = request.get_json()
+        product_id = data.get('product_id')
+        
+        lead = Lead.query.filter_by(username=username).first()
+        if not lead:
+            return {"error": "Lead not found"}, 404
+        
+        if product_id:
+            product = Product.query.get(product_id)
+            if not product:
+                return {"error": "Product not found"}, 404
+            lead.selected_product_id = product_id
+        else:
+            lead.selected_product_id = None
+        
+        lead.updated_at = datetime.utcnow()
+        db.session.commit()
+        
+        return jsonify({"success": True, "message": "Product updated successfully"})
+    except Exception as e:
+        logger.error(f"Failed to update lead product: {e}")
+        db.session.rollback()
+        return {"error": "Failed to update product selection"}, 500
 
 
 if __name__ == '__main__':

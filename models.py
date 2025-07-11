@@ -10,6 +10,29 @@ class Base(DeclarativeBase):
 db = SQLAlchemy(model_class=Base)
 
 
+class Product(db.Model):
+    """Model for storing product information for email generation"""
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False, unique=True)
+    url = db.Column(db.String(500), nullable=False)
+    image_url = db.Column(db.String(500), nullable=False)
+    description = db.Column(db.Text)
+    price = db.Column(db.String(50))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    def to_dict(self):
+        """Convert Product object to dictionary for JSON serialization"""
+        return {
+            'id': self.id,
+            'name': self.name,
+            'url': self.url,
+            'image_url': self.image_url,
+            'description': self.description,
+            'price': self.price,
+            'created_at': self.created_at.isoformat() if self.created_at else None
+        }
+
+
 class Lead(db.Model):
     """Model for storing Instagram lead data"""
     id = db.Column(db.Integer, primary_key=True)
@@ -39,6 +62,10 @@ class Lead(db.Model):
     email_body = db.Column(db.Text)
     sent = db.Column(db.Boolean, default=False)
     sent_at = db.Column(db.DateTime)
+    
+    # Product selection for personalized emails
+    selected_product_id = db.Column(db.Integer, db.ForeignKey('product.id'), nullable=True)
+    selected_product = db.relationship('Product', backref='leads')
     
     # Metadata
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
@@ -76,7 +103,9 @@ class Lead(db.Model):
             'email_body': self.email_body,  # Add snake_case alias for compatibility
             'sent': self.sent,
             'sentAt': self.sent_at.isoformat() if self.sent_at else None,
-            'created_at': self.created_at.isoformat() if self.created_at else None
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'selectedProductId': self.selected_product_id,
+            'selectedProduct': self.selected_product.to_dict() if self.selected_product else None
         }
 
 

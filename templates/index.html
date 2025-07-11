@@ -83,6 +83,14 @@
                 </h3>
                 <div id="settingsPanel" style="display: none;">
                     <div class="form-group">
+                        <label for="defaultProductSelect">Standard-Produkt für neue Emails</label>
+                        <select class="form-control" id="defaultProductSelect">
+                            <option value="">Kein Produkt ausgewählt</option>
+                            <!-- Products will be populated dynamically -->
+                        </select>
+                        <small class="form-text">Dieses Produkt wird standardmäßig für neue Email-Generierungen verwendet</small>
+                    </div>
+                    <div class="form-group">
                         <label for="subjectPrompt">Betreff Prompt</label>
                         <textarea class="form-control" id="subjectPrompt" rows="3">{{ email_templates.subject or 'Schreibe in DU-Form eine persönliche Betreffzeile mit freundlichen Hook für eine Influencer Kooperation mit Kasimir + Liselotte. Nutze persönliche Infos (z.B. Username, BIO, Interessen), sprich sie direkt in DU-Form. .Antworte im JSON-Format: {"subject": "betreff text"}' }}</textarea>
                     </div>
@@ -142,12 +150,15 @@
                                         Email<span class="sort-indicator">↕</span>
                                     </th>
                                     <th onclick="sortTable(6)" class="sortable">
-                                        Betreff<span class="sort-indicator">↕</span>
+                                        Produkt<span class="sort-indicator">↕</span>
                                     </th>
                                     <th onclick="sortTable(7)" class="sortable">
-                                        Email-Inhalt<span class="sort-indicator">↕</span>
+                                        Betreff<span class="sort-indicator">↕</span>
                                     </th>
                                     <th onclick="sortTable(8)" class="sortable">
+                                        Email-Inhalt<span class="sort-indicator">↕</span>
+                                    </th>
+                                    <th onclick="sortTable(9)" class="sortable">
                                         Status<span class="sort-indicator">↕</span>
                                     </th>
                                     <th>Aktionen</th>
@@ -159,6 +170,7 @@
                                     <th><input type="text" class="filter-input" id="filterFullName" placeholder="Filtern..."></th>
                                     <th><input type="text" class="filter-input" id="filterFollowers" placeholder="> < = 1000"></th>
                                     <th><input type="text" class="filter-input" id="filterEmail" placeholder="Filtern..."></th>
+                                    <th><input type="text" class="filter-input" id="filterProduct" placeholder="Filtern..."></th>
                                     <th><input type="text" class="filter-input" id="filterSubject" placeholder="Filtern..."></th>
                                     <th><input type="text" class="filter-input" id="filterEmailBody" placeholder="Filtern..."></th>
                                     <th><input type="text" class="filter-input" id="filterStatus" placeholder="Filtern..."></th>
@@ -226,9 +238,10 @@
     <!-- Toast Container -->
     <div class="toast-container" id="toastContainer"></div>
 
-    <!-- Expose leads data to JavaScript -->
+    <!-- Expose data to JavaScript -->
     <script>
         window.leadsData = {{ leads | tojson }};
+        window.productsData = {{ products | tojson }};
         window.igSessionId = "{{ ig_sessionid if ig_sessionid else '' }}";
     </script>
 

@@ -7,12 +7,22 @@ let leads = [];
 let selectedCell = null;
 let editingUsername = null;
 let editingField = null;
+let products = [];
+let defaultProductId = null;
 
 // Initialize on DOM load
 document.addEventListener('DOMContentLoaded', function() {
     initializeEventListeners();
     checkSessionId();
     initializeTableFilters();
+    
+    // Load products data from the server or fetch from API
+    if (window.productsData) {
+        products = window.productsData;
+        populateProductSelectors();
+    } else {
+        loadProducts();
+    }
     
     // Update session display if we have a session ID
     if (window.igSessionId) {
@@ -98,6 +108,7 @@ function applyFilters() {
         fullName: document.getElementById('filterFullName')?.value.toLowerCase() || '',
         followers: document.getElementById('filterFollowers')?.value || '',
         email: document.getElementById('filterEmail')?.value.toLowerCase() || '',
+        product: document.getElementById('filterProduct')?.value.toLowerCase() || '',
         subject: document.getElementById('filterSubject')?.value.toLowerCase() || '',
         emailBody: document.getElementById('filterEmailBody')?.value.toLowerCase() || ''
     };
@@ -114,8 +125,9 @@ function applyFilters() {
         const fullName = cells[3]?.textContent.toLowerCase() || '';
         const followers = parseInt(cells[4]?.textContent.replace(/[^\d]/g, '')) || 0;
         const email = cells[5]?.textContent.toLowerCase() || '';
-        const subject = cells[6]?.textContent.toLowerCase() || '';
-        const emailBody = cells[7]?.textContent.toLowerCase() || '';
+        const product = cells[6]?.textContent.toLowerCase() || '';
+        const subject = cells[7]?.textContent.toLowerCase() || '';
+        const emailBody = cells[8]?.textContent.toLowerCase() || '';
         
         let show = true;
         
@@ -123,6 +135,7 @@ function applyFilters() {
         if (filters.username && !username.includes(filters.username)) show = false;
         if (filters.hashtag && !hashtag.includes(filters.hashtag)) show = false;
         if (filters.fullName && !fullName.includes(filters.fullName)) show = false;
+        if (filters.product && !product.includes(filters.product)) show = false;
         if (filters.email && !email.includes(filters.email)) show = false;
         if (filters.subject && !subject.includes(filters.subject)) show = false;
         if (filters.emailBody && !emailBody.includes(filters.emailBody)) show = false;
@@ -334,6 +347,9 @@ function createLeadRow(lead, index) {
         <td data-label="Followers">${formatNumber(lead.followersCount || 0)}</td>
         <td data-label="Email" class="editable-cell" onclick="startInlineEdit(this, '${lead.username}', 'email')">
             ${lead.email || '<span style="color: var(--color-light-gray);">Click to add</span>'}
+        </td>
+        <td data-label="Product" class="editable-cell" id="product-cell-${lead.username}" onclick="editProductSelection('${lead.username}')">
+            ${getProductNameById(lead.selectedProductId) || '<span style="color: var(--color-light-gray);">Kein Produkt</span>'}
         </td>
         <td data-label="Subject" class="editable-cell" data-username="${lead.username}" data-field="subject" onclick="editField(this)">
             ${lead.subject || '<span style="color: var(--color-light-gray);">Click to add</span>'}
@@ -852,4 +868,147 @@ async function saveEmailTemplates() {
         console.error('Error saving email templates:', error);
         showToast('Failed to save email templates', 'error');
     }
+}
+
+// Product management functions
+async function loadProducts() {
+    try {
+        const response = await fetch('/api/products');
+        if (response.ok) {
+            const data = await response.json();
+            products = data.products || [];
+            populateProductSelectors();
+        } else {
+            console.error('Failed to load products');
+        }
+    } catch (error) {
+        console.error('Error loading products:', error);
+    }
+}
+
+function populateProductSelectors() {
+    const defaultProductSelect = document.getElementById('defaultProductSelect');
+    if (defaultProductSelect) {
+        // Clear existing options (except the first one)
+        while (defaultProductSelect.children.length > 1) {
+            defaultProductSelect.removeChild(defaultProductSelect.lastChild);
+        }
+        
+        // Add product options
+        products.forEach(product => {
+            const option = document.createElement('option');
+            option.value = product.id;
+            option.textContent = product.name;
+            defaultProductSelect.appendChild(option);
+        });
+        
+        // Add event listener for default product selection
+        defaultProductSelect.addEventListener('change', function() {
+            defaultProductId = this.value ? parseInt(this.value) : null;
+        });
+    }
+}
+
+function createProductSelector(selectedProductId = null) {
+    const select = document.createElement('select');
+    select.className = 'form-control form-control-sm';
+    select.style.minWidth = '120px';
+    
+    // Add default option
+    const defaultOption = document.createElement('option');
+    defaultOption.value = '';
+    defaultOption.textContent = 'Kein Produkt';
+    select.appendChild(defaultOption);
+    
+    // Add product options
+    products.forEach(product => {
+        const option = document.createElement('option');
+        option.value = product.id;
+        option.textContent = product.name;
+        if (selectedProductId && selectedProductId == product.id) {
+            option.selected = true;
+        }
+        select.appendChild(option);
+    });
+    
+    return select;
+}
+
+async function updateLeadProduct(username, productId) {
+    try {
+        const response = await fetch(`/api/leads/${username}/product`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ product_id: productId })
+        });
+        
+        if (response.ok) {
+            showToast('Product updated successfully', 'success');
+            return true;
+        } else {
+            const error = await response.json();
+            console.error('Failed to update product:', error);
+            showToast('Failed to update product', 'error');
+            return false;
+        }
+    } catch (error) {
+        console.error('Error updating product:', error);
+        showToast('Failed to update product', 'error');
+        return false;
+    }
+}
+
+function getProductNameById(productId) {
+    if (!productId) return '';
+    const product = products.find(p => p.id == productId);
+    return product ? product.name : '';
+}
+
+// Edit product selection inline
+function editProductSelection(username) {
+    const cell = document.getElementById(`product-cell-${username}`);
+    if (cell.classList.contains('editing')) return;
+    
+    const lead = leads.find(l => l.username === username);
+    if (!lead) return;
+    
+    cell.classList.add('editing');
+    const select = createProductSelector(lead.selectedProductId);
+    
+    cell.innerHTML = '';
+    cell.appendChild(select);
+    select.focus();
+    
+    select.addEventListener('change', async () => {
+        const newProductId = select.value ? parseInt(select.value) : null;
+        const success = await updateLeadProduct(username, newProductId);
+        
+        if (success) {
+            // Update the lead data
+            lead.selectedProductId = newProductId;
+            
+            // Update the cell display
+            cell.classList.remove('editing');
+            cell.innerHTML = getProductNameById(newProductId) || '<span style="color: var(--color-light-gray);">Kein Produkt</span>';
+        } else {
+            // Revert on failure
+            finishProductEdit(cell, lead.selectedProductId);
+        }
+    });
+    
+    select.addEventListener('blur', () => {
+        // If no change was made, revert
+        setTimeout(() => {
+            if (cell.classList.contains('editing')) {
+                finishProductEdit(cell, lead.selectedProductId);
+            }
+        }, 100);
+    });
+}
+
+function finishProductEdit(cell, originalProductId) {
+    cell.classList.remove('editing');
+    cell.innerHTML = getProductNameById(originalProductId) || '<span style="color: var(--color-light-gray);">Kein Produkt</span>';
 }
