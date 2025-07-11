@@ -884,7 +884,6 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit, enrich_limi
             gc.collect()
             
             # Add delay between batches to reduce memory pressure
-            import time
             time.sleep(1.0)  # Increased delay to reduce memory pressure
             
         except Exception as e:
