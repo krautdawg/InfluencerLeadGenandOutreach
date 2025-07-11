@@ -83,7 +83,9 @@ function applyFilters() {
         hashtag: document.getElementById('filterHashtag')?.value.toLowerCase() || '',
         fullName: document.getElementById('filterFullName')?.value.toLowerCase() || '',
         followers: document.getElementById('filterFollowers')?.value || '',
-        email: document.getElementById('filterEmail')?.value.toLowerCase() || ''
+        email: document.getElementById('filterEmail')?.value.toLowerCase() || '',
+        subject: document.getElementById('filterSubject')?.value.toLowerCase() || '',
+        emailBody: document.getElementById('filterEmailBody')?.value.toLowerCase() || ''
     };
     
     const tbody = document.getElementById('resultsBody');
@@ -98,6 +100,8 @@ function applyFilters() {
         const fullName = cells[3]?.textContent.toLowerCase() || '';
         const followers = parseInt(cells[4]?.textContent.replace(/[^\d]/g, '')) || 0;
         const email = cells[5]?.textContent.toLowerCase() || '';
+        const subject = cells[6]?.textContent.toLowerCase() || '';
+        const emailBody = cells[7]?.textContent.toLowerCase() || '';
         
         let show = true;
         
@@ -106,6 +110,8 @@ function applyFilters() {
         if (filters.hashtag && !hashtag.includes(filters.hashtag)) show = false;
         if (filters.fullName && !fullName.includes(filters.fullName)) show = false;
         if (filters.email && !email.includes(filters.email)) show = false;
+        if (filters.subject && !subject.includes(filters.subject)) show = false;
+        if (filters.emailBody && !emailBody.includes(filters.emailBody)) show = false;
         
         // Numeric filter for followers
         if (filters.followers) {
@@ -321,10 +327,16 @@ function createLeadRow(lead, index) {
         <td data-label="Email" class="editable-cell" onclick="startInlineEdit(this, '${lead.username}', 'email')">
             ${lead.email || '<span style="color: var(--color-light-gray);">Click to add</span>'}
         </td>
+        <td data-label="Subject" class="editable-cell" onclick="showEditModal('Edit Subject', 'Subject', '${(lead.subject || '').replace(/'/g, '\\\'').replace(/"/g, '&quot;')}', 'subject'); editingUsername = '${lead.username}';">
+            ${lead.subject || '<span style="color: var(--color-light-gray);">Click to add</span>'}
+        </td>
+        <td data-label="Email Body" class="editable-cell" onclick="showEditModal('Edit Email Body', 'Email Body', '${(lead.email_body || '').replace(/'/g, '\\\'').replace(/"/g, '&quot;')}', 'email_body'); editingUsername = '${lead.username}';">
+            ${(lead.email_body || '').substring(0, 50)}${(lead.email_body || '').length > 50 ? '...' : ''}${!lead.email_body ? '<span style="color: var(--color-light-gray);">Click to add</span>' : ''}
+        </td>
         <td data-label="Actions">
             <div class="d-flex gap-1">
-                <button class="btn btn-tertiary btn-sm" onclick="openEmailDraft('${lead.username}')" title="Draft Email">
-                    <i class="fas fa-envelope"></i>
+                <button class="btn btn-secondary btn-sm" onclick="generateEmailContent('${lead.username}')" title="Generate Email">
+                    <i class="fas fa-envelope"></i> Email
                 </button>
                 <button class="btn btn-tertiary btn-sm" onclick="sendEmail('${lead.username}')" title="Send Email" ${lead.sent ? 'disabled' : ''}>
                     <i class="fas fa-paper-plane"></i>
@@ -394,32 +406,41 @@ async function finishInlineEdit(cell, username, field, value) {
     }
 }
 
-// Open email draft modal
-async function openEmailDraft(username) {
+// Generate email content using OpenAI
+async function generateEmailContent(username) {
     const lead = leads.find(l => l.username === username);
     if (!lead) return;
     
-    editingUsername = username;
+    // Show loading state
+    const button = event.target.closest('button');
+    const originalText = button.innerHTML;
+    button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
+    button.disabled = true;
     
-    // If we have a draft, show it
-    if (lead.subject && lead.email_body) {
-        showEditModal('Edit Email Draft', 'Subject', lead.subject, 'subject');
-    } else {
-        // Generate new draft
-        try {
-            const response = await fetch(`/draft-email/${username}`);
-            if (response.ok) {
-                const result = await response.json();
-                lead.subject = result.subject;
-                lead.email_body = result.body;
-                showEditModal('Edit Email Draft', 'Subject', result.subject, 'subject');
-            } else {
-                showToast('Failed to generate email draft', 'error');
-            }
-        } catch (error) {
-            console.error('Draft generation error:', error);
-            showToast('An error occurred while generating draft', 'error');
+    try {
+        const response = await fetch(`/draft-email/${username}`);
+        if (response.ok) {
+            const result = await response.json();
+            
+            // Update the lead data
+            lead.subject = result.subject;
+            lead.email_body = result.body;
+            
+            // Update the table display
+            displayResults(leads);
+            
+            showToast('Email content generated successfully!', 'success');
+        } else {
+            const error = await response.json();
+            showToast(error.error || 'Failed to generate email content', 'error');
         }
+    } catch (error) {
+        console.error('Email generation error:', error);
+        showToast('An error occurred while generating email content', 'error');
+    } finally {
+        // Restore button state
+        button.innerHTML = originalText;
+        button.disabled = false;
     }
 }
 
