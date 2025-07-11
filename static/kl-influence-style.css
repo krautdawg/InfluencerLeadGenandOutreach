@@ -1,0 +1,756 @@
+/* K+L Influence Web App Stylesheet - Based on Internal Style Guide */
+
+/* 1. CSS Custom Properties from Style Guide
+------------------------------------------- */
+:root {
+  /* Brand Colors */
+  --color-natural-green: #2D5B2D;
+  --color-earth-brown: #8B4513;
+  --color-cream: #FAF7F0;
+  --color-forest-green: #1B3F1B;
+  --color-sage-green: #87A96B;
+  --color-muted-olive: #6B7B3A;
+  --color-terracotta: #C17A5B;
+  --color-soft-gold: #D4A574;
+  
+  /* Neutral System */
+  --color-charcoal: #2C3E2C;
+  --color-medium-gray: #5A6B5A;
+  --color-light-gray: #B8C5B8;
+  --color-pale-green: #F0F5F0;
+  --color-white: #FFFFFF;
+  
+  /* Semantic Colors */
+  --color-success: #4A7C4A;
+  --color-warning: #B8860B;
+  --color-error: #A0522D;
+  --color-info: #5F8A8B;
+  
+  /* Spacing Scale */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+  --space-2xl: 48px;
+  --space-3xl: 64px;
+  
+  /* Typography */
+  --font-primary: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-secondary: Georgia, 'Times New Roman', serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+  
+  /* Type Scale */
+  --text-display-lg: 32px;
+  --text-display-md: 24px;
+  --text-h1: 20px;
+  --text-h2: 18px;
+  --text-body-lg: 16px;
+  --text-body-md: 14px;
+  --text-body-sm: 12px;
+  
+  /* Line Heights */
+  --leading-display-lg: 40px;
+  --leading-display-md: 32px;
+  --leading-h1: 28px;
+  --leading-h2: 24px;
+  --leading-body-lg: 24px;
+  --leading-body-md: 20px;
+  --leading-body-sm: 16px;
+  
+  /* Layout */
+  --container-max: 1200px;
+  --sidebar-width: 280px;
+  --header-height: 64px;
+  
+  /* Transitions */
+  --transition-fast: 0.2s ease;
+  --transition-medium: 0.3s ease;
+}
+
+/* Import Inter font */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+/* 2. Base Resets
+------------------------------------------- */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* 3. Body & Typography
+------------------------------------------- */
+body {
+  font-family: var(--font-primary);
+  font-size: var(--text-body-md);
+  line-height: var(--leading-body-md);
+  color: var(--color-charcoal);
+  background-color: var(--color-cream);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  color: var(--color-charcoal);
+  line-height: 1.4;
+}
+
+h1 {
+  font-size: var(--text-display-lg);
+  line-height: var(--leading-display-lg);
+  font-weight: 700;
+}
+
+h2 {
+  font-size: var(--text-display-md);
+  line-height: var(--leading-display-md);
+  font-weight: 700;
+}
+
+h3 {
+  font-size: var(--text-h1);
+  line-height: var(--leading-h1);
+  font-weight: 600;
+}
+
+h4 {
+  font-size: var(--text-h2);
+  line-height: var(--leading-h2);
+  font-weight: 600;
+}
+
+p {
+  margin-bottom: var(--space-md);
+}
+
+a {
+  color: var(--color-natural-green);
+  text-decoration: none;
+  transition: var(--transition-fast);
+}
+
+a:hover {
+  text-decoration: underline;
+  color: var(--color-forest-green);
+}
+
+/* 4. Layout Structure
+------------------------------------------- */
+.app-layout {
+  display: flex;
+  min-height: 100vh;
+}
+
+/* Top Navigation Bar */
+.top-nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--header-height);
+  background-color: var(--color-forest-green);
+  color: var(--color-white);
+  display: flex;
+  align-items: center;
+  padding: 0 var(--space-lg);
+  z-index: 1000;
+  box-shadow: 0 2px 8px rgba(45, 91, 45, 0.08);
+}
+
+.nav-logo {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+.nav-logo img {
+  height: 40px;
+  width: auto;
+}
+
+.nav-logo-text {
+  font-size: var(--text-h1);
+  font-weight: 600;
+  color: var(--color-white);
+}
+
+.nav-links {
+  margin-left: auto;
+  display: flex;
+  gap: var(--space-lg);
+}
+
+.nav-links a {
+  color: var(--color-white);
+  font-weight: 500;
+  transition: var(--transition-fast);
+}
+
+.nav-links a:hover {
+  color: var(--color-sage-green);
+  text-decoration: none;
+}
+
+/* Sidebar Navigation */
+.sidebar-nav {
+  position: fixed;
+  top: var(--header-height);
+  left: 0;
+  width: var(--sidebar-width);
+  height: calc(100vh - var(--header-height));
+  background-color: var(--color-pale-green);
+  padding: var(--space-lg);
+  overflow-y: auto;
+  border-right: 1px solid var(--color-light-gray);
+}
+
+.sidebar-section {
+  margin-bottom: var(--space-xl);
+}
+
+.sidebar-section h3 {
+  font-size: var(--text-body-md);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--color-medium-gray);
+  margin-bottom: var(--space-md);
+}
+
+/* Main Content Area */
+.main-content {
+  margin-left: var(--sidebar-width);
+  margin-top: var(--header-height);
+  padding: var(--space-xl);
+  width: calc(100% - var(--sidebar-width));
+  background-color: var(--color-cream);
+}
+
+/* 5. Forms & Inputs
+------------------------------------------- */
+.form-group {
+  margin-bottom: var(--space-lg);
+}
+
+label {
+  display: block;
+  color: var(--color-charcoal);
+  font-size: var(--text-body-md);
+  font-weight: 500;
+  margin-bottom: var(--space-sm);
+}
+
+.form-control,
+input[type="text"],
+input[type="number"],
+input[type="email"],
+textarea,
+select {
+  width: 100%;
+  padding: 12px 16px;
+  font-family: var(--font-primary);
+  font-size: var(--text-body-md);
+  color: var(--color-charcoal);
+  background-color: var(--color-white);
+  border: 1px solid var(--color-light-gray);
+  border-radius: 6px;
+  transition: var(--transition-fast);
+}
+
+.form-control:focus,
+input:focus,
+textarea:focus,
+select:focus {
+  outline: none;
+  border-color: var(--color-natural-green);
+  box-shadow: 0 0 0 3px rgba(45, 91, 45, 0.1);
+}
+
+.form-text {
+  font-size: var(--text-body-sm);
+  color: var(--color-medium-gray);
+  margin-top: var(--space-xs);
+}
+
+/* 6. Buttons
+------------------------------------------- */
+.btn {
+  display: inline-block;
+  padding: 12px 24px;
+  font-family: var(--font-primary);
+  font-size: var(--text-body-md);
+  font-weight: 600;
+  text-align: center;
+  text-decoration: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: var(--transition-fast);
+  border: none;
+}
+
+.btn-primary {
+  background-color: var(--color-natural-green);
+  color: var(--color-white);
+}
+
+.btn-primary:hover {
+  background-color: var(--color-forest-green);
+  color: var(--color-white);
+}
+
+.btn-secondary {
+  background-color: transparent;
+  color: var(--color-natural-green);
+  border: 2px solid var(--color-natural-green);
+  padding: 10px 22px;
+  font-weight: 500;
+}
+
+.btn-secondary:hover {
+  background-color: var(--color-pale-green);
+}
+
+.btn-tertiary {
+  background-color: transparent;
+  color: var(--color-medium-gray);
+  padding: 8px 16px;
+  font-weight: 500;
+}
+
+.btn-tertiary:hover {
+  background-color: var(--color-pale-green);
+}
+
+.btn-sm {
+  padding: 8px 16px;
+  font-size: var(--text-body-sm);
+}
+
+.btn-icon {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+/* 7. Cards
+------------------------------------------- */
+.card {
+  background-color: var(--color-white);
+  border: 1px solid var(--color-light-gray);
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(45, 91, 45, 0.08);
+  padding: var(--space-lg);
+  margin-bottom: var(--space-lg);
+  transition: var(--transition-fast);
+}
+
+.card:hover {
+  box-shadow: 0 4px 16px rgba(45, 91, 45, 0.12);
+}
+
+.card-elevated {
+  border-color: var(--color-sage-green);
+  border-radius: 12px;
+  padding: var(--space-xl);
+  box-shadow: 0 4px 16px rgba(45, 91, 45, 0.12);
+}
+
+/* 8. Tables (Google Sheets Style)
+------------------------------------------- */
+.table-container {
+  background-color: var(--color-white);
+  border: 1px solid var(--color-light-gray);
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(45, 91, 45, 0.08);
+}
+
+.table-wrapper {
+  overflow-x: auto;
+  position: relative;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-body-sm);
+}
+
+.data-table thead {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.data-table thead th {
+  background-color: var(--color-pale-green);
+  color: var(--color-charcoal);
+  font-weight: 600;
+  padding: var(--space-md);
+  text-align: left;
+  border-bottom: 2px solid var(--color-light-gray);
+  position: relative;
+  cursor: pointer;
+  user-select: none;
+}
+
+.data-table thead th:hover {
+  background-color: #E8F0E8;
+}
+
+.data-table tbody tr {
+  border-bottom: 1px solid var(--color-light-gray);
+  transition: var(--transition-fast);
+}
+
+.data-table tbody tr:hover {
+  background-color: rgba(45, 91, 45, 0.04);
+}
+
+.data-table tbody tr:nth-child(even) {
+  background-color: rgba(240, 245, 240, 0.5);
+}
+
+.data-table td {
+  padding: var(--space-md);
+  vertical-align: middle;
+}
+
+/* Inline Editing */
+.editable-cell {
+  cursor: pointer;
+  position: relative;
+}
+
+.editable-cell:hover {
+  background-color: var(--color-pale-green);
+}
+
+.editable-cell.editing {
+  padding: 0;
+}
+
+.cell-editor {
+  width: 100%;
+  padding: var(--space-sm);
+  border: 2px solid var(--color-natural-green);
+  border-radius: 4px;
+  font-family: var(--font-primary);
+  font-size: var(--text-body-sm);
+}
+
+/* Sort Indicators */
+.sort-indicator {
+  margin-left: var(--space-xs);
+  font-size: 10px;
+  color: var(--color-medium-gray);
+}
+
+/* Filter Row */
+.filter-row th {
+  background-color: var(--color-white);
+  padding: var(--space-sm);
+  border-bottom: 1px solid var(--color-light-gray);
+}
+
+.filter-input {
+  width: 100%;
+  padding: var(--space-xs) var(--space-sm);
+  font-size: var(--text-body-sm);
+  border: 1px solid var(--color-light-gray);
+  border-radius: 4px;
+}
+
+/* 9. Modals & Overlays
+------------------------------------------- */
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  opacity: 0;
+  visibility: hidden;
+  transition: var(--transition-medium);
+}
+
+.modal.show {
+  opacity: 1;
+  visibility: visible;
+}
+
+.modal-dialog {
+  background-color: var(--color-white);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  max-width: 600px;
+  width: 90%;
+  max-height: 90vh;
+  overflow: hidden;
+  transform: scale(0.9);
+  transition: var(--transition-medium);
+}
+
+.modal.show .modal-dialog {
+  transform: scale(1);
+}
+
+.modal-header {
+  padding: var(--space-lg);
+  border-bottom: 1px solid var(--color-light-gray);
+  background-color: var(--color-pale-green);
+}
+
+.modal-title {
+  font-size: var(--text-h1);
+  font-weight: 600;
+  color: var(--color-charcoal);
+}
+
+.modal-body {
+  padding: var(--space-lg);
+  max-height: calc(90vh - 140px);
+  overflow-y: auto;
+}
+
+.modal-footer {
+  padding: var(--space-lg);
+  border-top: 1px solid var(--color-light-gray);
+  display: flex;
+  gap: var(--space-md);
+  justify-content: flex-end;
+}
+
+/* Edit Modal for Email Fields */
+.edit-modal textarea {
+  width: 100%;
+  min-height: 200px;
+  padding: var(--space-md);
+  font-family: var(--font-primary);
+  font-size: var(--text-body-md);
+  line-height: var(--leading-body-lg);
+  border: 1px solid var(--color-light-gray);
+  border-radius: 6px;
+  resize: vertical;
+}
+
+/* 10. Loading States
+------------------------------------------- */
+.spinner {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border: 3px solid var(--color-sage-green);
+  border-radius: 50%;
+  border-top-color: transparent;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.skeleton {
+  background: linear-gradient(90deg, 
+    var(--color-pale-green) 25%, 
+    #E0EAE0 50%, 
+    var(--color-pale-green) 75%);
+  background-size: 200% 100%;
+  animation: loading 1.5s infinite;
+}
+
+@keyframes loading {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* 11. Toast Notifications
+------------------------------------------- */
+.toast-container {
+  position: fixed;
+  top: calc(var(--header-height) + var(--space-lg));
+  right: var(--space-lg);
+  z-index: 3000;
+}
+
+.toast {
+  background-color: var(--color-white);
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  padding: var(--space-md) var(--space-lg);
+  margin-bottom: var(--space-md);
+  min-width: 300px;
+  transform: translateX(400px);
+  transition: var(--transition-medium);
+}
+
+.toast.show {
+  transform: translateX(0);
+}
+
+.toast-success {
+  border-left: 4px solid var(--color-success);
+}
+
+.toast-error {
+  border-left: 4px solid var(--color-error);
+}
+
+.toast-warning {
+  border-left: 4px solid var(--color-warning);
+}
+
+.toast-info {
+  border-left: 4px solid var(--color-info);
+}
+
+/* 12. Mobile Responsiveness
+------------------------------------------- */
+.mobile-menu-toggle {
+  display: none;
+  background: none;
+  border: none;
+  color: var(--color-white);
+  font-size: var(--text-display-md);
+  cursor: pointer;
+}
+
+@media (max-width: 768px) {
+  .mobile-menu-toggle {
+    display: block;
+  }
+  
+  .sidebar-nav {
+    transform: translateX(-100%);
+    transition: var(--transition-medium);
+  }
+  
+  .sidebar-nav.open {
+    transform: translateX(0);
+  }
+  
+  .main-content {
+    margin-left: 0;
+    width: 100%;
+    padding: var(--space-lg);
+  }
+  
+  .nav-links {
+    display: none;
+  }
+  
+  .data-table {
+    font-size: 11px;
+  }
+  
+  .data-table td,
+  .data-table th {
+    padding: var(--space-sm);
+  }
+  
+  .modal-dialog {
+    width: 95%;
+    margin: var(--space-md);
+  }
+}
+
+@media (max-width: 640px) {
+  .main-content {
+    padding: var(--space-md);
+  }
+  
+  .card {
+    padding: var(--space-md);
+  }
+  
+  /* Convert table to card view on mobile */
+  .data-table thead {
+    display: none;
+  }
+  
+  .data-table tbody tr {
+    display: block;
+    margin-bottom: var(--space-md);
+    border: 1px solid var(--color-light-gray);
+    border-radius: 8px;
+    padding: var(--space-md);
+  }
+  
+  .data-table td {
+    display: block;
+    text-align: left;
+    padding: var(--space-xs) 0;
+  }
+  
+  .data-table td::before {
+    content: attr(data-label);
+    font-weight: 600;
+    display: inline-block;
+    width: 120px;
+    color: var(--color-medium-gray);
+  }
+}
+
+/* 13. Utility Classes
+------------------------------------------- */
+.text-center { text-align: center; }
+.text-left { text-align: left; }
+.text-right { text-align: right; }
+
+.mt-0 { margin-top: 0; }
+.mt-1 { margin-top: var(--space-xs); }
+.mt-2 { margin-top: var(--space-sm); }
+.mt-3 { margin-top: var(--space-md); }
+.mt-4 { margin-top: var(--space-lg); }
+.mt-5 { margin-top: var(--space-xl); }
+
+.mb-0 { margin-bottom: 0; }
+.mb-1 { margin-bottom: var(--space-xs); }
+.mb-2 { margin-bottom: var(--space-sm); }
+.mb-3 { margin-bottom: var(--space-md); }
+.mb-4 { margin-bottom: var(--space-lg); }
+.mb-5 { margin-bottom: var(--space-xl); }
+
+.p-0 { padding: 0; }
+.p-1 { padding: var(--space-xs); }
+.p-2 { padding: var(--space-sm); }
+.p-3 { padding: var(--space-md); }
+.p-4 { padding: var(--space-lg); }
+.p-5 { padding: var(--space-xl); }
+
+.w-100 { width: 100%; }
+.d-none { display: none; }
+.d-block { display: block; }
+.d-flex { display: flex; }
+.align-items-center { align-items: center; }
+.justify-content-between { justify-content: space-between; }
+.justify-content-center { justify-content: center; }
+.gap-1 { gap: var(--space-xs); }
+.gap-2 { gap: var(--space-sm); }
+.gap-3 { gap: var(--space-md); }
+.gap-4 { gap: var(--space-lg); }
+
+/* Accessibility */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* Focus visible for keyboard navigation */
+:focus-visible {
+  outline: 2px solid var(--color-natural-green);
+  outline-offset: 2px;
+}

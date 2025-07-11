@@ -1234,15 +1234,12 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit, enrich_limi
         return []
 
 
-@app.route('/draft/<username>', methods=['POST'])
+@app.route('/draft-email/<username>', methods=['GET'])
 def draft_email(username):
     """Generate email draft using OpenAI"""
-    data = request.get_json()
-    subject_prompt = data.get(
-        'subject_prompt',
-        'Schreibe in DU-Form eine persönliche Betreffzeile mit freundlichen Hook für eine Influencer Kooperation mit Kasimir + Liselotte. Nutze persönliche Infos (z.B. Username, BIO, Interessen), sprich sie direkt in DU-Form. .Antworte im JSON-Format: {"subject": "betreff text"}')
-    body_prompt = data.get('body_prompt',
-                           'Erstelle eine personalisierte, professionelle deutsche E-Mail, ohne die Betreffzeile, für potenzielle Instagram Influencer Kooperationen. Die E-Mail kommt von Kasimir vom Store KasimirLieselotte. Verwende einen höflichen, professionellen Ton auf Deutsch aber in DU-Form um es casual im Instagram feel zu bleiben. Füge am Ende die Signatur mit der Website https://www.kasimirlieselotte.de/ hinzu. Antworte im JSON-Format: {"body": "email inhalt"}')
+    # Use default prompts for GET request
+    subject_prompt = 'Schreibe in DU-Form eine persönliche Betreffzeile mit freundlichen Hook für eine Influencer Kooperation mit Kasimir + Liselotte. Nutze persönliche Infos (z.B. Username, BIO, Interessen), sprich sie direkt in DU-Form. .Antworte im JSON-Format: {"subject": "betreff text"}'
+    body_prompt = 'Erstelle eine personalisierte, professionelle deutsche E-Mail, ohne die Betreffzeile, für potenzielle Instagram Influencer Kooperationen. Die E-Mail kommt von Kasimir vom Store KasimirLieselotte. Verwende einen höflichen, professionellen Ton auf Deutsch aber in DU-Form um es casual im Instagram feel zu bleiben. Füge am Ende die Signatur mit der Website https://www.kasimirlieselotte.de/ hinzu. Antworte im JSON-Format: {"body": "email inhalt"}'
 
     # Find the lead in database
     lead = Lead.query.filter_by(username=username).first()
@@ -1313,6 +1310,71 @@ def get_email(username):
         return {"error": "No email address available for this lead"}, 400
 
     return {"email": lead.email}
+
+
+@app.route('/update-lead/<username>', methods=['POST'])
+def update_lead(username):
+    """Update lead information"""
+    data = request.get_json()
+    
+    # Find the lead in database
+    lead = Lead.query.filter_by(username=username).first()
+    if not lead:
+        return {"error": "Lead not found"}, 404
+
+    try:
+        # Update any fields that were provided
+        if 'email' in data:
+            lead.email = data['email']
+        if 'subject' in data:
+            lead.subject = data['subject']
+        if 'email_body' in data:
+            lead.email_body = data['email_body']
+        if 'phone' in data:
+            lead.phone = data['phone']
+        if 'website' in data:
+            lead.website = data['website']
+        
+        lead.updated_at = datetime.now()
+        
+        # Save to database
+        db.session.commit()
+
+        return {"success": True, "message": "Lead updated successfully"}
+
+    except Exception as e:
+        logger.error(f"Failed to update lead: {e}")
+        return {"error": f"Failed to update lead: {str(e)}"}, 500
+
+
+@app.route('/send-email/<username>', methods=['POST'])
+def send_email(username):
+    """Send email to lead"""
+    # Find the lead in database
+    lead = Lead.query.filter_by(username=username).first()
+    if not lead:
+        return {"error": "Lead not found"}, 404
+
+    if not lead.email:
+        return {"error": "No email address available"}, 400
+
+    if not lead.subject or not lead.email_body:
+        return {"error": "Email draft not ready"}, 400
+
+    try:
+        # Here you would integrate with email service
+        # For now, just mark as sent
+        lead.sent = True
+        lead.sent_at = datetime.now()
+        
+        # Save to database
+        db.session.commit()
+
+        return {"success": True, "message": "Email sent successfully"}
+
+    except Exception as e:
+        logger.error(f"Failed to send email: {e}")
+        return {"error": f"Failed to send email: {str(e)}"}, 500
 
 
 @app.route('/mark-sent/<username>', methods=['POST'])

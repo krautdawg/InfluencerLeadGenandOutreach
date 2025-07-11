@@ -3,63 +3,53 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Instagram LeadGen</title>
-    <!-- Bootstrap 5 CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <title>K+L Influence - Lead Generation</title>
     <!-- Font Awesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Custom CSS -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <!-- K+L Influence Style Guide CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='kl-influence-style.css') }}">
 </head>
 <body>
-    <!-- Session ID Modal -->
-    <div class="modal" id="sessionModal" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Instagram Session ID Required</h5>
-                </div>
-                <div class="modal-body">
-                    <div class="form-group">
-                        <label for="sessionInput">Please enter your Instagram Session ID:</label>
-                        <input type="text" class="form-control" id="sessionInput" placeholder="Enter IG_SESSIONID...">
-                        <small class="form-text text-muted">
-                            You can find this in your browser's developer tools under Application > Cookies > instagram.com > sessionid
-                        </small>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-primary" id="saveSession">Save Session ID</button>
-                </div>
-            </div>
+    <!-- Top Navigation Bar -->
+    <nav class="top-nav">
+        <button class="mobile-menu-toggle" id="mobileMenuToggle">
+            <i class="fas fa-bars"></i>
+        </button>
+        <div class="nav-logo">
+            <img src="{{ url_for('static', filename='kl-influence-logo.png') }}" alt="K+L Influence">
         </div>
-    </div>
+        <div class="nav-links">
+            <a href="#" id="sessionStatus">
+                <i class="fas fa-user-circle"></i>
+                <span id="sessionStatusText">{% if ig_sessionid %}Connected{% else %}Not Connected{% endif %}</span>
+            </a>
+        </div>
+    </nav>
 
     <!-- Main Layout -->
     <div class="app-layout">
-        <!-- Left Navigation Bar -->
-        <nav class="left-nav">
-            <header class="nav-header">
-                <h1>Instagram LeadGen</h1>
-                <p class="nav-subtitle">Elegant lead generation and outreach automation</p>
-            </header>
-
-            <!-- IG Session ID Display -->
-            <div class="nav-section session-id-section">
+        <!-- Sidebar Navigation -->
+        <nav class="sidebar-nav" id="sidebarNav">
+            <!-- Instagram Session Section -->
+            <div class="sidebar-section">
                 <h3>Instagram Session</h3>
-                <div class="session-id-display">
-                    <div class="session-id-value">
-                        <i class="fas fa-key me-2"></i>
-                        <span id="sessionIdDisplay">{% if ig_sessionid %}{{ ig_sessionid[:8] }}...{% else %}Not Set{% endif %}</span>
+                <div class="card">
+                    <div class="d-flex align-items-center justify-content-between mb-3">
+                        <div class="d-flex align-items-center gap-2">
+                            <i class="fas fa-instagram" style="color: var(--color-natural-green);"></i>
+                            <span style="font-family: var(--font-mono); font-size: var(--text-body-sm);">
+                                {% if ig_sessionid %}{{ ig_sessionid[:8] }}...{% else %}Not Set{% endif %}
+                            </span>
+                        </div>
+                        <button type="button" class="btn btn-tertiary btn-sm" id="changeSessionBtn">
+                            <i class="fas fa-edit"></i>
+                        </button>
                     </div>
-                    <button type="button" class="btn btn-outline-secondary btn-sm" id="changeSessionBtn">
-                        <i class="fas fa-edit"></i> Change
-                    </button>
                 </div>
             </div>
 
-            <!-- Keyword Input -->
-            <div class="nav-section">
+            <!-- Lead Generation Section -->
+            <div class="sidebar-section">
                 <h3>Lead Generation</h3>
                 <div class="form-group">
                     <label for="keywordInput">Stammhashtag</label>
@@ -67,40 +57,50 @@
                 </div>
                 <div class="form-group">
                     <label for="searchLimitInput">Anzahl Hashtag Varianten</label>
-                    <input type="number" class="form-control" id="searchLimitInput" value="25" min="1" max="50" placeholder="25">
-                    <small class="form-text text-muted">Max 50 (reduced for memory safety)</small>
+                    <input type="number" class="form-control" id="searchLimitInput" value="25" min="1" max="50">
+                    <small class="form-text">Max 50 (optimized for performance)</small>
                 </div>
                 <div class="form-group">
                     <label for="enrichLimitInput">Enrich Limit</label>
-                    <input type="number" class="form-control" id="enrichLimitInput" value="5" min="1" max="25" placeholder="5">
-                    <small class="form-text text-muted">Max 25 (for testing)</small>
+                    <input type="number" class="form-control" id="enrichLimitInput" value="5" min="1" max="25">
+                    <small class="form-text">Max 25 profiles</small>
                 </div>
-                <button type="button" class="btn btn-primary w-100" id="runButton">
-                    <i class="fas fa-play me-2"></i>Run
+                <button type="button" class="btn btn-primary w-100 btn-icon" id="runButton">
+                    <i class="fas fa-play"></i>
+                    <span>Generate Leads</span>
                 </button>
             </div>
 
             <!-- Processing Status -->
-            <div id="processingStatus" class="alert alert-info" style="display: none;">
-                <i class="fas fa-spinner fa-spin me-2"></i>
-                <span id="statusText">Processing...</span>
+            <div id="processingStatus" class="sidebar-section" style="display: none;">
+                <div class="card" style="background-color: var(--color-pale-green);">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="spinner"></div>
+                        <div>
+                            <div id="statusText" style="font-weight: 600;">Processing...</div>
+                            <div id="progressText" style="font-size: var(--text-body-sm); color: var(--color-medium-gray);"></div>
+                        </div>
+                    </div>
+                </div>
             </div>
 
-            <!-- Settings Panel -->
-            <div class="nav-section">
+            <!-- Email Generation Settings -->
+            <div class="sidebar-section">
                 <h3>
-                    <button class="btn btn-link text-decoration-none p-0" type="button" data-bs-toggle="collapse" data-bs-target="#settingsPanel">
-                        <i class="fas fa-cog me-2"></i>Email Generation Prompts
+                    <button class="btn btn-tertiary p-0 text-left w-100" type="button" id="toggleSettings">
+                        <i class="fas fa-cog"></i>
+                        Email Templates
+                        <i class="fas fa-chevron-down" style="float: right;"></i>
                     </button>
                 </h3>
-                <div id="settingsPanel" class="collapse">
+                <div id="settingsPanel" style="display: none;">
                     <div class="form-group">
-                        <label for="subjectPrompt" class="fw-bold">Subject Line Prompt:</label>
-                        <textarea class="form-control" id="subjectPrompt" rows="4" style="font-size: 0.9em;">Schreibe in DU-Form eine persönliche Betreffzeile mit freundlichen Hook für eine Influencer Kooperation mit Kasimir + Liselotte. Nutze persönliche Infos (z.B. Username, BIO, Interessen), sprich sie direkt in DU-Form. .Antworte im JSON-Format: {"subject": "betreff text"}</textarea>
+                        <label for="subjectPrompt">Subject Line Template</label>
+                        <textarea class="form-control" id="subjectPrompt" rows="3">Schreibe in DU-Form eine persönliche Betreffzeile mit freundlichen Hook für eine Influencer Kooperation mit Kasimir + Liselotte. Nutze persönliche Infos (z.B. Username, BIO, Interessen), sprich sie direkt in DU-Form. .Antworte im JSON-Format: {"subject": "betreff text"}</textarea>
                     </div>
-                    <div class="form-group mt-3">
-                        <label for="bodyPrompt" class="fw-bold">Email Body Prompt:</label>
-                        <textarea class="form-control" id="bodyPrompt" rows="6" style="font-size: 0.9em;">Erstelle eine personalisierte, professionelle deutsche E-Mail, ohne die Betreffzeile, für potenzielle Instagram Influencer Kooperationen. Die E-Mail kommt von Kasimir vom Store KasimirLieselotte. Verwende einen höflichen, professionellen Ton auf Deutsch aber in DU-Form um es casual im Instagram feel zu bleiben. Füge am Ende die Signatur mit der Website https://www.kasimirlieselotte.de/ hinzu. Antworte im JSON-Format: {"body": "email inhalt"}</textarea>
+                    <div class="form-group">
+                        <label for="bodyPrompt">Email Body Template</label>
+                        <textarea class="form-control" id="bodyPrompt" rows="5">Erstelle eine personalisierte, professionelle deutsche E-Mail, ohne die Betreffzeile, für potenzielle Instagram Influencer Kooperationen. Die E-Mail kommt von Kasimir vom Store KasimirLieselotte. Verwende einen höflichen, professionellen Ton auf Deutsch aber in DU-Form um es casual im Instagram feel zu bleiben. Füge am Ende die Signatur mit der Website https://www.kasimirlieselotte.de/ hinzu. Antworte im JSON-Format: {"body": "email inhalt"}</textarea>
                     </div>
                 </div>
             </div>
@@ -108,92 +108,125 @@
 
         <!-- Main Content Area -->
         <main class="main-content">
-            <!-- Export Options - Top Right -->
-            <div class="export-toolbar" id="exportSection" style="display: none;">
-                <div class="btn-group btn-group-sm" role="group">
-                    <button type="button" class="btn btn-secondary" onclick="clearFilters()" title="Clear Filters">
-                        <i class="fas fa-filter"></i> Clear Filters
-                    </button>
-                    <button type="button" class="btn btn-secondary" onclick="exportData('csv')" title="Export CSV">
-                        <i class="fas fa-file-csv"></i>
-                    </button>
-                    <button type="button" class="btn btn-secondary" onclick="exportData('json')" title="Export JSON">
-                        <i class="fas fa-file-code"></i>
-                    </button>
-                    <button type="button" class="btn btn-secondary" onclick="clearData()" title="Clear Data">
-                        <i class="fas fa-trash"></i>
-                    </button>
+            <!-- Results Section -->
+            <div id="resultsSection" style="display: none;">
+                <!-- Action Bar -->
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h2 class="mb-0">Lead Results</h2>
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="clearFilters()">
+                            <i class="fas fa-filter"></i> Clear Filters
+                        </button>
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="exportData('csv')">
+                            <i class="fas fa-file-csv"></i> Export CSV
+                        </button>
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="exportData('json')">
+                            <i class="fas fa-file-code"></i> Export JSON
+                        </button>
+                        <button type="button" class="btn btn-tertiary btn-sm" onclick="clearData()">
+                            <i class="fas fa-trash"></i> Clear All
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Table Container -->
+                <div class="table-container">
+                    <div class="table-wrapper">
+                        <table class="data-table" id="resultsTable">
+                            <thead>
+                                <tr>
+                                    <th onclick="sortTable(0)" class="sortable">
+                                        #<span class="sort-indicator">↕</span>
+                                    </th>
+                                    <th onclick="sortTable(1)" class="sortable">
+                                        Username<span class="sort-indicator">↕</span>
+                                    </th>
+                                    <th onclick="sortTable(2)" class="sortable">
+                                        Hashtag<span class="sort-indicator">↕</span>
+                                    </th>
+                                    <th onclick="sortTable(3)" class="sortable">
+                                        Full Name<span class="sort-indicator">↕</span>
+                                    </th>
+                                    <th onclick="sortTable(4)" class="sortable">
+                                        Followers<span class="sort-indicator">↕</span>
+                                    </th>
+                                    <th onclick="sortTable(5)" class="sortable">
+                                        Email<span class="sort-indicator">↕</span>
+                                    </th>
+                                    <th>Actions</th>
+                                </tr>
+                                <tr class="filter-row">
+                                    <th></th>
+                                    <th><input type="text" class="filter-input" id="filterUsername" placeholder="Filter..."></th>
+                                    <th><input type="text" class="filter-input" id="filterHashtag" placeholder="Filter..."></th>
+                                    <th><input type="text" class="filter-input" id="filterFullName" placeholder="Filter..."></th>
+                                    <th><input type="text" class="filter-input" id="filterFollowers" placeholder="> < = 1000"></th>
+                                    <th><input type="text" class="filter-input" id="filterEmail" placeholder="Filter..."></th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody id="resultsBody">
+                                <!-- Results will be populated here -->
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
 
-            <!-- Results Table -->
-            <div id="resultsSection" style="display: none;">
-                <h3>Lead Generation Results</h3>
-                <div class="table-responsive">
-                    <table class="table results-table" id="resultsTable">
-                        <thead>
-                            <tr class="header-row">
-                                <th onclick="sortTable(0)">Username <i class="fas fa-sort"></i></th>
-                                <th onclick="sortTable(1)">Hashtag <i class="fas fa-sort"></i></th>
-                                <th onclick="sortTable(2)">Full Name <i class="fas fa-sort"></i></th>
-                                <th onclick="sortTable(3)">Email <i class="fas fa-sort"></i></th>
-                                <th onclick="sortTable(4)">Followers <i class="fas fa-sort"></i></th>
-                                <th>Subject</th>
-                                <th>Email Body</th>
-                                <th>Actions</th>
-                            </tr>
-                            <tr class="filter-row">
-                                <th><input type="text" class="form-control form-control-sm filter-input" data-column="0" placeholder="Filter username..."></th>
-                                <th><input type="text" class="form-control form-control-sm filter-input" data-column="1" placeholder="Filter hashtag..."></th>
-                                <th><input type="text" class="form-control form-control-sm filter-input" data-column="2" placeholder="Filter name..."></th>
-                                <th><input type="text" class="form-control form-control-sm filter-input" data-column="3" placeholder="Filter email..."></th>
-                                <th><input type="text" class="form-control form-control-sm filter-input" data-column="4" placeholder="e.g. >1000, <=500"></th>
-                                <th></th>
-                                <th></th>
-                                <th></th>
-                            </tr>
-                        </thead>
-                        <tbody id="resultsBody">
-                            <!-- Results will be populated here -->
-                        </tbody>
-                    </table>
-                </div>
+            <!-- Empty State -->
+            <div id="emptyState" class="text-center" style="padding: var(--space-3xl) 0;">
+                <i class="fas fa-inbox" style="font-size: 48px; color: var(--color-light-gray); margin-bottom: var(--space-lg);"></i>
+                <h3 style="color: var(--color-medium-gray);">No leads generated yet</h3>
+                <p style="color: var(--color-medium-gray);">Enter a hashtag and click "Generate Leads" to get started</p>
             </div>
         </main>
     </div>
 
-    <!-- Toast Container -->
-    <div class="toast-container position-fixed bottom-0 end-0 p-3">
-        <div id="toastMessage" class="toast" role="alert">
-            <div class="toast-header">
-                <strong class="me-auto">Notification</strong>
-                <button type="button" class="btn-close" data-bs-dismiss="toast"></button>
+    <!-- Session ID Modal -->
+    <div class="modal" id="sessionModal">
+        <div class="modal-dialog">
+            <div class="modal-header">
+                <h4 class="modal-title">Instagram Session Configuration</h4>
             </div>
-            <div class="toast-body" id="toastBody">
-                <!-- Toast message content -->
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="sessionInput">Instagram Session ID</label>
+                    <input type="text" class="form-control" id="sessionInput" placeholder="Enter your sessionid value...">
+                    <small class="form-text">
+                        Find this in your browser: Developer Tools → Application → Cookies → instagram.com → sessionid
+                    </small>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('sessionModal')">Cancel</button>
+                <button type="button" class="btn btn-primary" id="saveSession">Save Session</button>
             </div>
         </div>
     </div>
 
-    <!-- Bootstrap 5 JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <!-- Custom JS -->
-    <script src="{{ url_for('static', filename='ui.js') }}"></script>
-    
-    <script>
-        // Initialize the application
-        document.addEventListener('DOMContentLoaded', function() {
-            // Check if session ID is available
-            {% if not ig_sessionid %}
-                document.getElementById('sessionModal').style.display = 'block';
-            {% endif %}
-            
-            // Load existing leads if available
-            {% if leads %}
-                const leads = {{ leads | tojson }};
-                displayResults(leads);
-            {% endif %}
-        });
-    </script>
+    <!-- Edit Modal for Email Subject/Body -->
+    <div class="modal" id="editModal">
+        <div class="modal-dialog">
+            <div class="modal-header">
+                <h4 class="modal-title" id="editModalTitle">Edit Content</h4>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label id="editModalLabel">Content</label>
+                    <textarea class="form-control" id="editModalContent" rows="10"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeEditModal()">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="saveEditModal()">Save Changes</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- JavaScript -->
+    <script src="{{ url_for('static', filename='kl-influence-app.js') }}"></script>
 </body>
 </html>
