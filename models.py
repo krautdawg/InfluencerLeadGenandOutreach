@@ -99,6 +99,74 @@ class HashtagUsernamePair(db.Model):
         }
 
 
+class LeadBackup(db.Model):
+    """Backup model for Lead data - not affected by clear operations"""
+    id = db.Column(db.Integer, primary_key=True)
+    original_lead_id = db.Column(db.Integer, nullable=False)
+    username = db.Column(db.String(100), nullable=False)
+    hashtag = db.Column(db.String(100), nullable=False)
+    full_name = db.Column(db.String(200))
+    bio = db.Column(db.Text)
+    email = db.Column(db.String(200))
+    phone = db.Column(db.String(50))
+    website = db.Column(db.String(200))
+    followers_count = db.Column(db.Integer, default=0)
+    following_count = db.Column(db.Integer, default=0)
+    posts_count = db.Column(db.Integer, default=0)
+    is_verified = db.Column(db.Boolean, default=False)
+    profile_pic_url = db.Column(db.String(500))
+    is_duplicate = db.Column(db.Boolean, default=False)
+    
+    # Location/Address fields
+    address_street = db.Column(db.String(300))
+    city_name = db.Column(db.String(100))
+    zip = db.Column(db.String(20))
+    latitude = db.Column(db.Float)
+    longitude = db.Column(db.Float)
+    
+    # Email outreach fields
+    subject = db.Column(db.String(200))
+    email_body = db.Column(db.Text)
+    sent = db.Column(db.Boolean, default=False)
+    sent_at = db.Column(db.DateTime)
+    
+    # Metadata
+    original_created_at = db.Column(db.DateTime)
+    original_updated_at = db.Column(db.DateTime)
+    backup_created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    def to_dict(self):
+        """Convert LeadBackup object to dictionary for JSON serialization"""
+        return {
+            'id': self.id,
+            'original_lead_id': self.original_lead_id,
+            'username': self.username,
+            'hashtag': self.hashtag,
+            'fullName': self.full_name,
+            'bio': self.bio,
+            'email': self.email,
+            'phone': self.phone,
+            'website': self.website,
+            'followersCount': self.followers_count,
+            'followingCount': self.following_count,
+            'postsCount': self.posts_count,
+            'isVerified': self.is_verified,
+            'profilePicUrl': self.profile_pic_url,
+            'is_duplicate': self.is_duplicate,
+            'addressStreet': self.address_street,
+            'cityName': self.city_name,
+            'zip': self.zip,
+            'latitude': self.latitude,
+            'longitude': self.longitude,
+            'subject': self.subject,
+            'emailBody': self.email_body,
+            'sent': self.sent,
+            'sentAt': self.sent_at.isoformat() if self.sent_at else None,
+            'original_created_at': self.original_created_at.isoformat() if self.original_created_at else None,
+            'backup_created_at': self.backup_created_at.isoformat() if self.backup_created_at else None
+        }
+
+
 class ProcessingSession(db.Model):
     """Model for tracking processing sessions"""
     id = db.Column(db.Integer, primary_key=True)

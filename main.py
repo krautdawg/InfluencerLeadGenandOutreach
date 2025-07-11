@@ -33,7 +33,7 @@ app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
 }
 
 # Initialize database
-from models import db, Lead, ProcessingSession, HashtagUsernamePair
+from models import db, Lead, ProcessingSession, HashtagUsernamePair, LeadBackup
 db.init_app(app)
 
 # Initialize OpenAI client
@@ -440,6 +440,46 @@ async def call_perplexity_api(profile_info, api_key):
             }
 
 
+def backup_lead_to_backup_table(lead):
+    """Create a backup copy of a lead in the LeadBackup table"""
+    try:
+        backup_lead = LeadBackup(
+            original_lead_id=lead.id,
+            username=lead.username,
+            hashtag=lead.hashtag,
+            full_name=lead.full_name,
+            bio=lead.bio,
+            email=lead.email,
+            phone=lead.phone,
+            website=lead.website,
+            followers_count=lead.followers_count,
+            following_count=lead.following_count,
+            posts_count=lead.posts_count,
+            is_verified=lead.is_verified,
+            profile_pic_url=lead.profile_pic_url,
+            is_duplicate=lead.is_duplicate,
+            address_street=lead.address_street,
+            city_name=lead.city_name,
+            zip=lead.zip,
+            latitude=lead.latitude,
+            longitude=lead.longitude,
+            subject=lead.subject,
+            email_body=lead.email_body,
+            sent=lead.sent,
+            sent_at=lead.sent_at,
+            original_created_at=lead.created_at,
+            original_updated_at=lead.updated_at
+        )
+        db.session.add(backup_lead)
+        db.session.commit()
+        logger.info(f"Backed up lead {lead.username} to backup table")
+        return True
+    except Exception as e:
+        logger.error(f"Failed to backup lead {lead.username}: {e}")
+        db.session.rollback()
+        return False
+
+
 def save_leads_incrementally(enriched_leads, keyword):
     """Save leads to database incrementally to prevent data loss"""
     saved_count = 0
@@ -472,6 +512,11 @@ def save_leads_incrementally(enriched_leads, keyword):
                         existing_lead.longitude = lead_data.get('longitude')
                         existing_lead.is_duplicate = lead_data.get('is_duplicate', False)
                         existing_lead.updated_at = datetime.utcnow()
+                        
+                        # Create backup before updating
+                        backup_lead_to_backup_table(existing_lead)
+                        
+                        current_lead = existing_lead
                     else:
                         # Create new lead
                         new_lead = Lead(
@@ -495,9 +540,14 @@ def save_leads_incrementally(enriched_leads, keyword):
                             is_duplicate=lead_data.get('is_duplicate', False)
                         )
                         db.session.add(new_lead)
+                        current_lead = new_lead
                     
                     # Commit each lead immediately
                     db.session.commit()
+                    
+                    # Create backup after successful save
+                    backup_lead_to_backup_table(current_lead)
+                    
                     saved_count += 1
                     logger.info(f"Saved lead {lead_data['username']} to database")
                     
