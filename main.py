@@ -485,18 +485,25 @@ async def enrich_profile_batch(usernames, ig_sessionid, apify_token,
 
                 # Always try to enrich contact info with Perplexity for missing data
                 perplexity_contact = {}
-                if not any([
-                        profile_info.get('public_email'),
-                        profile_info.get('contact_phone_number'),
-                        profile_info.get('external_url')
-                ]):
+                # Check if any contact info is missing (not all fields need to be empty)
+                missing_email = not profile_info.get('public_email')
+                missing_phone = not profile_info.get('contact_phone_number') 
+                missing_website = not profile_info.get('external_url')
+                
+                if missing_email or missing_phone or missing_website:
                     try:
                         # Pass full profile info instead of just username
                         profile_with_username = dict(profile_info)
                         profile_with_username['username'] = username
+                        # Add existing contact info to the profile for API context
+                        profile_with_username['email'] = profile_info.get('public_email', '')
+                        profile_with_username['phone'] = profile_info.get('contact_phone_number', '')
+                        profile_with_username['website'] = profile_info.get('external_url', '')
+                        
                         perplexity_contact = await call_perplexity_api(
                             profile_with_username, perplexity_key)
                         logger.info(f"Perplexity enrichment for {username}: {perplexity_contact}")
+                        logger.info(f"Missing fields for {username}: email={missing_email}, phone={missing_phone}, website={missing_website}")
                     except Exception as e:
                         logger.error(f"Perplexity API failed for {username}: {e}")
 

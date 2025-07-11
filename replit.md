@@ -6,6 +6,22 @@ This is a Flask-based Instagram lead generation and outreach automation tool tha
 
 ## Recent Changes
 
+### 2025-07-11: Fixed Perplexity API Enrichment Logic (COMPLETED)
+- **Issue**: Perplexity API contact enrichment was not being called when profiles already had some contact information
+- **Root Cause**: Flawed logic that only called Perplexity when ALL contact fields were missing (using `not any()`)
+- **Problem**: If a profile had a website but missing email/phone, Perplexity would be skipped entirely
+- **Resolution**: 
+  - Changed logic to call Perplexity when ANY contact fields are missing (using `or` conditions)
+  - Added explicit checks for missing email, phone, and website individually
+  - Enhanced logging to show which specific fields are missing for each profile
+  - Added existing contact info to profile data passed to Perplexity API for better context
+- **Impact**: 
+  - Perplexity API will now properly enrich profiles with partial contact information
+  - Missing emails and phone numbers will be found even when website is already known
+  - Better utilization of Perplexity API for comprehensive contact discovery
+- **Example**: @fusspflege.neu.ulm profile now correctly gets email and phone enrichment despite having existing website
+- **Status**: Logic fixed and tested, future enrichment runs will work correctly
+
 ### 2025-07-11: Advanced Table Filtering and Sorting (COMPLETED)
 - **Update**: Added autofilter functionality for each table column with enhanced sorting
 - **Changes Made**:
