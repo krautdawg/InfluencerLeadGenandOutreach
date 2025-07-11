@@ -10,6 +10,18 @@ let editingField = null;
 let products = [];
 let defaultProductId = null;
 
+// Template prompts for different scenarios
+const TEMPLATE_PROMPTS = {
+    withProduct: {
+        subject: 'Schreibe in DU-Form eine persönliche Betreffzeile mit freundlichen Hook für eine Influencer Kooperation mit Kasimir + Liselotte. Nutze persönliche Infos (z.B. Username, BIO, Interessen), sprich sie direkt in DU-Form. Falls ein Produkt ausgewählt ist, erwähne es subtil in der Betreffzeile. Antworte im JSON-Format: {"subject": "betreff text"}',
+        body: 'Erstelle eine personalisierte, professionelle deutsche E-Mail, ohne die Betreffzeile, für potenzielle Instagram Influencer Kooperationen. Die E-Mail kommt von Kasimir vom Store KasimirLieselotte. Verwende einen höflichen, professionellen Ton auf Deutsch aber in DU-Form um es casual im Instagram feel zu bleiben. WICHTIG: Falls ein Produkt ausgewählt ist, integriere unbedingt folgende Elemente in die E-Mail: 1) Erwähne das Produkt namentlich, 2) Füge den direkten Link zum Produkt ein (Produkt-URL), 3) Erkläre kurz die Produkteigenschaften basierend auf der Beschreibung, 4) Beziehe das Produkt auf die Bio/Interessen des Influencers. Die E-Mail sollte den Produktlink natürlich in den Text einbetten. Füge am Ende die Signatur mit der Website https://www.kasimirlieselotte.de/ hinzu. Antworte im JSON-Format: {"body": "email inhalt"}'
+    },
+    withoutProduct: {
+        subject: 'Schreibe in DU-Form eine persönliche Betreffzeile mit freundlichen Hook für eine Influencer Kooperation mit Kasimir + Liselotte. Nutze persönliche Infos (z.B. Username, BIO, Interessen), sprich sie direkt in DU-Form. Fokussiere dich auf die Interessen und den Content des Influencers. Antworte im JSON-Format: {"subject": "betreff text"}',
+        body: 'Erstelle eine personalisierte, professionelle deutsche E-Mail, ohne die Betreffzeile, für potenzielle Instagram Influencer Kooperationen. Die E-Mail kommt von Kasimir vom Store KasimirLieselotte. Verwende einen höflichen, professionellen Ton auf Deutsch aber in DU-Form um es casual im Instagram feel zu bleiben. Fokussiere dich auf eine allgemeine Kooperationsanfrage, die auf die Interessen und den Content des Influencers eingeht. Erwähne deine Begeisterung für ihren Content und schlage eine mögliche Zusammenarbeit vor, ohne spezifische Produkte zu erwähnen. Füge am Ende die Signatur mit der Website https://www.kasimirlieselotte.de/ hinzu. Antworte im JSON-Format: {"body": "email inhalt"}'
+    }
+};
+
 // Initialize on DOM load
 document.addEventListener('DOMContentLoaded', function() {
     initializeEventListeners();
@@ -78,6 +90,9 @@ function initializeEventListeners() {
     
     // Email template auto-save
     initializeEmailTemplateAutoSave();
+    
+    // Default product selector change
+    document.getElementById('defaultProductSelect')?.addEventListener('change', updateTemplatePromptsBasedOnProduct);
     
     // Modal close on background click
     document.querySelectorAll('.modal').forEach(modal => {
@@ -833,6 +848,32 @@ function initializeEmailTemplateAutoSave() {
     bodyPrompt.addEventListener('blur', () => {
         setTimeout(saveEmailTemplates, 100);
     });
+}
+
+// Update template prompts based on selected product
+function updateTemplatePromptsBasedOnProduct() {
+    const defaultProductSelect = document.getElementById('defaultProductSelect');
+    const subjectPrompt = document.getElementById('subjectPrompt');
+    const bodyPrompt = document.getElementById('bodyPrompt');
+    
+    if (!defaultProductSelect || !subjectPrompt || !bodyPrompt) return;
+    
+    const hasProduct = defaultProductSelect.value !== '';
+    const templates = hasProduct ? TEMPLATE_PROMPTS.withProduct : TEMPLATE_PROMPTS.withoutProduct;
+    
+    // Update the textarea values
+    subjectPrompt.value = templates.subject;
+    bodyPrompt.value = templates.body;
+    
+    // Save the updated templates automatically
+    saveEmailTemplates();
+    
+    // Show user feedback
+    const productName = hasProduct ? 
+        products.find(p => p.id == defaultProductSelect.value)?.name || 'Produkt' : 
+        'Kein Produkt';
+    
+    showToast(`Email-Templates aktualisiert für: ${productName}`, 'success');
 }
 
 async function saveEmailTemplates() {
