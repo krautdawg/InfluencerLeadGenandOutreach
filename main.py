@@ -538,13 +538,11 @@ def backup_lead_to_backup_table(lead):
         return False
 
 
-def save_leads_incrementally(enriched_leads, keyword):
+def save_leads_incrementally(enriched_leads, keyword, default_product_id=None):
     """Save leads to database incrementally to prevent data loss"""
     saved_count = 0
     try:
         with app.app_context():
-            # Get default product from session
-            default_product_id = session.get('default_product_id')
             for lead_data in enriched_leads:
                 try:
                     # Check if lead already exists
@@ -1052,13 +1050,16 @@ def process_keyword():
     if not ig_sessionid:
         return {"error": "Instagram Session ID not found. Please provide your Instagram session ID first."}, 400
 
+    # Get default product ID from session before starting background processing
+    default_product_id = session.get('default_product_id')
+
     # Start processing in background using ThreadPoolExecutor
     app_data['processing_status'] = 'Processing...'
 
     try:
         # Run the async processing in a thread pool with memory optimization
         with ThreadPoolExecutor(max_workers=1) as executor:
-            future = executor.submit(run_async_process, keyword, ig_sessionid, search_limit, enrich_limit)
+            future = executor.submit(run_async_process, keyword, ig_sessionid, search_limit, enrich_limit, default_product_id)
             try:
                 result = future.result(timeout=180)  # Reduced to 3 minutes
             except TimeoutError:
@@ -1075,7 +1076,7 @@ def process_keyword():
         return {"error": str(e)}, 500
 
 
-def run_async_process(keyword, ig_sessionid, search_limit, enrich_limit):
+def run_async_process(keyword, ig_sessionid, search_limit, enrich_limit, default_product_id=None):
     """Run async processing in a separate thread"""
     try:
         # Create new event loop for this thread
@@ -1083,7 +1084,7 @@ def run_async_process(keyword, ig_sessionid, search_limit, enrich_limit):
         asyncio.set_event_loop(loop)
         try:
             return loop.run_until_complete(
-                process_keyword_async(keyword, ig_sessionid, search_limit, enrich_limit))
+                process_keyword_async(keyword, ig_sessionid, search_limit, enrich_limit, default_product_id))
         finally:
             loop.close()
     except Exception as e:
@@ -1091,7 +1092,7 @@ def run_async_process(keyword, ig_sessionid, search_limit, enrich_limit):
         raise
 
 
-async def process_keyword_async(keyword, ig_sessionid, search_limit, enrich_limit):
+async def process_keyword_async(keyword, ig_sessionid, search_limit, enrich_limit, default_product_id=None):
     """Async processing of keyword"""
     apify_token = os.environ.get('APIFY_TOKEN')
     perplexity_key = os.environ.get('PERPLEXITY_API_KEY')
@@ -1261,7 +1262,7 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit, enrich_limi
                     lead['hashtag'] = keyword
                 
                 # Save this batch immediately to prevent data loss
-                saved_count = save_leads_incrementally(result, keyword)
+                saved_count = save_leads_incrementally(result, keyword, default_product_id=default_product_id)
                 total_saved_leads += saved_count
                 logger.info(f"Batch {i+1}: Saved {saved_count} leads incrementally")
             else:
