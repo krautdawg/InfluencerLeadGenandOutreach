@@ -19,10 +19,16 @@
             <img src="{{ url_for('static', filename='kl-influence-logo.png') }}" alt="K+L Influence">
         </div>
         <div class="nav-links">
-            <a href="#" id="sessionStatus">
-                <i class="fas fa-user-circle"></i>
-                <span id="sessionStatusText">{% if ig_sessionid %}Connected{% else %}Not Connected{% endif %}</span>
-            </a>
+            <button type="button" class="btn btn-connection" id="sessionStatus">
+                <i class="fas fa-instagram"></i>
+                <span id="sessionStatusText">
+                    {% if ig_sessionid %}
+                        Connected ({{ ig_sessionid[:8] }}...)
+                    {% else %}
+                        Not Connected
+                    {% endif %}
+                </span>
+            </button>
         </div>
     </nav>
 
@@ -30,24 +36,6 @@
     <div class="app-layout">
         <!-- Sidebar Navigation -->
         <nav class="sidebar-nav" id="sidebarNav">
-            <!-- Instagram Session Section -->
-            <div class="sidebar-section">
-                <h3>Instagram Session</h3>
-                <div class="card">
-                    <div class="d-flex align-items-center justify-content-between mb-3">
-                        <div class="d-flex align-items-center gap-2">
-                            <i class="fas fa-instagram" style="color: var(--color-natural-green);"></i>
-                            <span style="font-family: var(--font-mono); font-size: var(--text-body-sm);">
-                                {% if ig_sessionid %}{{ ig_sessionid[:8] }}...{% else %}Not Set{% endif %}
-                            </span>
-                        </div>
-                        <button type="button" class="btn btn-tertiary btn-sm" id="changeSessionBtn">
-                            <i class="fas fa-edit"></i>
-                        </button>
-                    </div>
-                </div>
-            </div>
-
             <!-- Lead Generation Section -->
             <div class="sidebar-section">
                 <h3>Lead Generation</h3>

@@ -47,7 +47,6 @@ function initializeEventListeners() {
     });
     
     // Session management
-    document.getElementById('changeSessionBtn')?.addEventListener('click', openSessionModal);
     document.getElementById('sessionStatus')?.addEventListener('click', openSessionModal);
     document.getElementById('saveSession')?.addEventListener('click', saveSessionId);
     
@@ -213,20 +212,14 @@ async function saveSessionId() {
 
 // Update session ID display
 function updateSessionIdDisplay(sessionId) {
-    const displays = [
-        document.querySelector('.sidebar-section span[style*="font-mono"]'),
-        document.getElementById('sessionStatusText')
-    ];
-    
-    displays.forEach(display => {
-        if (display) {
-            if (display.id === 'sessionStatusText') {
-                display.textContent = 'Connected';
-            } else {
-                display.textContent = sessionId.substring(0, 8) + '...';
-            }
+    const statusText = document.getElementById('sessionStatusText');
+    if (statusText) {
+        if (sessionId && sessionId.length > 0) {
+            statusText.textContent = `Connected (${sessionId.substring(0, 8)}...)`;
+        } else {
+            statusText.textContent = 'Not Connected';
         }
-    });
+    }
 }
 
 // Process keyword
