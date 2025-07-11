@@ -543,6 +543,8 @@ def save_leads_incrementally(enriched_leads, keyword):
     saved_count = 0
     try:
         with app.app_context():
+            # Get default product from session
+            default_product_id = session.get('default_product_id')
             for lead_data in enriched_leads:
                 try:
                     # Check if lead already exists
@@ -595,7 +597,8 @@ def save_leads_incrementally(enriched_leads, keyword):
                             zip=lead_data.get('zip', ''),
                             latitude=lead_data.get('latitude'),
                             longitude=lead_data.get('longitude'),
-                            is_duplicate=lead_data.get('is_duplicate', False)
+                            is_duplicate=lead_data.get('is_duplicate', False),
+                            selected_product_id=default_product_id  # Apply default product from session
                         )
                         db.session.add(new_lead)
                         current_lead = new_lead
@@ -867,7 +870,8 @@ def index():
                            leads=leads_dict,
                            processing_status=app_data['processing_status'],
                            email_templates=templates,
-                           products=products_dict)
+                           products=products_dict,
+                           default_product_id=session.get('default_product_id'))
 
 
 @app.route('/ping')
@@ -1655,6 +1659,29 @@ def update_lead_product(username):
         logger.error(f"Failed to update lead product: {e}")
         db.session.rollback()
         return {"error": "Failed to update product selection"}, 500
+
+
+@app.route('/api/set-default-product', methods=['POST'])
+def set_default_product():
+    """Set the default product in session"""
+    try:
+        data = request.get_json()
+        product_id = data.get('product_id')
+        
+        if product_id:
+            # Validate product exists
+            product = Product.query.get(product_id)
+            if not product:
+                return {"error": "Product not found"}, 404
+            session['default_product_id'] = int(product_id)
+        else:
+            # Clear default product
+            session.pop('default_product_id', None)
+        
+        return jsonify({"success": True})
+    except Exception as e:
+        logger.error(f"Failed to set default product: {e}")
+        return {"error": "Failed to set default product"}, 500
 
 
 if __name__ == '__main__':

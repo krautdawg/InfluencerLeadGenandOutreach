@@ -36,6 +36,15 @@ document.addEventListener('DOMContentLoaded', function() {
         loadProducts();
     }
     
+    // Set default product from session
+    if (window.defaultProductId) {
+        defaultProductId = window.defaultProductId;
+        const defaultProductSelect = document.getElementById('defaultProductSelect');
+        if (defaultProductSelect) {
+            defaultProductSelect.value = defaultProductId;
+        }
+    }
+    
     // Update session display if we have a session ID
     if (window.igSessionId) {
         updateSessionIdDisplay(window.igSessionId);
@@ -851,7 +860,7 @@ function initializeEmailTemplateAutoSave() {
 }
 
 // Update template prompts based on selected product
-function updateTemplatePromptsBasedOnProduct() {
+async function updateTemplatePromptsBasedOnProduct() {
     const defaultProductSelect = document.getElementById('defaultProductSelect');
     const subjectPrompt = document.getElementById('subjectPrompt');
     const bodyPrompt = document.getElementById('bodyPrompt');
@@ -867,6 +876,23 @@ function updateTemplatePromptsBasedOnProduct() {
     
     // Save the updated templates automatically
     saveEmailTemplates();
+    
+    // Save the default product selection to session
+    try {
+        const response = await fetch('/api/set-default-product', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                product_id: defaultProductSelect.value || null 
+            })
+        });
+        
+        if (!response.ok) {
+            console.error('Failed to save default product to session');
+        }
+    } catch (error) {
+        console.error('Error saving default product:', error);
+    }
     
     // Show user feedback
     const productName = hasProduct ? 

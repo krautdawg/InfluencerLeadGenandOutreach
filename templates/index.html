@@ -243,6 +243,7 @@
         window.leadsData = {{ leads | tojson }};
         window.productsData = {{ products | tojson }};
         window.igSessionId = "{{ ig_sessionid if ig_sessionid else '' }}";
+        window.defaultProductId = {{ default_product_id | tojson }};
     </script>
 
     <!-- JavaScript -->
