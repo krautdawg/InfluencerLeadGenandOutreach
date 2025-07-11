@@ -230,7 +230,7 @@ async def call_perplexity_api(profile_info, api_key):
             },
             {
                 "role": "user",
-                "content": f"Basierend auf diesen Instagram-Profilinformationen, suche nach E-Mail-Adresse, Telefonnummer oder Website:\n\n{profile_description}\n\nWICHTIG: Falls eine Webseite vorhanden ist, durchsuche sie nach telefon und email Kontaktdaten.. Suche nur nach fehlenden Informationen. Wenn eine Website, Email oder Telefonnummer bereits bekannt ist, gib diese zurück und suche nach den fehlenden Daten. Antworte nur als JSON: {{ \"email\": \"...\", \"phone\": \"...\", \"website\": \"...\" }}"
+                "content": f"Basierend auf diesen Instagram-Profilinformationen, suche nach E-Mail-Adresse, Telefonnummer oder Website:\n\n{profile_description}\n\nWICHTIG: Falls eine Webseite vorhanden ist, durchsuche sie nach telefon und email Kontaktdaten.. Suche nur nach fehlenden Informationen. Wenn eine Website, Email oder Telefonnummer bereits bekannt ist, gib diese zurück und suche nach den fehlenden Daten. Antworte nur als JSON: {{\"full_name\": \"...\", \"email\": \"...\", \"phone\": \"...\", \"website\": \"...\" }}"
             }
         ],
         "temperature": 0.2,
