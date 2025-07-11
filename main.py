@@ -179,7 +179,6 @@ def call_apify_actor_sync(actor_id, input_data, token):
             # Aggressive memory cleanup
             if total_processed % batch_size == 0:
                 gc.collect()  # Force garbage collection
-                import time
                 time.sleep(processing_delay)
                 logger.debug(f"Processed {total_processed} items, found {len(all_usernames)} unique usernames")
         
