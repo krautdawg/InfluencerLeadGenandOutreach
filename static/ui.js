@@ -1,11 +1,13 @@
 // UI.js - Client-side interactions for Instagram LeadGen
 
 let sortDirection = {};
+let filterValues = {};
 
 // Initialize application
 document.addEventListener('DOMContentLoaded', function() {
     initializeEventListeners();
     checkSessionId();
+    initializeTableFilters();
 });
 
 // Global error handler for unhandled promise rejections
@@ -34,6 +36,87 @@ function initializeEventListeners() {
         if (e.key === 'Enter') {
             processKeyword();
         }
+    });
+}
+
+function initializeTableFilters() {
+    // Set up filter event listeners
+    const filterInputs = document.querySelectorAll('.filter-input');
+    filterInputs.forEach(input => {
+        input.addEventListener('input', function() {
+            const column = parseInt(this.getAttribute('data-column'));
+            filterValues[column] = this.value.toLowerCase();
+            applyFilters();
+        });
+    });
+}
+
+function applyFilters() {
+    const tbody = document.querySelector('#resultsTable tbody');
+    const rows = tbody.querySelectorAll('tr');
+    
+    rows.forEach(row => {
+        let shouldShow = true;
+        
+        // Check each filter
+        for (const [column, filterValue] of Object.entries(filterValues)) {
+            if (filterValue && filterValue.trim() !== '') {
+                const cellText = row.cells[column]?.textContent.toLowerCase() || '';
+                
+                // Special handling for numeric columns (followers)
+                if (column == 4) { // Followers column
+                    const numericValue = parseNumber(cellText);
+                    const filterNum = parseNumber(filterValue);
+                    
+                    // Support comparison operators: >, <, >=, <=, =
+                    if (filterValue.startsWith('>=')) {
+                        shouldShow = numericValue >= parseNumber(filterValue.substring(2));
+                    } else if (filterValue.startsWith('<=')) {
+                        shouldShow = numericValue <= parseNumber(filterValue.substring(2));
+                    } else if (filterValue.startsWith('>')) {
+                        shouldShow = numericValue > parseNumber(filterValue.substring(1));
+                    } else if (filterValue.startsWith('<')) {
+                        shouldShow = numericValue < parseNumber(filterValue.substring(1));
+                    } else if (filterValue.startsWith('=')) {
+                        shouldShow = numericValue === parseNumber(filterValue.substring(1));
+                    } else if (!isNaN(filterNum)) {
+                        // If just a number, do exact match
+                        shouldShow = numericValue === filterNum;
+                    } else {
+                        // Fallback to text search
+                        shouldShow = cellText.includes(filterValue);
+                    }
+                } else {
+                    // Text columns - case insensitive partial match
+                    if (!cellText.includes(filterValue)) {
+                        shouldShow = false;
+                    }
+                }
+                
+                if (!shouldShow) break;
+            }
+        }
+        
+        // Show/hide row based on filter match
+        row.style.display = shouldShow ? '' : 'none';
+    });
+}
+
+function clearFilters() {
+    // Clear filter values
+    filterValues = {};
+    
+    // Clear all filter inputs
+    const filterInputs = document.querySelectorAll('.filter-input');
+    filterInputs.forEach(input => {
+        input.value = '';
+    });
+    
+    // Show all rows
+    const tbody = document.querySelector('#resultsTable tbody');
+    const rows = tbody.querySelectorAll('tr');
+    rows.forEach(row => {
+        row.style.display = '';
     });
 }
 
@@ -225,6 +308,13 @@ function displayResults(leads) {
     // Clear existing results
     tbody.innerHTML = '';
     
+    // Clear filter values when new results are loaded
+    filterValues = {};
+    const filterInputs = document.querySelectorAll('.filter-input');
+    filterInputs.forEach(input => {
+        input.value = '';
+    });
+    
     // Add new results
     leads.forEach((lead, index) => {
         const row = createLeadRow(lead, index);
@@ -234,6 +324,11 @@ function displayResults(leads) {
     // Show results section and export options
     resultsSection.style.display = 'block';
     exportSection.style.display = 'block';
+    
+    // Re-initialize table filters after new content is loaded
+    setTimeout(() => {
+        initializeTableFilters();
+    }, 100);
 }
 
 function createLeadRow(lead, index) {
@@ -396,6 +491,9 @@ function sortTable(columnIndex) {
     
     // Update sort indicators
     updateSortIndicators(columnIndex, newDirection);
+    
+    // Re-apply filters after sorting
+    applyFilters();
 }
 
 function updateSortIndicators(activeColumn, direction) {

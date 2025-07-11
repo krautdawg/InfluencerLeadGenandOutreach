@@ -354,8 +354,31 @@ label {
     user-select: none;
 }
 
-.results-table th:hover {
+.results-table .header-row th:hover {
     background-color: var(--color-border);
+}
+
+/* Filter row styles */
+.results-table .filter-row th {
+    padding: 0.5rem 1rem;
+    background-color: var(--color-background);
+    cursor: default;
+}
+
+.filter-input {
+    font-size: 0.875rem;
+    padding: 0.375rem 0.75rem;
+    border: 1px solid var(--color-border);
+    background-color: var(--color-background);
+    color: var(--color-text);
+    font-family: var(--font-main);
+    width: 100%;
+}
+
+.filter-input:focus {
+    border-color: var(--color-accent);
+    outline: none;
+    background-color: var(--color-background);
 }
 
 .results-table tr:last-child td {

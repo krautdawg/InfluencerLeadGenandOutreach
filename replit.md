@@ -6,6 +6,28 @@ This is a Flask-based Instagram lead generation and outreach automation tool tha
 
 ## Recent Changes
 
+### 2025-07-11: Advanced Table Filtering and Sorting (COMPLETED)
+- **Update**: Added autofilter functionality for each table column with enhanced sorting
+- **Changes Made**:
+  - **Filter Row**: Added input fields below each sortable column header
+  - **Text Filtering**: Case-insensitive partial match filtering for Username, Hashtag, Full Name, and Email columns
+  - **Numeric Filtering**: Advanced filtering for Followers column with comparison operators (>, <, >=, <=, =)
+  - **Clear Filters Button**: Added button to quickly clear all active filters
+  - **Filter Persistence**: Filters remain active during sorting operations
+  - **Responsive Design**: Filter inputs styled to match the elegant Kasimir Lieselotte aesthetic
+  - **User-Friendly Placeholders**: Informative placeholder text guides users on filter usage
+- **Technical Implementation**:
+  - JavaScript filter state management with real-time filtering
+  - Filters work seamlessly with existing sort functionality
+  - Numeric column supports complex queries like ">1000" or "<=500"
+  - Filters automatically reset when new search results are loaded
+- **Benefits**:
+  - Quick data discovery in large result sets
+  - Advanced filtering for follower count analysis
+  - Maintains clean, elegant UI design
+  - Improved workflow efficiency for lead qualification
+- **Status**: Autofilter and enhanced sorting fully implemented and tested
+
 ### 2025-07-11: Anti-Spam Protection and Progress Tracking (COMPLETED)
 - **Update**: Added randomized delays to Apify API calls and real-time progress tracking
 - **Changes Made**:
