@@ -6,6 +6,22 @@ This is a Flask-based Instagram lead generation and outreach automation tool tha
 
 ## Recent Changes
 
+### 2025-07-11: Anti-Spam Protection and Progress Tracking (COMPLETED)
+- **Update**: Added randomized delays to Apify API calls and real-time progress tracking
+- **Changes Made**:
+  - **Random Delays**: Added 1-10 second random delays before each Apify API call to circumvent anti-spam measures
+  - **Progress Counter**: Implemented real-time progress tracking with estimated time remaining
+  - **Backend Progress API**: New `/progress` endpoint returns current processing status
+  - **Frontend Progress Display**: Shows current step, completion percentage, and estimated time remaining
+  - **Progress Polling**: Frontend polls progress every 2 seconds during processing
+  - **Time Calculation**: Dynamic time estimation based on actual processing speed
+- **Benefits**: 
+  - Reduced risk of being flagged as spam by Instagram/Apify
+  - Better user experience with visible progress and time estimates
+  - Users can see exactly which step is being processed
+  - Accurate time remaining based on actual processing performance
+- **Status**: Anti-spam delays and progress tracking fully implemented
+
 ### 2025-07-10: Enhanced Perplexity API with Existing Contact Data Integration (COMPLETED)
 - **Issue**: Perplexity API was not utilizing existing contact information from the lead database
 - **Root Cause**: Function was ignoring known contact data (email, phone, website) from profile

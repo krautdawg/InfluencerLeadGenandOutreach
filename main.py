@@ -3,6 +3,8 @@ import asyncio
 import logging
 import json
 import hashlib
+import random
+import time
 from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor
 import httpx
@@ -41,7 +43,15 @@ with app.app_context():
     db.create_all()
 
 # Global storage for processing status (only for status, data is in DB)
-app_data = {'processing_status': None}
+app_data = {
+    'processing_status': None,
+    'processing_progress': {
+        'current_step': '',
+        'total_steps': 0,
+        'completed_steps': 0,
+        'estimated_time_remaining': 0
+    }
+}
 
 
 def deduplicate_profiles(profiles):
@@ -115,6 +125,11 @@ def save_hashtag_username_pairs(profiles, duplicates):
 def call_apify_actor_sync(actor_id, input_data, token):
     """Call Apify actor using official client - memory optimized streaming version"""
     client = ApifyClient(token)
+    
+    # Add random delay before Apify call to avoid anti-spam measures
+    delay = random.uniform(1, 10)
+    logger.info(f"Waiting {delay:.1f} seconds before Apify hashtag search...")
+    time.sleep(delay)
     
     try:
         # Run the Actor and wait for it to finish
@@ -398,6 +413,11 @@ def call_apify_profile_enrichment(actor_id, input_data, token):
     """Call Apify profile enrichment actor - returns profile data directly"""
     client = ApifyClient(token)
     
+    # Add random delay before Apify call to avoid anti-spam measures
+    delay = random.uniform(1, 10)
+    logger.info(f"Waiting {delay:.1f} seconds before Apify profile enrichment...")
+    time.sleep(delay)
+    
     try:
         # Run the Actor and wait for it to finish
         run = client.actor(actor_id).call(run_input=input_data)
@@ -584,6 +604,12 @@ def ping():
     return {"status": "OK"}, 200
 
 
+@app.route('/progress')
+def get_progress():
+    """Get current processing progress"""
+    return jsonify(app_data['processing_progress'])
+
+
 @app.route('/session', methods=['POST'])
 def set_session():
     """Set Instagram session ID"""
@@ -670,7 +696,10 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit, enrich_limi
     """Async processing of keyword"""
     apify_token = os.environ.get('APIFY_TOKEN')
     perplexity_key = os.environ.get('PERPLEXITY_API_KEY')
-
+    
+    # Initialize progress tracking
+    start_time = time.time()
+    
     if not all([apify_token, perplexity_key
                 ]) or not apify_token.strip() or not perplexity_key.strip():
         missing_keys = []
@@ -681,6 +710,22 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit, enrich_limi
         raise ValueError(
             f"Missing or empty API tokens: {', '.join(missing_keys)}")
 
+    # Calculate total estimated time (average 5 seconds per Apify call + processing time)
+    avg_delay_time = 5.5  # Average of 1-10 seconds
+    hashtag_crawl_time = avg_delay_time + 30  # Hashtag search takes longer
+    profile_batch_time = avg_delay_time + 10  # Per batch
+    estimated_batches = min(search_limit // 2, enrich_limit // 2)  # 2 profiles per batch
+    
+    total_estimated_time = hashtag_crawl_time + (profile_batch_time * estimated_batches)
+    
+    # Initialize progress
+    app_data['processing_progress'] = {
+        'current_step': 'Starting hashtag search...',
+        'total_steps': 1 + estimated_batches,  # 1 hashtag search + N profile batches
+        'completed_steps': 0,
+        'estimated_time_remaining': int(total_estimated_time)
+    }
+    
     # Step 1: Hashtag crawl - Using correct Apify API format with user-defined limit
     hashtag_input = {
         "search": keyword,
@@ -689,8 +734,17 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit, enrich_limi
     }
 
     try:
+        app_data['processing_progress']['current_step'] = f'Searching hashtag #{keyword}...'
         hashtag_data = call_apify_actor_sync("DrF9mzPPEuVizVF4l", hashtag_input,
                                              apify_token)
+        app_data['processing_progress']['completed_steps'] += 1
+        
+        # Update time remaining
+        elapsed_time = time.time() - start_time
+        remaining_steps = app_data['processing_progress']['total_steps'] - app_data['processing_progress']['completed_steps']
+        avg_time_per_step = elapsed_time / max(1, app_data['processing_progress']['completed_steps'])
+        app_data['processing_progress']['estimated_time_remaining'] = int(avg_time_per_step * remaining_steps)
+        
         if not hashtag_data or not hashtag_data.get('items'):
             logger.error(f"No hashtag data returned for keyword: {keyword}")
             return []
@@ -780,12 +834,17 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit, enrich_limi
         for i in range(0, len(usernames), batch_size)
     ]
 
+    # Update progress total steps based on actual batches
+    app_data['processing_progress']['total_steps'] = 1 + len(batches)
+    
     # Process batches sequentially to minimize memory usage
     total_saved_leads = 0
     import gc
     
     for i, batch in enumerate(batches):
         try:
+            # Update progress
+            app_data['processing_progress']['current_step'] = f'Enriching profiles batch {i+1}/{len(batches)}...'
             logger.info(f"Processing batch {i+1}/{len(batches)} with {len(batch)} usernames")
             
             # Process one batch at a time
@@ -809,6 +868,18 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit, enrich_limi
             else:
                 logger.warning(f"Batch {i+1}: No results or unexpected type: {type(result)}")
             
+            # Update progress after batch completion
+            app_data['processing_progress']['completed_steps'] += 1
+            
+            # Recalculate time remaining
+            elapsed_time = time.time() - start_time
+            remaining_steps = app_data['processing_progress']['total_steps'] - app_data['processing_progress']['completed_steps']
+            if app_data['processing_progress']['completed_steps'] > 0:
+                avg_time_per_step = elapsed_time / app_data['processing_progress']['completed_steps']
+                app_data['processing_progress']['estimated_time_remaining'] = int(avg_time_per_step * remaining_steps)
+            else:
+                app_data['processing_progress']['estimated_time_remaining'] = int(total_estimated_time - elapsed_time)
+            
             # Force garbage collection after each batch
             gc.collect()
             
@@ -822,6 +893,14 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit, enrich_limi
             continue
 
     logger.info(f"Total enrichment complete: {total_saved_leads} leads saved to database")
+    
+    # Clear progress on completion
+    app_data['processing_progress'] = {
+        'current_step': '',
+        'total_steps': 0,
+        'completed_steps': 0,
+        'estimated_time_remaining': 0
+    }
     
     # Return dictionary format for API response
     # Query fresh leads from database to avoid session issues

@@ -128,6 +128,33 @@ async function processKeyword() {
     runButton.disabled = true;
     runButton.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Processing...';
     
+    // Start progress polling
+    let progressInterval = null;
+    const updateProgress = async () => {
+        try {
+            const progressResponse = await fetch('/progress');
+            if (progressResponse.ok) {
+                const progress = await progressResponse.json();
+                if (progress.total_steps > 0) {
+                    const percentage = Math.round((progress.completed_steps / progress.total_steps) * 100);
+                    const minutes = Math.floor(progress.estimated_time_remaining / 60);
+                    const seconds = progress.estimated_time_remaining % 60;
+                    statusText.innerHTML = `
+                        ${progress.current_step}<br>
+                        <small>Progress: ${progress.completed_steps}/${progress.total_steps} (${percentage}%)</small><br>
+                        <small>Est. time remaining: ${minutes}m ${seconds}s</small>
+                    `;
+                }
+            }
+        } catch (error) {
+            console.log('Progress update error:', error);
+        }
+    };
+    
+    // Poll progress every 2 seconds
+    progressInterval = setInterval(updateProgress, 2000);
+    updateProgress(); // Initial update
+    
     try {
         // Add timeout to match backend timeout
         const controller = new AbortController();
@@ -143,6 +170,7 @@ async function processKeyword() {
         });
         
         clearTimeout(timeoutId);
+        clearInterval(progressInterval); // Stop progress polling
         
         const result = await response.json();
         
@@ -173,6 +201,11 @@ async function processKeyword() {
         statusDiv.style.display = 'none';
         runButton.disabled = false;
         runButton.innerHTML = '<i class="fas fa-play me-2"></i>Run';
+        
+        // Clear progress interval if it exists
+        if (progressInterval) {
+            clearInterval(progressInterval);
+        }
     }
 }
 
