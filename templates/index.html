@@ -44,6 +44,20 @@
                 <p class="nav-subtitle">Elegant lead generation and outreach automation</p>
             </header>
 
+            <!-- IG Session ID Display -->
+            <div class="nav-section session-id-section">
+                <h3>Instagram Session</h3>
+                <div class="session-id-display">
+                    <div class="session-id-value">
+                        <i class="fas fa-key me-2"></i>
+                        <span id="sessionIdDisplay">{% if ig_sessionid %}{{ ig_sessionid[:8] }}...{% else %}Not Set{% endif %}</span>
+                    </div>
+                    <button type="button" class="btn btn-outline-secondary btn-sm" id="changeSessionBtn">
+                        <i class="fas fa-edit"></i> Change
+                    </button>
+                </div>
+            </div>
+
             <!-- Keyword Input -->
             <div class="nav-section">
                 <h3>Lead Generation</h3>

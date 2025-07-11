@@ -23,6 +23,9 @@ function initializeEventListeners() {
     // Session modal
     document.getElementById('saveSession')?.addEventListener('click', saveSessionId);
     
+    // Change session button
+    document.getElementById('changeSessionBtn')?.addEventListener('click', openSessionModal);
+    
     // Main run button
     document.getElementById('runButton')?.addEventListener('click', processKeyword);
     
@@ -40,6 +43,26 @@ function checkSessionId() {
     if (modal && modal.style.display === 'block') {
         // Focus on the input field
         document.getElementById('sessionInput')?.focus();
+    }
+}
+
+function openSessionModal() {
+    // Clear the input field and show the modal
+    document.getElementById('sessionInput').value = '';
+    document.getElementById('sessionModal').style.display = 'block';
+    // Focus on the input field
+    document.getElementById('sessionInput')?.focus();
+}
+
+function updateSessionIdDisplay(sessionId) {
+    // Update the session ID display in the navigation
+    const displayElement = document.getElementById('sessionIdDisplay');
+    if (displayElement) {
+        if (sessionId && sessionId.length > 0) {
+            displayElement.textContent = sessionId.substring(0, 8) + '...';
+        } else {
+            displayElement.textContent = 'Not Set';
+        }
     }
 }
 
@@ -64,6 +87,7 @@ async function saveSessionId() {
         
         if (response.ok) {
             document.getElementById('sessionModal').style.display = 'none';
+            updateSessionIdDisplay(sessionId);
             showToast('Session ID saved successfully', 'success');
         } else {
             showToast(result.error || 'Failed to save Session ID', 'error');
