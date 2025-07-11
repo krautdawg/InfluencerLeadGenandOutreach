@@ -114,6 +114,9 @@ function initializeEventListeners() {
     
     // Keyboard navigation for table
     document.addEventListener('keydown', handleTableKeyNavigation);
+    
+    // Mobile input field optimization
+    optimizeMobileInputs();
 }
 
 // Initialize table filters
@@ -121,6 +124,51 @@ function initializeTableFilters() {
     const filterInputs = document.querySelectorAll('.filter-input');
     filterInputs.forEach(input => {
         input.addEventListener('input', debounce(applyFilters, 300));
+    });
+}
+
+// Optimize mobile input fields
+function optimizeMobileInputs() {
+    // Ensure numeric inputs work properly on mobile
+    const numericInputs = document.querySelectorAll('input[type="number"]');
+    numericInputs.forEach(input => {
+        // Add mobile-specific attributes
+        input.setAttribute('inputmode', 'numeric');
+        input.setAttribute('pattern', '[0-9]*');
+        
+        // Add input validation to prevent invalid values
+        input.addEventListener('input', function(e) {
+            let value = parseInt(e.target.value);
+            
+            // Handle enrichment limit validation
+            if (e.target.id === 'enrichLimitInput') {
+                if (value < 1) {
+                    e.target.value = 1;
+                } else if (value > 25) {
+                    e.target.value = 25;
+                }
+            }
+            
+            // Handle search limit validation
+            if (e.target.id === 'searchLimitInput') {
+                if (value < 1) {
+                    e.target.value = 1;
+                } else if (value > 50) {
+                    e.target.value = 50;
+                }
+            }
+        });
+        
+        // Add blur event to ensure valid values
+        input.addEventListener('blur', function(e) {
+            if (!e.target.value) {
+                if (e.target.id === 'enrichLimitInput') {
+                    e.target.value = 5;
+                } else if (e.target.id === 'searchLimitInput') {
+                    e.target.value = 25;
+                }
+            }
+        });
     });
 }
 
@@ -269,7 +317,19 @@ async function processKeyword() {
     const enrichLimit = parseInt(document.getElementById('enrichLimitInput').value) || 5;
     
     if (!keyword) {
-        showToast('Please enter a hashtag keyword', 'warning');
+        showToast('Bitte gib einen Suchbegriff ein', 'warning');
+        return;
+    }
+    
+    // Validate search limit
+    if (searchLimit < 1 || searchLimit > 50) {
+        showToast('Suchlimit muss zwischen 1 und 50 liegen (Speichersicherheit)', 'error');
+        return;
+    }
+    
+    // Validate enrichment limit
+    if (enrichLimit < 1 || enrichLimit > 25) {
+        showToast('Anreicherungs-Limit muss zwischen 1 und 25 liegen (für Tests)', 'error');
         return;
     }
     
@@ -287,8 +347,8 @@ async function processKeyword() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
                 keyword: keyword,
-                search_limit: searchLimit,
-                enrich_limit: enrichLimit
+                searchLimit: searchLimit,
+                enrichLimit: enrichLimit
             }),
             timeout: 300000 // 5 minute timeout
         });
@@ -310,10 +370,17 @@ async function processKeyword() {
     } catch (error) {
         clearInterval(progressInterval);
         console.error('Processing error:', error);
-        showToast('An error occurred during processing', 'error');
+        if (error.name === 'AbortError') {
+            showToast('Anfrage ist abgelaufen. Bitte versuche es mit einem kleineren Suchlimit erneut.', 'error');
+        } else if (error.message && error.message.includes('fetch')) {
+            showToast('Netzwerkfehler. Bitte überprüfe deine Verbindung und versuche es erneut.', 'error');
+        } else {
+            showToast(`Verarbeitungsfehler: ${error.message || 'Unbekannter Fehler'}`, 'error');
+        }
     } finally {
         document.getElementById('processingStatus').style.display = 'none';
         document.getElementById('runButton').disabled = false;
+        document.getElementById('runButton').innerHTML = '<i class="fas fa-play"></i><span>Leads generieren</span>';
     }
 }
 

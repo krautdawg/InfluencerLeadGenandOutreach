@@ -694,11 +694,44 @@ select:focus {
   
   /* Ensure sidebar content is fully opaque and readable */
   .sidebar-nav .sidebar-section {
-    background-color: var(--color-pale-green);
+    background-color: var(--color-white);
     border-radius: 8px;
     margin-bottom: var(--space-md);
-    padding: var(--space-sm);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    padding: var(--space-lg);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    border: 1px solid var(--color-light-gray);
+  }
+  
+  /* Ensure form inputs are clearly visible on mobile */
+  .sidebar-nav .form-control {
+    background-color: var(--color-white);
+    border: 2px solid var(--color-light-gray);
+    border-radius: 6px;
+    padding: var(--space-md);
+    font-size: var(--text-body-md);
+    color: var(--color-charcoal);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    transition: border-color var(--transition-fast);
+  }
+  
+  .sidebar-nav .form-control:focus {
+    border-color: var(--color-natural-green);
+    box-shadow: 0 0 0 3px rgba(45, 91, 45, 0.1);
+    outline: none;
+  }
+  
+  .sidebar-nav .form-group label {
+    color: var(--color-charcoal);
+    font-weight: 600;
+    font-size: var(--text-body-md);
+    margin-bottom: var(--space-sm);
+    display: block;
+  }
+  
+  .sidebar-nav .form-text {
+    color: var(--color-medium-gray);
+    font-size: var(--text-body-sm);
+    margin-top: var(--space-xs);
   }
   
   .sidebar-nav .card {
@@ -739,6 +772,27 @@ select:focus {
   
   .card {
     padding: var(--space-md);
+  }
+  
+  /* Extra mobile-specific form styling */
+  .sidebar-nav .sidebar-section {
+    padding: var(--space-md);
+    margin-bottom: var(--space-sm);
+  }
+  
+  .sidebar-nav .form-control {
+    padding: var(--space-md) var(--space-lg);
+    font-size: 16px; /* Prevents iOS zoom */
+    min-height: 44px; /* iOS touch target */
+  }
+  
+  .sidebar-nav .form-group {
+    margin-bottom: var(--space-lg);
+  }
+  
+  .sidebar-nav .form-group label {
+    font-size: var(--text-body-lg);
+    margin-bottom: var(--space-md);
   }
   
   /* Convert table to card view on mobile */
