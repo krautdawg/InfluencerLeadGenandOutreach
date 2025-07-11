@@ -629,10 +629,41 @@ select:focus {
   .sidebar-nav {
     transform: translateX(-100%);
     transition: var(--transition-medium);
+    z-index: 1100;
+    box-shadow: 2px 0 8px rgba(0, 0, 0, 0.2);
+    background-color: var(--color-pale-green);
   }
   
   .sidebar-nav.open {
     transform: translateX(0);
+  }
+  
+  /* Mobile backdrop overlay */
+  .sidebar-nav.open::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: -1;
+    opacity: 1;
+  }
+  
+  /* Ensure sidebar content is fully opaque and readable */
+  .sidebar-nav .sidebar-section {
+    background-color: var(--color-pale-green);
+    border-radius: 8px;
+    margin-bottom: var(--space-md);
+    padding: var(--space-sm);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+  
+  .sidebar-nav .card {
+    background-color: var(--color-white);
+    border: 1px solid var(--color-light-gray);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   }
   
   .main-content {

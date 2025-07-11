@@ -34,6 +34,18 @@ function initializeEventListeners() {
         document.getElementById('sidebarNav').classList.toggle('open');
     });
     
+    // Close mobile menu when clicking outside
+    document.addEventListener('click', (e) => {
+        const sidebar = document.getElementById('sidebarNav');
+        const toggleButton = document.getElementById('mobileMenuToggle');
+        
+        if (sidebar && sidebar.classList.contains('open') && 
+            !sidebar.contains(e.target) && 
+            !toggleButton.contains(e.target)) {
+            sidebar.classList.remove('open');
+        }
+    });
+    
     // Session management
     document.getElementById('changeSessionBtn')?.addEventListener('click', openSessionModal);
     document.getElementById('sessionStatus')?.addEventListener('click', openSessionModal);
