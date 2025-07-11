@@ -6,6 +6,40 @@ K+L Influence is a Flask-based Instagram lead generation and outreach automation
 
 ## Recent Changes
 
+### 2025-07-11: Product Selection System with OpenAI Email Integration (COMPLETED)
+- **Update**: Implemented complete product selection functionality with enhanced OpenAI email generation
+- **Changes Made**:
+  - **Product Database Model**: Created Product model with fields for name, URL, image_url, description, and price
+  - **Default Products**: Initialized two products from KasimirLieselotte store:
+    - Funghi Funk Spray (€49.90) - https://www.kasimirlieselotte.de/shop/p/funghi-funk-spray-50ml
+    - Zeck Zack Spray (€49.90) - https://www.kasimirlieselotte.de/shop/p/zeck-zack-spray-50ml
+  - **Product Management API**: Created `/api/products` endpoint for product listing and management
+  - **Product Selection UI**: 
+    - Added product dropdown in Email Prompts settings section for default selection
+    - Added Product column to results table with click-to-edit functionality
+    - Implemented inline product selector with immediate save on change
+  - **Enhanced Email Generation**: 
+    - Updated OpenAI prompts to explicitly include product information
+    - Modified system prompts to ensure product name, URL, and description are incorporated in emails
+    - Added specific instructions for natural product integration in email content
+  - **Frontend Integration**: 
+    - Products data passed from backend to frontend on page load
+    - JavaScript functions for product selection and management
+    - Visual indicators for products with "Kein Produkt" (No Product) for unassigned leads
+  - **Product Images**: Stored product images in static folder for future integration
+- **Features**:
+  - Per-lead product assignment through click-to-edit interface
+  - Default product selection for new email generations
+  - Product information automatically included in OpenAI prompts
+  - Seamless product switching without page reload
+  - Product URLs and descriptions integrated into generated emails
+- **Benefits**:
+  - Personalized product recommendations in outreach emails
+  - Easy product management through intuitive UI
+  - Consistent product information across all emails
+  - Enhanced email relevance with product-specific content
+- **Status**: Product selection system fully implemented and integrated with email generation
+
 ### 2025-07-11: Complete Email Template System and Persistent Send Functionality (COMPLETED)
 - **Update**: Implemented complete email template synchronization and persistent send button functionality
 - **Changes Made**:
