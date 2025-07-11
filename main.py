@@ -932,7 +932,7 @@ def debug_dashboard():
     return render_template('debug_dashboard.html')
 
 
-@app.route('/session', methods=['POST'])
+@app.route('/set-session', methods=['POST'])
 def set_session():
     """Set Instagram session ID"""
     data = request.get_json()

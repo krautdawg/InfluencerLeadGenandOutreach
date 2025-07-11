@@ -14,8 +14,14 @@ document.addEventListener('DOMContentLoaded', function() {
     checkSessionId();
     initializeTableFilters();
     
+    // Update session display if we have a session ID
+    if (window.igSessionId) {
+        updateSessionIdDisplay(window.igSessionId);
+    }
+    
     // Check if we have leads data from the server
     const existingLeads = window.leadsData || [];
+    console.log('Existing leads found:', existingLeads.length);
     if (existingLeads.length > 0) {
         displayResults(existingLeads);
     }
@@ -142,7 +148,7 @@ function clearFilters() {
 // Check session ID
 function checkSessionId() {
     const sessionDisplay = document.getElementById('sessionStatusText');
-    if (sessionDisplay && sessionDisplay.textContent === 'Not Connected') {
+    if (sessionDisplay && sessionDisplay.textContent === 'Not Connected' && !window.igSessionId) {
         setTimeout(openSessionModal, 500);
     }
 }

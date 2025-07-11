@@ -226,6 +226,12 @@
     <!-- Toast Container -->
     <div class="toast-container" id="toastContainer"></div>
 
+    <!-- Expose leads data to JavaScript -->
+    <script>
+        window.leadsData = {{ leads | tojson }};
+        window.igSessionId = "{{ ig_sessionid if ig_sessionid else '' }}";
+    </script>
+    
     <!-- JavaScript -->
     <script src="{{ url_for('static', filename='kl-influence-app.js') }}"></script>
 </body>
