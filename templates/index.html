@@ -20,7 +20,7 @@
         </div>
         <div class="nav-links">
             <button type="button" class="btn btn-connection" id="sessionStatus">
-                <i class="fas fa-instagram"></i>
+                <img src="{{ url_for('static', filename='instagram-icon.svg') }}" alt="Instagram" class="instagram-icon">
                 <span id="sessionStatusText">
                     {% if ig_sessionid %}
                         Connected ({{ ig_sessionid[:8] }}...)

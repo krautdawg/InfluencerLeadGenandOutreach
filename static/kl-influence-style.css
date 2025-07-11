@@ -217,6 +217,17 @@ a:hover {
   font-size: var(--text-body-md);
 }
 
+.instagram-icon {
+  width: 18px;
+  height: 18px;
+  filter: brightness(0) invert(1);
+  transition: var(--transition-fast);
+}
+
+.btn-connection:hover .instagram-icon {
+  filter: brightness(0) invert(1) sepia(1) saturate(5) hue-rotate(90deg);
+}
+
 /* Sidebar Navigation */
 .sidebar-nav {
   position: fixed;
