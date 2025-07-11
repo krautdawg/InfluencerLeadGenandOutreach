@@ -153,7 +153,7 @@ async function saveSessionId() {
     const sessionId = document.getElementById('sessionInput').value.trim();
     
     if (!sessionId) {
-        showToast('Please enter a valid Session ID', 'error');
+        showToast('Bitte gib eine gültige Session ID ein', 'error');
         return;
     }
     
@@ -171,13 +171,13 @@ async function saveSessionId() {
         if (response.ok) {
             document.getElementById('sessionModal').style.display = 'none';
             updateSessionIdDisplay(sessionId);
-            showToast('Session ID saved successfully', 'success');
+            showToast('Session ID erfolgreich gespeichert', 'success');
         } else {
-            showToast(result.error || 'Failed to save Session ID', 'error');
+            showToast(result.error || 'Fehler beim Speichern der Session ID', 'error');
         }
     } catch (error) {
         console.error('Error saving session:', error);
-        showToast('Failed to save Session ID', 'error');
+        showToast('Fehler beim Speichern der Session ID', 'error');
     }
 }
 
@@ -187,17 +187,17 @@ async function processKeyword() {
     const enrichLimit = parseInt(document.getElementById('enrichLimitInput').value) || 5;
     
     if (!keyword) {
-        showToast('Please enter a keyword', 'error');
+        showToast('Bitte gib einen Suchbegriff ein', 'error');
         return;
     }
     
     if (searchLimit < 1 || searchLimit > 50) {
-        showToast('Search limit must be between 1 and 50 (memory safety)', 'error');
+        showToast('Suchlimit muss zwischen 1 und 50 liegen (Speichersicherheit)', 'error');
         return;
     }
     
     if (enrichLimit < 1 || enrichLimit > 25) {
-        showToast('Enrich limit must be between 1 and 25 (for testing)', 'error');
+        showToast('Anreicherungs-Limit muss zwischen 1 und 25 liegen (für Tests)', 'error');
         return;
     }
     
@@ -207,9 +207,9 @@ async function processKeyword() {
     const runButton = document.getElementById('runButton');
     
     statusDiv.style.display = 'block';
-    statusText.textContent = `Processing keyword, gathering up to ${searchLimit} leads, enriching ${enrichLimit} profiles...`;
+    statusText.textContent = `Verarbeite Suchbegriff, sammle bis zu ${searchLimit} Leads, reichere ${enrichLimit} Profile an...`;
     runButton.disabled = true;
-    runButton.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Processing...';
+    runButton.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Verarbeitung...';
     
     // Start progress polling
     let progressInterval = null;
@@ -224,8 +224,8 @@ async function processKeyword() {
                     const seconds = progress.estimated_time_remaining % 60;
                     statusText.innerHTML = `
                         ${progress.current_step}<br>
-                        <small>Progress: ${progress.completed_steps}/${progress.total_steps} (${percentage}%)</small><br>
-                        <small>Est. time remaining: ${minutes}m ${seconds}s</small>
+                        <small>Fortschritt: ${progress.completed_steps}/${progress.total_steps} (${percentage}%)</small><br>
+                        <small>Geschätzte Restzeit: ${minutes}m ${seconds}s</small>
                     `;
                 }
             }
@@ -259,7 +259,7 @@ async function processKeyword() {
         
         if (response.ok) {
             displayResults(result.leads);
-            showToast(`Successfully processed ${result.leads.length} leads`, 'success');
+            showToast(`${result.leads.length} Leads erfolgreich verarbeitet`, 'success');
         } else {
             const errorMessage = result.error || 'Processing failed';
             console.error('Server error response:', result);
@@ -273,17 +273,17 @@ async function processKeyword() {
     } catch (error) {
         console.error('Error processing keyword:', error);
         if (error.name === 'AbortError') {
-            showToast('Request timed out. Please try again with a smaller search limit.', 'error');
+            showToast('Anfrage ist abgelaufen. Bitte versuche es mit einem kleineren Suchlimit erneut.', 'error');
         } else if (error.message && error.message.includes('fetch')) {
-            showToast('Network error. Please check your connection and try again.', 'error');
+            showToast('Netzwerkfehler. Bitte überprüfe deine Verbindung und versuche es erneut.', 'error');
         } else {
-            showToast(`Processing error: ${error.message || 'Unknown error'}`, 'error');
+            showToast(`Verarbeitungsfehler: ${error.message || 'Unbekannter Fehler'}`, 'error');
         }
     } finally {
         // Hide processing status
         statusDiv.style.display = 'none';
         runButton.disabled = false;
-        runButton.innerHTML = '<i class="fas fa-play me-2"></i>Run';
+        runButton.innerHTML = '<i class="fas fa-play me-2"></i>Ausführen';
         
         // Clear progress interval if it exists
         if (progressInterval) {
@@ -344,27 +344,27 @@ function createLeadRow(lead, index) {
             <a href="https://www.instagram.com/${lead.username}" target="_blank" rel="noopener noreferrer">
                 <strong>@${lead.username}</strong>
             </a>
-            ${lead.is_duplicate ? '<br><small class="text-warning">Duplicate</small>' : ''}
+            ${lead.is_duplicate ? '<br><small class="text-warning">Duplikat</small>' : ''}
         </td>
         <td>${lead.hashtag || '-'}</td>
         <td>${lead.full_name || lead.fullName || '-'}</td>
         <td>${lead.email || '-'}</td>
         <td>${formatNumber(lead.followers_count || lead.followersCount || 0)}</td>
         <td>
-            <textarea class="table-input table-textarea" id="subject_${index}" placeholder="Email subject...">${lead.subject || ''}</textarea>
+            <textarea class="table-input table-textarea" id="subject_${index}" placeholder="Email-Betreff...">${lead.subject || ''}</textarea>
         </td>
         <td>
-            <textarea class="table-input table-textarea" id="body_${index}" placeholder="Email body..." rows="4">${lead.email_body || lead.emailBody || ''}</textarea>
+            <textarea class="table-input table-textarea" id="body_${index}" placeholder="Email-Inhalt..." rows="4">${lead.email_body || lead.emailBody || ''}</textarea>
         </td>
         <td>
             <div class="btn-group-vertical btn-group-sm">
                 ${lead.sent ? 
-                    `<span class="status-sent">Sent<br><small>${formatDate(lead.sent_at || lead.sentAt)}</small></span>` :
+                    `<span class="status-sent">Gesendet<br><small>${formatDate(lead.sent_at || lead.sentAt)}</small></span>` :
                     `<button class="btn btn-secondary btn-sm mb-1" onclick="draftEmail('${lead.username}', ${index})">
-                        <i class="fas fa-edit me-1"></i>Draft
+                        <i class="fas fa-edit me-1"></i>Entwurf
                     </button>
                     <button class="btn btn-primary btn-sm" onclick="sendEmail('${lead.username}', ${index})">
-                        <i class="fas fa-paper-plane me-1"></i>Send
+                        <i class="fas fa-paper-plane me-1"></i>Senden
                     </button>`
                 }
             </div>
@@ -383,7 +383,7 @@ async function draftEmail(username, index) {
     const originalContent = draftButton.innerHTML;
     
     // Show spinner and disable button
-    draftButton.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Drafting...';
+    draftButton.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Entwurf wird erstellt...';
     draftButton.disabled = true;
     
     try {
@@ -403,13 +403,13 @@ async function draftEmail(username, index) {
         if (response.ok) {
             document.getElementById(`subject_${index}`).value = result.subject;
             document.getElementById(`body_${index}`).value = result.body;
-            showToast('Email draft generated successfully', 'success');
+            showToast('Email-Entwurf erfolgreich erstellt', 'success');
         } else {
-            showToast(result.error || 'Failed to generate email draft', 'error');
+            showToast(result.error || 'Fehler beim Erstellen des Email-Entwurfs', 'error');
         }
     } catch (error) {
         console.error('Error drafting email:', error);
-        showToast('Failed to generate email draft', 'error');
+        showToast('Fehler beim Erstellen des Email-Entwurfs', 'error');
     } finally {
         // Restore original button content and enable it
         draftButton.innerHTML = originalContent;
@@ -422,7 +422,7 @@ async function sendEmail(username, index) {
     const body = document.getElementById(`body_${index}`).value.trim();
     
     if (!subject || !body) {
-        showToast('Please fill in both subject and body before sending', 'error');
+        showToast('Bitte fülle sowohl Betreff als auch Inhalt aus bevor du sendest', 'error');
         return;
     }
     
@@ -432,7 +432,7 @@ async function sendEmail(username, index) {
         const result = await response.json();
         
         if (!response.ok || !result.email) {
-            showToast(result.error || 'No email address found for this lead', 'error');
+            showToast(result.error || 'Keine E-Mail-Adresse für diesen Lead gefunden', 'error');
             return;
         }
         
@@ -458,16 +458,16 @@ async function sendEmail(username, index) {
             // Update the row to show sent status
             const row = document.getElementById(`subject_${index}`).closest('tr');
             const actionsCell = row.lastElementChild;
-            actionsCell.innerHTML = `<span class="status-sent">Sent<br><small>${formatDate(new Date().toISOString())}</small></span>`;
+            actionsCell.innerHTML = `<span class="status-sent">Gesendet<br><small>${formatDate(new Date().toISOString())}</small></span>`;
             
-            showToast('Gmail opened successfully - please send the email', 'success');
+            showToast('Gmail erfolgreich geöffnet - bitte sende die E-Mail', 'success');
         } else {
-            showToast('Gmail opened, but failed to update send status', 'warning');
+            showToast('Gmail geöffnet, aber Sendestatus konnte nicht aktualisiert werden', 'warning');
         }
         
     } catch (error) {
         console.error('Error opening Gmail:', error);
-        showToast('Failed to open Gmail', 'error');
+        showToast('Fehler beim Öffnen von Gmail', 'error');
     }
 }
 
@@ -541,18 +541,18 @@ async function exportData(format) {
             window.URL.revokeObjectURL(url);
             document.body.removeChild(a);
             
-            showToast(`Data exported as ${format.toUpperCase()}`, 'success');
+            showToast(`Daten als ${format.toUpperCase()} exportiert`, 'success');
         } else {
-            showToast(result.error || 'Export failed', 'error');
+            showToast(result.error || 'Export fehlgeschlagen', 'error');
         }
     } catch (error) {
         console.error('Error exporting data:', error);
-        showToast('Export failed', 'error');
+        showToast('Export fehlgeschlagen', 'error');
     }
 }
 
 async function clearData() {
-    if (!confirm('Are you sure you want to clear all data?')) {
+    if (!confirm('Bist du sicher, dass du alle Daten löschen möchtest?')) {
         return;
     }
     
@@ -564,11 +564,11 @@ async function clearData() {
             document.getElementById('resultsSection').style.display = 'none';
             document.getElementById('exportSection').style.display = 'none';
             document.getElementById('resultsBody').innerHTML = '';
-            showToast('Data cleared successfully', 'success');
+            showToast('Daten erfolgreich gelöscht', 'success');
         }
     } catch (error) {
         console.error('Error clearing data:', error);
-        showToast('Failed to clear data', 'error');
+        showToast('Fehler beim Löschen der Daten', 'error');
     }
 }
 

@@ -215,9 +215,9 @@ function updateSessionIdDisplay(sessionId) {
     const statusText = document.getElementById('sessionStatusText');
     if (statusText) {
         if (sessionId && sessionId.length > 0) {
-            statusText.textContent = `Connected (${sessionId.substring(0, 8)}...)`;
+            statusText.textContent = `Verbunden (${sessionId.substring(0, 8)}...)`;
         } else {
-            statusText.textContent = 'Not Connected';
+            statusText.textContent = 'Nicht verbunden';
         }
     }
 }
