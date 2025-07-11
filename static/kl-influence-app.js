@@ -66,6 +66,9 @@ function initializeEventListeners() {
     // Run button
     document.getElementById('runButton')?.addEventListener('click', processKeyword);
     
+    // Email template auto-save
+    initializeEmailTemplateAutoSave();
+    
     // Modal close on background click
     document.querySelectorAll('.modal').forEach(modal => {
         modal.addEventListener('click', (e) => {
@@ -764,4 +767,62 @@ function debounce(func, wait) {
         clearTimeout(timeout);
         timeout = setTimeout(later, wait);
     };
+}
+
+// Email template auto-save functionality
+function initializeEmailTemplateAutoSave() {
+    const subjectPrompt = document.getElementById('subjectPrompt');
+    const bodyPrompt = document.getElementById('bodyPrompt');
+    
+    if (!subjectPrompt || !bodyPrompt) return;
+    
+    // Debounced save function (wait 2 seconds after user stops typing)
+    const debouncedSave = debounce(saveEmailTemplates, 2000);
+    
+    // Add event listeners for textarea changes
+    subjectPrompt.addEventListener('input', debouncedSave);
+    bodyPrompt.addEventListener('input', debouncedSave);
+    
+    // Also save on blur (when user clicks away)
+    subjectPrompt.addEventListener('blur', () => {
+        setTimeout(saveEmailTemplates, 100); // Small delay to ensure value is updated
+    });
+    bodyPrompt.addEventListener('blur', () => {
+        setTimeout(saveEmailTemplates, 100);
+    });
+}
+
+async function saveEmailTemplates() {
+    const subjectPrompt = document.getElementById('subjectPrompt');
+    const bodyPrompt = document.getElementById('bodyPrompt');
+    
+    if (!subjectPrompt || !bodyPrompt) return;
+    
+    const templates = {
+        subject: subjectPrompt.value,
+        body: bodyPrompt.value
+    };
+    
+    try {
+        const response = await fetch('/api/email-templates', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(templates)
+        });
+        
+        if (response.ok) {
+            const result = await response.json();
+            // Show subtle success feedback
+            showToast('Email templates saved automatically', 'success');
+        } else {
+            const error = await response.json();
+            console.error('Failed to save email templates:', error);
+            showToast('Failed to save email templates', 'error');
+        }
+    } catch (error) {
+        console.error('Error saving email templates:', error);
+        showToast('Failed to save email templates', 'error');
+    }
 }

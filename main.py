@@ -33,7 +33,7 @@ app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
 }
 
 # Initialize database
-from models import db, Lead, ProcessingSession, HashtagUsernamePair, LeadBackup
+from models import db, Lead, ProcessingSession, HashtagUsernamePair, LeadBackup, EmailTemplate
 db.init_app(app)
 
 # Initialize OpenAI client
@@ -44,6 +44,28 @@ openai_client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
 # Create database tables
 with app.app_context():
     db.create_all()
+    
+    # Initialize default email templates if they don't exist
+    def initialize_default_templates():
+        """Initialize default email templates if they don't exist"""
+        default_subject_template = 'Schreibe in DU-Form eine persönliche Betreffzeile mit freundlichen Hook für eine Influencer Kooperation mit Kasimir + Liselotte. Nutze persönliche Infos (z.B. Username, BIO, Interessen), sprich sie direkt in DU-Form. .Antworte im JSON-Format: {"subject": "betreff text"}'
+        default_body_template = 'Erstelle eine personalisierte, professionelle deutsche E-Mail, ohne die Betreffzeile, für potenzielle Instagram Influencer Kooperationen. Die E-Mail kommt von Kasimir vom Store KasimirLieselotte. Verwende einen höflichen, professionellen Ton auf Deutsch aber in DU-Form um es casual im Instagram feel zu bleiben. Füge am Ende die Signatur mit der Website https://www.kasimirlieselotte.de/ hinzu. Antworte im JSON-Format: {"body": "email inhalt"}'
+        
+        # Check if subject template exists
+        subject_template = EmailTemplate.query.filter_by(name='subject').first()
+        if not subject_template:
+            subject_template = EmailTemplate(name='subject', template=default_subject_template)
+            db.session.add(subject_template)
+        
+        # Check if body template exists
+        body_template = EmailTemplate.query.filter_by(name='body').first()
+        if not body_template:
+            body_template = EmailTemplate(name='body', template=default_body_template)
+            db.session.add(body_template)
+        
+        db.session.commit()
+    
+    initialize_default_templates()
 
 # Global storage for processing status (only for status, data is in DB)
 app_data = {
@@ -791,10 +813,20 @@ def index():
     leads = Lead.query.order_by(Lead.created_at.desc()).all()
     leads_dict = [lead.to_dict() for lead in leads]
     
+    # Get email templates
+    subject_template = EmailTemplate.query.filter_by(name='subject').first()
+    body_template = EmailTemplate.query.filter_by(name='body').first()
+    
+    templates = {
+        'subject': subject_template.template if subject_template else '',
+        'body': body_template.template if body_template else ''
+    }
+    
     return render_template('index.html',
                            ig_sessionid=ig_sessionid,
                            leads=leads_dict,
-                           processing_status=app_data['processing_status'])
+                           processing_status=app_data['processing_status'],
+                           email_templates=templates)
 
 
 @app.route('/ping')
@@ -1237,9 +1269,13 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit, enrich_limi
 @app.route('/draft-email/<username>', methods=['GET'])
 def draft_email(username):
     """Generate email draft using OpenAI"""
-    # Use default prompts for GET request
-    subject_prompt = 'Schreibe in DU-Form eine persönliche Betreffzeile mit freundlichen Hook für eine Influencer Kooperation mit Kasimir + Liselotte. Nutze persönliche Infos (z.B. Username, BIO, Interessen), sprich sie direkt in DU-Form. .Antworte im JSON-Format: {"subject": "betreff text"}'
-    body_prompt = 'Erstelle eine personalisierte, professionelle deutsche E-Mail, ohne die Betreffzeile, für potenzielle Instagram Influencer Kooperationen. Die E-Mail kommt von Kasimir vom Store KasimirLieselotte. Verwende einen höflichen, professionellen Ton auf Deutsch aber in DU-Form um es casual im Instagram feel zu bleiben. Füge am Ende die Signatur mit der Website https://www.kasimirlieselotte.de/ hinzu. Antworte im JSON-Format: {"body": "email inhalt"}'
+    # Get templates from database
+    subject_template = EmailTemplate.query.filter_by(name='subject').first()
+    body_template = EmailTemplate.query.filter_by(name='body').first()
+    
+    # Use stored templates or fallback to defaults
+    subject_prompt = subject_template.template if subject_template else 'Schreibe in DU-Form eine persönliche Betreffzeile mit freundlichen Hook für eine Influencer Kooperation mit Kasimir + Liselotte. Nutze persönliche Infos (z.B. Username, BIO, Interessen), sprich sie direkt in DU-Form. .Antworte im JSON-Format: {"subject": "betreff text"}'
+    body_prompt = body_template.template if body_template else 'Erstelle eine personalisierte, professionelle deutsche E-Mail, ohne die Betreffzeile, für potenzielle Instagram Influencer Kooperationen. Die E-Mail kommt von Kasimir vom Store KasimirLieselotte. Verwende einen höflichen, professionellen Ton auf Deutsch aber in DU-Form um es casual im Instagram feel zu bleiben. Füge am Ende die Signatur mit der Website https://www.kasimirlieselotte.de/ hinzu. Antworte im JSON-Format: {"body": "email inhalt"}'
 
     # Find the lead in database
     lead = Lead.query.filter_by(username=username).first()
@@ -1470,6 +1506,55 @@ def clear_data():
         logger.error(f"Failed to clear data: {e}")
         db.session.rollback()
         return {"error": "Failed to clear data"}, 500
+
+
+@app.route('/api/email-templates', methods=['GET'])
+def get_email_templates():
+    """Get current email templates"""
+    try:
+        subject_template = EmailTemplate.query.filter_by(name='subject').first()
+        body_template = EmailTemplate.query.filter_by(name='body').first()
+        
+        return jsonify({
+            'subject': subject_template.template if subject_template else '',
+            'body': body_template.template if body_template else ''
+        })
+    except Exception as e:
+        logger.error(f"Failed to get email templates: {e}")
+        return {"error": "Failed to get email templates"}, 500
+
+
+@app.route('/api/email-templates', methods=['POST'])
+def save_email_templates():
+    """Save email templates"""
+    try:
+        data = request.get_json()
+        
+        if 'subject' in data:
+            subject_template = EmailTemplate.query.filter_by(name='subject').first()
+            if subject_template:
+                subject_template.template = data['subject']
+                subject_template.updated_at = datetime.utcnow()
+            else:
+                subject_template = EmailTemplate(name='subject', template=data['subject'])
+                db.session.add(subject_template)
+        
+        if 'body' in data:
+            body_template = EmailTemplate.query.filter_by(name='body').first()
+            if body_template:
+                body_template.template = data['body']
+                body_template.updated_at = datetime.utcnow()
+            else:
+                body_template = EmailTemplate(name='body', template=data['body'])
+                db.session.add(body_template)
+        
+        db.session.commit()
+        
+        return jsonify({"success": True, "message": "Email templates saved successfully"})
+    except Exception as e:
+        logger.error(f"Failed to save email templates: {e}")
+        db.session.rollback()
+        return {"error": "Failed to save email templates"}, 500
 
 
 if __name__ == '__main__':

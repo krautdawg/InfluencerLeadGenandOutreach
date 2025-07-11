@@ -194,3 +194,22 @@ class ProcessingSession(db.Model):
             'completed_at': self.completed_at.isoformat() if self.completed_at else None,
             'error_message': self.error_message
         }
+
+
+class EmailTemplate(db.Model):
+    """Model for storing email generation templates"""
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(50), unique=True, nullable=False)  # 'subject' or 'body'
+    template = db.Column(db.Text, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    def to_dict(self):
+        """Convert EmailTemplate object to dictionary"""
+        return {
+            'id': self.id,
+            'name': self.name,
+            'template': self.template,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None
+        }
