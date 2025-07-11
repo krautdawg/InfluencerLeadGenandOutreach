@@ -54,11 +54,13 @@ class Lead(db.Model):
             'username': self.username,
             'hashtag': self.hashtag,
             'fullName': self.full_name,
+            'full_name': self.full_name,  # Add snake_case alias for compatibility
             'bio': self.bio,
             'email': self.email,
             'phone': self.phone,
             'website': self.website,
             'followersCount': self.followers_count,
+            'followers_count': self.followers_count,  # Add snake_case alias for compatibility
             'followingCount': self.following_count,
             'postsCount': self.posts_count,
             'isVerified': self.is_verified,
@@ -71,6 +73,7 @@ class Lead(db.Model):
             'longitude': self.longitude,
             'subject': self.subject,
             'emailBody': self.email_body,
+            'email_body': self.email_body,  # Add snake_case alias for compatibility
             'sent': self.sent,
             'sentAt': self.sent_at.isoformat() if self.sent_at else None,
             'created_at': self.created_at.isoformat() if self.created_at else None

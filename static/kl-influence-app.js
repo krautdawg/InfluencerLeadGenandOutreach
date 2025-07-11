@@ -323,7 +323,7 @@ function createLeadRow(lead, index) {
         </td>
         <td data-label="Hashtag">${lead.hashtag || ''}</td>
         <td data-label="Full Name">${lead.full_name || ''}</td>
-        <td data-label="Followers">${formatNumber(lead.followers_count || lead.follower_count || 0)}</td>
+        <td data-label="Followers">${formatNumber(lead.followersCount || 0)}</td>
         <td data-label="Email" class="editable-cell" onclick="startInlineEdit(this, '${lead.username}', 'email')">
             ${lead.email || '<span style="color: var(--color-light-gray);">Click to add</span>'}
         </td>
@@ -439,8 +439,10 @@ async function generateEmailContent(username) {
         showToast('An error occurred while generating email content', 'error');
     } finally {
         // Restore button state
-        button.innerHTML = originalText;
-        button.disabled = false;
+        if (button) {
+            button.innerHTML = originalText;
+            button.disabled = false;
+        }
     }
 }
 
