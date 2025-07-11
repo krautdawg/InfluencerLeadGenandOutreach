@@ -488,6 +488,30 @@ async function generateEmailContent(username) {
     button.disabled = true;
     
     try {
+        // First, update the lead's product with the current default selection
+        const defaultProductSelect = document.getElementById('defaultProductSelect');
+        if (defaultProductSelect) {
+            // Update product in backend
+            await fetch(`/api/leads/${username}/product`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ product_id: defaultProductSelect.value || null })
+            });
+            
+            // Update local lead data
+            if (defaultProductSelect.value) {
+                lead.selected_product_id = parseInt(defaultProductSelect.value);
+                const selectedProduct = products.find(p => p.id == defaultProductSelect.value);
+                if (selectedProduct) {
+                    lead.selected_product = selectedProduct;
+                }
+            } else {
+                // Clear product if none selected
+                lead.selected_product_id = null;
+                lead.selected_product = null;
+            }
+        }
+        
         const response = await fetch(`/draft-email/${username}`);
         if (response.ok) {
             const result = await response.json();
