@@ -480,34 +480,40 @@ async function saveEditModal() {
     const content = document.getElementById('editModalContent').value;
     const lead = leads.find(l => l.username === editingUsername);
     
-    if (!lead) return;
+    if (!lead) {
+        showToast('Error: Lead not found', 'error');
+        return;
+    }
     
+    // Update the lead data
     lead[editingField] = content;
     
-    // If we just edited subject, show body next
-    if (editingField === 'subject') {
-        closeEditModal();
-        setTimeout(() => {
-            showEditModal('Edit Email Draft', 'Email Body', lead.email_body, 'email_body');
-        }, 300);
-    } else {
-        // Save to backend
-        try {
-            await fetch(`/update-lead/${editingUsername}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    subject: lead.subject,
-                    email_body: lead.email_body
-                })
-            });
-            showToast('Email draft saved successfully', 'success');
-        } catch (error) {
-            console.error('Failed to save draft:', error);
-            showToast('Failed to save email draft', 'error');
+    // Save to backend for all fields (both subject and email_body)
+    try {
+        const response = await fetch(`/update-lead/${editingUsername}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                subject: lead.subject,
+                email_body: lead.email_body
+            })
+        });
+        
+        if (response.ok) {
+            showToast('Changes saved successfully', 'success');
+            // Update the table display
+            displayResults(leads);
+        } else {
+            const error = await response.json();
+            showToast(error.error || 'Failed to save changes', 'error');
         }
-        closeEditModal();
+    } catch (error) {
+        console.error('Failed to save changes:', error);
+        showToast('Failed to save changes', 'error');
     }
+    
+    // Always close the modal after saving (no automatic transition)
+    closeEditModal();
 }
 
 // Send email
