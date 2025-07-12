@@ -6,6 +6,32 @@ K+L Influence is a Flask-based Instagram lead generation and outreach automation
 
 ## Recent Changes
 
+### 2025-07-12: Sticky Username Column and Header Row Freeze (COMPLETED)
+- **Update**: Implemented frozen Username column and header rows for improved table navigation during scrolling
+- **Changes Made**:
+  - **Sticky Username Column**: Username column (2nd column) now remains fixed when horizontally scrolling through table data
+  - **Frozen Header Row**: Main header row with column names stays visible when vertically scrolling through results
+  - **Frozen Filter Row**: Filter input row also remains sticky below the main header for continuous filtering access
+  - **Enhanced Table Navigation**: 
+    - Username column has `position: sticky; left: 0` with proper z-index layering
+    - Header rows use `position: sticky; top: 0` and filter row at `top: 48px`
+    - Background colors and borders maintained for visual consistency
+  - **Visual Improvements**:
+    - Added border-right to sticky column for clear separation
+    - Preserved alternating row colors and hover effects for sticky column
+    - Proper z-index stacking ensures headers appear above content
+  - **Scrolling Enhancement**:
+    - Table container set to `max-height: calc(100vh - 200px)` for vertical scrolling
+    - Table wrapper supports both horizontal and vertical overflow
+    - Users can scroll through long lists while keeping reference points visible
+- **Benefits**:
+  - Username always visible for reference when reviewing leads horizontally
+  - Column headers remain accessible for sorting during vertical scrolling
+  - Filter inputs stay available without scrolling back to top
+  - Improved usability for large datasets with many columns
+  - Google Sheets-like navigation experience maintained
+- **Status**: Sticky column and header freeze functionality fully implemented and operational
+
 ### 2025-07-12: Automatic Sheet Updates with Incremental Lead Notifications (COMPLETED)
 - **Update**: Implemented real-time sheet updates during lead generation with incremental progress notifications
 - **Changes Made**:

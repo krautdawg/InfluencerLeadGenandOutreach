@@ -405,11 +405,13 @@ select:focus {
   border-radius: 8px;
   overflow: hidden;
   box-shadow: 0 2px 8px rgba(45, 91, 45, 0.08);
+  max-height: calc(100vh - 200px); /* Allows vertical scrolling */
 }
 
 .table-wrapper {
-  overflow-x: auto;
+  overflow: auto; /* Both horizontal and vertical scrolling */
   position: relative;
+  max-height: inherit;
 }
 
 .data-table {
@@ -501,6 +503,54 @@ select:focus {
   font-size: var(--text-body-sm);
   border: 1px solid var(--color-light-gray);
   border-radius: 4px;
+}
+
+/* Sticky Username Column */
+.data-table th:nth-child(2),
+.data-table td:nth-child(2) {
+  position: sticky;
+  left: 0;
+  z-index: 5;
+  background-color: var(--color-white);
+  border-right: 2px solid var(--color-light-gray);
+}
+
+/* Header row Username column has higher z-index */
+.data-table thead th:nth-child(2) {
+  background-color: var(--color-pale-green);
+  z-index: 15;
+  border-right: 2px solid var(--color-light-gray);
+}
+
+/* Filter row Username column */
+.data-table .filter-row th:nth-child(2) {
+  background-color: var(--color-white);
+  z-index: 12;
+  border-right: 2px solid var(--color-light-gray);
+}
+
+/* Handle even row styling for sticky column */
+.data-table tbody tr:nth-child(even) td:nth-child(2) {
+  background-color: rgba(240, 245, 240, 0.8);
+}
+
+/* Handle hover styling for sticky column */
+.data-table tbody tr:hover td:nth-child(2) {
+  background-color: rgba(45, 91, 45, 0.08);
+}
+
+/* Ensure table header rows stick */
+.data-table thead {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+/* Filter row also sticks below header */
+.data-table .filter-row {
+  position: sticky;
+  top: 48px; /* Height of main header row */
+  z-index: 9;
 }
 
 /* 9. Modals & Overlays
