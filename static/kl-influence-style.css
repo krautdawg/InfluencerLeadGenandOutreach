@@ -531,12 +531,12 @@ select:focus {
 
 /* Handle even row styling for sticky column */
 .data-table tbody tr:nth-child(even) td:nth-child(2) {
-  background-color: rgba(240, 245, 240, 0.8);
+  background-color: var(--color-pale-green);
 }
 
 /* Handle hover styling for sticky column */
 .data-table tbody tr:hover td:nth-child(2) {
-  background-color: rgba(45, 91, 45, 0.08);
+  background-color: var(--color-sage-green);
 }
 
 /* Ensure table header rows stick */
