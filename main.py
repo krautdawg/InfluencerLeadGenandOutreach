@@ -1186,7 +1186,7 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit, enrich_limi
     }
 
     try:
-        app_data['processing_progress']['current_step'] = f'1. Suche Instagram-Profile für Hashtag #{keyword}...'
+        app_data['processing_progress']['current_step'] = f'1. Suche Instagram-Profile für Hashtag #{keyword} (ca. {hashtag_crawl_time/60:.1f}min)...'
         hashtag_data = call_apify_actor_sync("DrF9mzPPEuVizVF4l", hashtag_input,
                                              apify_token)
         app_data['processing_progress']['completed_steps'] += 1
@@ -1300,6 +1300,7 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit, enrich_limi
             app_data['processing_progress']['current_step'] = f'2. Erweitere Profil-Informationen - Batch {i+1}/{len(batches)} (ca. {batch_time_estimate:.1f}min)'
             app_data['processing_progress']['phase'] = 'profile_enrichment'
             app_data['processing_progress']['current_batch'] = i + 1
+            app_data['processing_progress']['total_batches'] = len(batches)
             logger.info(f"Processing batch {i+1}/{len(batches)} with {len(batch)} usernames")
             
             # Process one batch at a time

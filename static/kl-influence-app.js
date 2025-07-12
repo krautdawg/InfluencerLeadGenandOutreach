@@ -336,9 +336,10 @@ async function processKeyword() {
         return;
     }
     
-    // Show processing status
+    // Show processing status with detailed initial step
     document.getElementById('processingStatus').style.display = 'block';
-    document.getElementById('statusText').textContent = 'Initializing...';
+    document.getElementById('statusText').textContent = '1. Suche Instagram-Profile für Hashtag wird vorbereitet...';
+    document.getElementById('progressText').textContent = 'Phase: Initialisierung der Hashtag-Suche';
     document.getElementById('runButton').disabled = true;
     
     // Reset previous lead count for new processing run
@@ -410,32 +411,47 @@ async function updateProgress() {
             const progress = await response.json();
             
             // Update status display with more detailed information
-            if (progress.current_step) {
+            if (progress.current_step && progress.current_step.trim() !== '') {
                 document.getElementById('statusText').textContent = progress.current_step;
+                
+                // Ensure processing status is visible during processing
+                if (progress.phase && progress.phase !== 'completed') {
+                    document.getElementById('processingStatus').style.display = 'block';
+                }
             }
             
             // Update progress details with phase-specific information
+            let progressHTML = '';
+            
             if (progress.total_steps > 0) {
                 const percentage = Math.round((progress.completed_steps / progress.total_steps) * 100);
                 const minutes = Math.floor(progress.estimated_time_remaining / 60);
                 const seconds = progress.estimated_time_remaining % 60;
                 
-                let progressHTML = `Fortschritt: ${progress.completed_steps}/${progress.total_steps} (${percentage}%)<br>`;
+                progressHTML += `Fortschritt: ${progress.completed_steps}/${progress.total_steps} (${percentage}%)<br>`;
                 
                 // Add time estimate if available
                 if (progress.estimated_time_remaining > 0) {
                     progressHTML += `Geschätzte Restzeit: ${minutes}m ${seconds}s<br>`;
                 }
-                
-                // Add phase-specific details
-                if (progress.phase === 'hashtag_search') {
-                    progressHTML += `Phase: Hashtag-Suche läuft...`;
-                } else if (progress.phase === 'profile_enrichment' && progress.current_batch && progress.total_batches) {
-                    progressHTML += `Phase: Profil-Anreicherung (Batch ${progress.current_batch}/${progress.total_batches})`;
-                } else if (progress.phase === 'completed') {
-                    progressHTML += `Phase: Abgeschlossen ✓`;
+            }
+            
+            // Add phase-specific details with enhanced descriptions
+            if (progress.phase === 'hashtag_search') {
+                progressHTML += `<strong>Phase:</strong> Instagram Hashtag-Crawling läuft...`;
+            } else if (progress.phase === 'profile_enrichment') {
+                if (progress.current_batch && progress.total_batches) {
+                    progressHTML += `<strong>Phase:</strong> Profil-Anreicherung (Batch ${progress.current_batch}/${progress.total_batches})`;
+                } else {
+                    progressHTML += `<strong>Phase:</strong> Profile werden angereichert...`;
                 }
-                
+            } else if (progress.phase === 'completed') {
+                progressHTML += `<strong>Phase:</strong> Erfolgreich abgeschlossen ✓`;
+            } else if (progress.incremental_leads > 0) {
+                progressHTML += `<strong>Leads generiert:</strong> ${progress.incremental_leads}`;
+            }
+            
+            if (progressHTML) {
                 document.getElementById('progressText').innerHTML = progressHTML;
             }
             
