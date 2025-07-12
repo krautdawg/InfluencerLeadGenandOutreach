@@ -191,13 +191,13 @@ async function processKeyword() {
         return;
     }
     
-    if (searchLimit < 1 || searchLimit > 50) {
-        showToast('Suchlimit muss zwischen 1 und 50 liegen (Speichersicherheit)', 'error');
+    if (searchLimit < 1 || searchLimit > 25) {
+        showToast('Suchlimit muss zwischen 1 und 25 liegen (Speichersicherheit)', 'error');
         return;
     }
     
-    if (enrichLimit < 1 || enrichLimit > 25) {
-        showToast('Anreicherungs-Limit muss zwischen 1 und 25 liegen (für Tests)', 'error');
+    if (enrichLimit < 1 || enrichLimit > 100) {
+        showToast('Anreicherungs-Limit muss zwischen 1 und 100 liegen (für Tests)', 'error');
         return;
     }
     
