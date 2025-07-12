@@ -356,7 +356,7 @@ async function processKeyword() {
                 searchLimit: searchLimit,
                 enrichLimit: enrichLimit
             }),
-            timeout: 300000 // 5 minute timeout
+            timeout: 180000 // 3 minute timeout
         });
         
         clearInterval(progressInterval);
@@ -427,16 +427,19 @@ async function updateProgress() {
             
             // Handle incremental lead updates - detect when lead count changes
             if (progress.incremental_leads !== undefined && progress.keyword) {
-                // Check if we have new leads (count increased)
-                if (progress.incremental_leads > previousLeadCount) {
-                    console.log(`New leads detected: ${progress.incremental_leads} (was ${previousLeadCount})`);
+                // Check if we have new leads (count increased) OR if we haven't refreshed yet
+                if (progress.incremental_leads > previousLeadCount || (progress.incremental_leads > 0 && previousLeadCount === 0)) {
+                    console.log(`New leads detected: ${progress.incremental_leads} (was ${previousLeadCount}) for keyword: ${progress.keyword}`);
+                    const newLeadsCount = progress.incremental_leads - previousLeadCount;
                     previousLeadCount = progress.incremental_leads;
                     
-                    // Show notification
-                    const notificationText = `${progress.incremental_leads} Leads generiert für "${progress.keyword}"`;
-                    showToast(notificationText, 'info');
+                    // Show notification only for actual new leads
+                    if (newLeadsCount > 0) {
+                        const notificationText = `+${newLeadsCount} neue Leads generiert (${progress.incremental_leads} gesamt) für "${progress.keyword}"`;
+                        showToast(notificationText, 'success');
+                    }
                     
-                    // Refresh the table with current leads
+                    // Always refresh the table when lead count changes
                     await refreshLeadsTable(progress.keyword);
                 }
             }

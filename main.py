@@ -1149,7 +1149,7 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit, enrich_limi
     hashtag_crawl_time = avg_delay_time + 30  # Hashtag search takes longer
     profile_batch_time = avg_delay_time + 15  # Per batch (slightly longer for 5 profiles)
     estimated_batches = min(search_limit // 5, enrich_limit // 5)  # 5 profiles per batch
-    pause_time_per_batch = 300  # 5 minutes = 300 seconds between batches
+    pause_time_per_batch = 135  # 2 minutes 15 seconds = 135 seconds between batches
     
     # Total time = hashtag search + (batch processing time + pause time) * (batches - 1) + final batch processing
     total_batch_and_pause_time = (profile_batch_time + pause_time_per_batch) * max(0, estimated_batches - 1)
@@ -1307,9 +1307,13 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit, enrich_limi
                 total_saved_leads += saved_count
                 logger.info(f"Batch {i+1}: Saved {saved_count} leads incrementally")
                 
-                # Update progress with incremental lead count for frontend
+                # Update progress with incremental lead count for frontend - force immediate update
                 app_data['processing_progress']['incremental_leads'] = total_saved_leads
+                app_data['processing_progress']['keyword'] = keyword
                 app_data['processing_progress']['current_step'] = f'Batch {i+1}/{len(batches)} completed - {total_saved_leads} leads generated so far'
+                
+                # Force immediate progress update for UI refresh
+                logger.info(f"UI Refresh Trigger: {total_saved_leads} leads saved for keyword '{keyword}'")
             else:
                 logger.warning(f"Batch {i+1}: No results or unexpected type: {type(result)}")
             
@@ -1319,7 +1323,7 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit, enrich_limi
             # Recalculate time remaining (including pause time for remaining batches)
             elapsed_time = time.time() - start_time
             remaining_batches = len(batches) - (i + 1)  # How many batches still need processing
-            pause_time_remaining = remaining_batches * 300 if remaining_batches > 0 else 0  # 5 minutes = 300 seconds per remaining batch
+            pause_time_remaining = remaining_batches * 135 if remaining_batches > 0 else 0  # 2 minutes 15 seconds = 135 seconds per remaining batch
             
             if app_data['processing_progress']['completed_steps'] > 0:
                 avg_processing_time_per_step = elapsed_time / app_data['processing_progress']['completed_steps']
@@ -1331,16 +1335,16 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit, enrich_limi
             # Force garbage collection after each batch
             gc.collect()
             
-            # Instagram anti-spam protection: 5-minute pause between batches
+            # Instagram anti-spam protection: 2 minute 15 second pause between batches
             if i < len(batches) - 1:  # Don't pause after the last batch
-                pause_duration = 300  # 5 minutes in seconds
-                logger.info(f"Taking 5-minute anti-spam pause after batch {i+1}. Next batch will start in {pause_duration} seconds...")
+                pause_duration = 135  # 2 minutes 15 seconds in seconds
+                logger.info(f"Taking 2m15s anti-spam pause after batch {i+1}. Next batch will start in {pause_duration} seconds...")
                 
                 # Update progress to show pause status
-                app_data['processing_progress']['current_step'] = f'Anti-spam pause: {pause_duration//60} minutes remaining before next batch...'
+                app_data['processing_progress']['current_step'] = f'Anti-spam pause: {pause_duration//60}m {pause_duration%60}s remaining before next batch...'
                 
                 # Count down the pause time with progress updates
-                for remaining_seconds in range(pause_duration, 0, -30):  # Update every 30 seconds
+                for remaining_seconds in range(pause_duration, 0, -15):  # Update every 15 seconds
                     minutes_remaining = remaining_seconds // 60
                     seconds_remaining = remaining_seconds % 60
                     
@@ -1352,14 +1356,14 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit, enrich_limi
                     app_data['processing_progress']['current_step'] = f'Anti-spam pause: {time_display} until batch {i+2}/{len(batches)} starts'
                     logger.info(f"Pause countdown: {time_display} remaining until next batch")
                     
-                    await asyncio.sleep(30)  # Use async sleep to not block the event loop
+                    await asyncio.sleep(15)  # Use async sleep to not block the event loop
                 
                 # Final sleep for any remaining seconds
-                remaining_final = pause_duration % 30
+                remaining_final = pause_duration % 15
                 if remaining_final > 0:
                     await asyncio.sleep(remaining_final)
                 
-                logger.info(f"5-minute pause completed. Resuming with batch {i+2}/{len(batches)}")
+                logger.info(f"2m15s pause completed. Resuming with batch {i+2}/{len(batches)}")
             else:
                 logger.info(f"All batches completed. No pause needed after final batch {i+1}")
             
