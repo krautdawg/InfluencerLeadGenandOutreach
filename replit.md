@@ -6,6 +6,33 @@ K+L Influence is a Flask-based Instagram lead generation and outreach automation
 
 ## Recent Changes
 
+### 2025-07-12: Enhanced Progress Display with Detailed Step Information (COMPLETED)
+- **Update**: Completely redesigned progress tracking to show detailed step-by-step information with time estimates
+- **Changes Made**:
+  - **Detailed Step Names**: Changed from generic "Initializing" to specific steps like "1. Suche Instagram-Profile für Hashtag", "2. Erweitere Profil-Informationen", etc.
+  - **Phase Tracking**: Added phase indicators (hashtag_search, profile_enrichment, completed) for better UX
+  - **Time Estimates**: Each batch shows estimated time including pause duration (e.g., "ca. 2.4min")
+  - **Batch Progress**: Shows current batch number and total batches during processing (e.g., "Batch 1/3")
+  - **Perplexity Indicators**: Displays when Perplexity API is enriching contact data for specific users
+  - **Anti-Spam Progress**: Clear pause countdown with next batch information ("⏸ Anti-Spam Pause: 2m 15s bis Batch 2/3")
+  - **Completion Status**: Final step shows "3. Fertig! X Leads erfolgreich generiert und gespeichert ✓"
+- **UI Enhancements**:
+  - Progress text shows phase-specific information
+  - Real-time countdown during pauses with next batch preview
+  - Visual indicators for different processing phases
+  - German language progress messages for better user experience
+- **Technical Implementation**:
+  - Added phase tracking fields to progress object
+  - Enhanced batch processing to update step names dynamically
+  - Improved time calculation with batch-specific estimates
+  - Phase-aware progress display in frontend JavaScript
+- **Benefits**:
+  - Users know exactly what step the system is performing
+  - Clear time estimates for each phase including pauses
+  - Better understanding of the anti-spam protection process
+  - No more confusion about what "Initializing" means
+- **Status**: Detailed progress display fully implemented with step-by-step information
+
 ### 2025-07-12: Fixed Automatic Sheet Updates During Processing (COMPLETED)
 - **Update**: Enhanced the automatic sheet update mechanism to properly refresh leads without requiring page reload
 - **Issue**: Leads were being generated but not automatically appearing in the sheet during processing

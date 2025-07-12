@@ -744,6 +744,13 @@ async def enrich_profile_batch(usernames, ig_sessionid, apify_token,
                 
                 if missing_email or missing_phone or missing_website:
                     try:
+                        # Update progress to show Perplexity enrichment in progress
+                        current_progress = app_data.get('processing_progress', {})
+                        if 'current_batch' in current_progress:
+                            batch_num = current_progress['current_batch']
+                            total_batches = current_progress.get('total_batches', 1)
+                            current_progress['current_step'] = f'2.1 Erweitere Kontaktdaten mit Perplexity für @{username} (Batch {batch_num}/{total_batches})'
+                        
                         # Pass full profile info instead of just username
                         profile_with_username = dict(profile_info)
                         profile_with_username['username'] = username
@@ -1156,15 +1163,19 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit, enrich_limi
     final_batch_time = profile_batch_time if estimated_batches > 0 else 0
     total_estimated_time = hashtag_crawl_time + total_batch_and_pause_time + final_batch_time
     
-    # Initialize progress
+    # Initialize progress with detailed step tracking
     app_data['processing_progress'] = {
-        'current_step': 'Starting hashtag search...',
+        'current_step': '1. Suche Instagram-Profile für Hashtag...',
+        'phase': 'hashtag_search',
         'total_steps': 1 + estimated_batches,  # 1 hashtag search + N profile batches
         'completed_steps': 0,
         'estimated_time_remaining': int(total_estimated_time),
         'incremental_leads': 0,
         'keyword': keyword,
-        'final_status': 'processing'
+        'final_status': 'processing',
+        'current_batch': 0,
+        'total_batches': estimated_batches,
+        'phase_start_time': time.time()
     }
     
     # Step 1: Hashtag crawl - Using correct Apify API format with user-defined limit
@@ -1175,7 +1186,7 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit, enrich_limi
     }
 
     try:
-        app_data['processing_progress']['current_step'] = f'Searching hashtag #{keyword}...'
+        app_data['processing_progress']['current_step'] = f'1. Suche Instagram-Profile für Hashtag #{keyword}...'
         hashtag_data = call_apify_actor_sync("DrF9mzPPEuVizVF4l", hashtag_input,
                                              apify_token)
         app_data['processing_progress']['completed_steps'] += 1
@@ -1284,8 +1295,11 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit, enrich_limi
     
     for i, batch in enumerate(batches):
         try:
-            # Update progress
-            app_data['processing_progress']['current_step'] = f'Enriching profiles batch {i+1}/{len(batches)}...'
+            # Update progress with detailed step information
+            batch_time_estimate = (profile_batch_time + (135 if i < len(batches) - 1 else 0)) / 60  # Convert to minutes
+            app_data['processing_progress']['current_step'] = f'2. Erweitere Profil-Informationen - Batch {i+1}/{len(batches)} (ca. {batch_time_estimate:.1f}min)'
+            app_data['processing_progress']['phase'] = 'profile_enrichment'
+            app_data['processing_progress']['current_batch'] = i + 1
             logger.info(f"Processing batch {i+1}/{len(batches)} with {len(batch)} usernames")
             
             # Process one batch at a time
@@ -1310,7 +1324,7 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit, enrich_limi
                 # Update progress with incremental lead count for frontend - force immediate update
                 app_data['processing_progress']['incremental_leads'] = total_saved_leads
                 app_data['processing_progress']['keyword'] = keyword
-                app_data['processing_progress']['current_step'] = f'Batch {i+1}/{len(batches)} completed - {total_saved_leads} leads generated so far'
+                app_data['processing_progress']['current_step'] = f'2. Batch {i+1}/{len(batches)} abgeschlossen - {total_saved_leads} Leads generiert'
                 
                 # Force immediate progress update for UI refresh
                 logger.info(f"UI Refresh Trigger: {total_saved_leads} leads saved for keyword '{keyword}'")
@@ -1340,8 +1354,10 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit, enrich_limi
                 pause_duration = 135  # 2 minutes 15 seconds in seconds
                 logger.info(f"Taking 2m15s anti-spam pause after batch {i+1}. Next batch will start in {pause_duration} seconds...")
                 
-                # Update progress to show pause status
-                app_data['processing_progress']['current_step'] = f'Anti-spam pause: {pause_duration//60}m {pause_duration%60}s remaining before next batch...'
+                # Update progress to show pause status with next batch info
+                minutes_left = pause_duration // 60
+                seconds_left = pause_duration % 60
+                app_data['processing_progress']['current_step'] = f'⏸ Anti-Spam Pause: {minutes_left}m {seconds_left}s bis Batch {i+2}/{len(batches)}'
                 
                 # Count down the pause time with progress updates
                 for remaining_seconds in range(pause_duration, 0, -15):  # Update every 15 seconds
@@ -1353,7 +1369,7 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit, enrich_limi
                     else:
                         time_display = f"{seconds_remaining}s"
                     
-                    app_data['processing_progress']['current_step'] = f'Anti-spam pause: {time_display} until batch {i+2}/{len(batches)} starts'
+                    app_data['processing_progress']['current_step'] = f'⏸ Anti-Spam Pause: {time_display} bis Batch {i+2}/{len(batches)}'
                     logger.info(f"Pause countdown: {time_display} remaining until next batch")
                     
                     await asyncio.sleep(15)  # Use async sleep to not block the event loop
@@ -1377,9 +1393,10 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit, enrich_limi
 
     logger.info(f"Total enrichment complete: {total_saved_leads} leads saved to database")
     
-    # Clear progress on completion and update final status
+    # Show final completion status
     app_data['processing_progress'] = {
-        'current_step': f'Completed! Generated {total_saved_leads} leads',
+        'current_step': f'3. Fertig! {total_saved_leads} Leads erfolgreich generiert und gespeichert ✓',
+        'phase': 'completed',
         'total_steps': 0,
         'completed_steps': 0,
         'estimated_time_remaining': 0,

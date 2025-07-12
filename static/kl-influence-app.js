@@ -409,20 +409,34 @@ async function updateProgress() {
         if (response.ok) {
             const progress = await response.json();
             
-            // Update status display
+            // Update status display with more detailed information
             if (progress.current_step) {
                 document.getElementById('statusText').textContent = progress.current_step;
             }
             
-            // Update progress details
+            // Update progress details with phase-specific information
             if (progress.total_steps > 0) {
                 const percentage = Math.round((progress.completed_steps / progress.total_steps) * 100);
                 const minutes = Math.floor(progress.estimated_time_remaining / 60);
                 const seconds = progress.estimated_time_remaining % 60;
-                document.getElementById('progressText').innerHTML = `
-                    Fortschritt: ${progress.completed_steps}/${progress.total_steps} (${percentage}%)<br>
-                    Geschätzte Restzeit: ${minutes}m ${seconds}s
-                `;
+                
+                let progressHTML = `Fortschritt: ${progress.completed_steps}/${progress.total_steps} (${percentage}%)<br>`;
+                
+                // Add time estimate if available
+                if (progress.estimated_time_remaining > 0) {
+                    progressHTML += `Geschätzte Restzeit: ${minutes}m ${seconds}s<br>`;
+                }
+                
+                // Add phase-specific details
+                if (progress.phase === 'hashtag_search') {
+                    progressHTML += `Phase: Hashtag-Suche läuft...`;
+                } else if (progress.phase === 'profile_enrichment' && progress.current_batch && progress.total_batches) {
+                    progressHTML += `Phase: Profil-Anreicherung (Batch ${progress.current_batch}/${progress.total_batches})`;
+                } else if (progress.phase === 'completed') {
+                    progressHTML += `Phase: Abgeschlossen ✓`;
+                }
+                
+                document.getElementById('progressText').innerHTML = progressHTML;
             }
             
             // Handle incremental lead updates - detect when lead count changes
