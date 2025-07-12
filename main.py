@@ -1338,7 +1338,7 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit, enrich_limi
             # Recalculate time remaining (including pause time for remaining batches)
             elapsed_time = time.time() - start_time
             remaining_batches = len(batches) - (i + 1)  # How many batches still need processing
-            pause_time_remaining = remaining_batches * 135 if remaining_batches > 0 else 0  # 2 minutes 15 seconds = 135 seconds per remaining batch
+            pause_time_remaining = remaining_batches * 90 if remaining_batches > 0 else 0  # 90 seconds per remaining batch
             
             if app_data['processing_progress']['completed_steps'] > 0:
                 avg_processing_time_per_step = elapsed_time / app_data['processing_progress']['completed_steps']
@@ -1350,7 +1350,7 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit, enrich_limi
             # Force garbage collection after each batch
             gc.collect()
             
-            # Instagram anti-spam protection: 2 minute 15 second pause between batches
+            # Instagram anti-spam protection: 90 second pause between batches
             if i < len(batches) - 1:  # Don't pause after the last batch
                 pause_duration = 90  # 90 seconds (1.5 minutes)
                 logger.info(f"Taking 90s anti-spam pause after batch {i+1}. Next batch will start in {pause_duration} seconds...")
