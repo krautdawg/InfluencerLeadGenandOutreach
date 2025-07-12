@@ -6,6 +6,30 @@ K+L Influence is a Flask-based Instagram lead generation and outreach automation
 
 ## Recent Changes
 
+### 2025-07-12: Advanced Anti-Scraping Strategy with Batch Groups and Extended Timeouts (COMPLETED)
+- **Update**: Implemented advanced anti-scraping strategy with batch groups and 30-minute timeout configuration
+- **Strategy**: Process 3 profiles, wait 90s, repeat 3x, then wait 3 minutes before next group
+- **Changes Made**:
+  - Increased gunicorn worker timeout from 600s to 1800s (30 minutes)
+  - Updated frontend JavaScript timeout to match (1800000 milliseconds)
+  - Reduced batch size from 5 to 3 profiles per batch
+  - Implemented batch grouping logic: after every 3 batches, wait 3 minutes instead of 90 seconds
+  - Updated progress display to show "Erweiterte Anti-Spam Pause (3min)" for group pauses
+  - Enhanced time estimation to accurately calculate remaining time with new pause pattern
+  - Adjusted semaphore limit from 5 to 3 to match new batch size
+- **Technical Implementation**:
+  - Batch position calculation: `batch_position_in_group = i % 3`
+  - Extended pause after groups: 180 seconds vs standard 90 seconds
+  - Time calculation: Full groups = 2×90s + 1×180s = 360s total pause time
+  - Progress messages differentiate between standard and extended pauses
+- **Benefits**:
+  - More sophisticated anti-scraping evasion with varied pause patterns
+  - Reduced likelihood of Instagram detection and blocking
+  - Better memory management with smaller batch sizes
+  - Longer timeout prevents any processing interruption
+  - Clear user feedback about different pause types
+- **Status**: Advanced anti-scraping strategy fully implemented and operational
+
 ### 2025-07-12: Fixed Worker Timeout During Anti-Spam Pauses (COMPLETED)
 - **Update**: Resolved timeout issues during 90-second anti-spam pauses by increasing worker timeout configuration
 - **Issue**: Gunicorn worker was timing out with "Processing timed out after 3 minutes" error during anti-spam pauses

@@ -357,7 +357,7 @@ async function processKeyword() {
                 searchLimit: searchLimit,
                 enrichLimit: enrichLimit
             }),
-            timeout: 600000 // 10 minute timeout to match gunicorn
+            timeout: 1800000 // 30 minute timeout to match gunicorn
         });
         
         clearInterval(progressInterval);

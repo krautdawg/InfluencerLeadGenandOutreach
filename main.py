@@ -1269,12 +1269,12 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit, enrich_limi
         # Continue processing even if saving pairs fails
 
     # Step 3: Profile enrichment with Instagram anti-spam optimization
-    semaphore = asyncio.Semaphore(5)  # Match batch size for controlled processing
-    perplexity_semaphore = asyncio.Semaphore(2)  # Slightly increased for 5-profile batches
+    semaphore = asyncio.Semaphore(3)  # Match batch size for controlled processing
+    perplexity_semaphore = asyncio.Semaphore(2)  # Limit concurrent Perplexity API calls
 
-    # Instagram anti-spam optimization: batch 5 profiles with 5-minute pauses
+    # Advanced anti-spam optimization: batch 3 profiles with strategic pauses
     usernames = [p['username'] for p in unique_profiles]
-    batch_size = 5  # Process 5 profiles at a time to evade Instagram's switch kill blocker
+    batch_size = 3  # Process 3 profiles at a time with extended pauses between groups
     
     # Use enrich_limit parameter to control how many profiles to enrich (for testing)
     if len(usernames) > enrich_limit:
@@ -1338,7 +1338,20 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit, enrich_limi
             # Recalculate time remaining (including pause time for remaining batches)
             elapsed_time = time.time() - start_time
             remaining_batches = len(batches) - (i + 1)  # How many batches still need processing
-            pause_time_remaining = remaining_batches * 90 if remaining_batches > 0 else 0  # 90 seconds per remaining batch
+            # Calculate pause time with new pattern: 3 batches with 90s pauses, then 180s pause
+            if remaining_batches > 0:
+                remaining_groups = remaining_batches // 3
+                remaining_in_current_group = remaining_batches % 3
+                
+                # Calculate total pause time
+                pause_time_remaining = 0
+                # Full groups have 2x90s + 1x180s = 360s
+                pause_time_remaining += remaining_groups * 360
+                # Partial group has only 90s pauses
+                if remaining_in_current_group > 0:
+                    pause_time_remaining += (remaining_in_current_group - 1) * 90
+            else:
+                pause_time_remaining = 0
             
             if app_data['processing_progress']['completed_steps'] > 0:
                 avg_processing_time_per_step = elapsed_time / app_data['processing_progress']['completed_steps']
@@ -1350,15 +1363,28 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit, enrich_limi
             # Force garbage collection after each batch
             gc.collect()
             
-            # Instagram anti-spam protection: 90 second pause between batches
+            # Advanced Instagram anti-spam protection: 90s pause between batches, 3min pause after 3 batches
             if i < len(batches) - 1:  # Don't pause after the last batch
-                pause_duration = 90  # 90 seconds (1.5 minutes)
-                logger.info(f"Taking 90s anti-spam pause after batch {i+1}. Next batch will start in {pause_duration} seconds...")
+                # Determine pause duration based on batch group position
+                batch_position_in_group = i % 3  # 0, 1, or 2
+                is_end_of_group = (batch_position_in_group == 2) or (i == len(batches) - 2)
+                
+                if is_end_of_group and i < len(batches) - 2:  # End of group but not last batch
+                    pause_duration = 180  # 3 minutes between groups
+                    pause_reason = "Extended anti-spam pause between batch groups"
+                else:
+                    pause_duration = 90  # 90 seconds within group
+                    pause_reason = "Standard anti-spam pause"
+                
+                logger.info(f"{pause_reason}: Taking {pause_duration}s pause after batch {i+1}. Next batch will start in {pause_duration} seconds...")
                 
                 # Update progress to show pause status with next batch info
                 minutes_left = pause_duration // 60
                 seconds_left = pause_duration % 60
-                app_data['processing_progress']['current_step'] = f'⏸ Anti-Spam Pause: {minutes_left}m {seconds_left}s bis Batch {i+2}/{len(batches)}'
+                if pause_duration == 180:
+                    app_data['processing_progress']['current_step'] = f'⏸ Erweiterte Anti-Spam Pause (3min): {minutes_left}m {seconds_left}s bis Batch-Gruppe {(i+2)//3 + 1}'
+                else:
+                    app_data['processing_progress']['current_step'] = f'⏸ Anti-Spam Pause: {minutes_left}m {seconds_left}s bis Batch {i+2}/{len(batches)}'
                 
                 # Count down the pause time with progress updates
                 for remaining_seconds in range(pause_duration, 0, -15):  # Update every 15 seconds
@@ -1370,7 +1396,10 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit, enrich_limi
                     else:
                         time_display = f"{seconds_remaining}s"
                     
-                    app_data['processing_progress']['current_step'] = f'⏸ Anti-Spam Pause: {time_display} bis Batch {i+2}/{len(batches)}'
+                    if pause_duration == 180:
+                        app_data['processing_progress']['current_step'] = f'⏸ Erweiterte Anti-Spam Pause (3min): {time_display} bis Batch-Gruppe {(i+2)//3 + 1}'
+                    else:
+                        app_data['processing_progress']['current_step'] = f'⏸ Anti-Spam Pause: {time_display} bis Batch {i+2}/{len(batches)}'
                     logger.info(f"Pause countdown: {time_display} remaining until next batch")
                     
                     await asyncio.sleep(15)  # Use async sleep to not block the event loop
