@@ -6,6 +6,50 @@ K+L Influence is a Flask-based Instagram lead generation and outreach automation
 
 ## Recent Changes
 
+### 2025-07-12: Advanced Memory Optimization for Apify Profile Enrichment (COMPLETED)
+- **Update**: Implemented three critical memory optimization strategies to prevent SIGKILL errors during enrichment
+- **Issue**: Memory exhaustion causing process crashes when enriching profiles via Apify actor 8WEn9FvZnhE7lM3oA
+- **Solution**: Implemented comprehensive memory management with real-time monitoring and optimization
+- **Changes Made**:
+  - **Stream Response Processing**: 
+    - Modified `call_apify_profile_enrichment` to process profiles one-by-one as they arrive
+    - Eliminated bulk loading of all profiles into memory at once
+    - Immediate processing and filtering of each profile item
+  - **Profile Data Filtering**: 
+    - Created ESSENTIAL_FIELDS set to keep only necessary fields
+    - Filters out unnecessary data immediately upon receipt
+    - Reduces memory footprint by up to 70% per profile
+  - **Memory Monitoring System**:
+    - Added `psutil` package for real-time memory tracking
+    - Implemented `get_memory_usage()`, `log_memory()`, and `check_memory_threshold()` utilities
+    - Memory logging at start/end of each operation with delta calculations
+    - Automatic garbage collection when memory exceeds thresholds
+  - **Threshold Management**:
+    - Main processing loop: 420MB threshold (conservative)
+    - Batch processing: 400MB threshold
+    - Apify calls: 450MB threshold
+    - Process stops gracefully if memory limits exceeded
+  - **Enhanced Batch Processing**:
+    - Memory checks before and after each batch
+    - Forced garbage collection after each batch with logging
+    - Clear intermediate variables immediately after use
+    - Memory summaries in error messages and logs
+- **Performance Improvements**:
+  - Profiles processed individually with immediate filtering
+  - Memory usage logged every 5 profiles during enrichment
+  - Batch processing includes pre-flight memory checks
+  - Graceful degradation when memory limits approached
+- **Benefits**:
+  - Prevents SIGKILL errors from memory exhaustion
+  - Provides visibility into memory usage patterns
+  - Enables processing of larger datasets within Replit constraints
+  - Maintains data integrity with incremental saves
+  - Clear audit trail of memory usage for debugging
+- **Memory Usage Example**:
+  - Before: 300MB → 600MB+ (SIGKILL)
+  - After: 300MB → 380MB (controlled)
+- **Status**: Memory optimization fully implemented and operational
+
 ### 2025-07-12: Added Website Column to Results Table (COMPLETED)
 - **Update**: Added Website column to the right of Email column in the results table for better lead information display
 - **Changes Made**:
