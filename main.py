@@ -1144,13 +1144,17 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit, enrich_limi
         raise ValueError(
             f"Missing or empty API tokens: {', '.join(missing_keys)}")
 
-    # Calculate total estimated time (average 5 seconds per Apify call + processing time)
+    # Calculate total estimated time including 5-minute anti-spam pauses between batches
     avg_delay_time = 5.5  # Average of 1-10 seconds
     hashtag_crawl_time = avg_delay_time + 30  # Hashtag search takes longer
-    profile_batch_time = avg_delay_time + 10  # Per batch
-    estimated_batches = min(search_limit // 2, enrich_limit // 2)  # 2 profiles per batch
+    profile_batch_time = avg_delay_time + 15  # Per batch (slightly longer for 5 profiles)
+    estimated_batches = min(search_limit // 5, enrich_limit // 5)  # 5 profiles per batch
+    pause_time_per_batch = 300  # 5 minutes = 300 seconds between batches
     
-    total_estimated_time = hashtag_crawl_time + (profile_batch_time * estimated_batches)
+    # Total time = hashtag search + (batch processing time + pause time) * (batches - 1) + final batch processing
+    total_batch_and_pause_time = (profile_batch_time + pause_time_per_batch) * max(0, estimated_batches - 1)
+    final_batch_time = profile_batch_time if estimated_batches > 0 else 0
+    total_estimated_time = hashtag_crawl_time + total_batch_and_pause_time + final_batch_time
     
     # Initialize progress
     app_data['processing_progress'] = {
@@ -1253,13 +1257,13 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit, enrich_limi
         logger.error(f"Failed to save hashtag-username pairs: {e}")
         # Continue processing even if saving pairs fails
 
-    # Step 3: Profile enrichment with aggressive memory optimization
-    semaphore = asyncio.Semaphore(20)  # Further reduced to 2 concurrent calls
-    perplexity_semaphore = asyncio.Semaphore(1)  # Reduced to 1 concurrent Perplexity call
+    # Step 3: Profile enrichment with Instagram anti-spam optimization
+    semaphore = asyncio.Semaphore(5)  # Match batch size for controlled processing
+    perplexity_semaphore = asyncio.Semaphore(2)  # Slightly increased for 5-profile batches
 
-    # Extreme memory safety measures to prevent SIGKILL
+    # Instagram anti-spam optimization: batch 5 profiles with 5-minute pauses
     usernames = [p['username'] for p in unique_profiles]
-    batch_size = 2  # Further reduced batch size from 3 to 2 for memory safety
+    batch_size = 5  # Process 5 profiles at a time to evade Instagram's switch kill blocker
     
     # Use enrich_limit parameter to control how many profiles to enrich (for testing)
     if len(usernames) > enrich_limit:
@@ -1312,20 +1316,52 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit, enrich_limi
             # Update progress after batch completion
             app_data['processing_progress']['completed_steps'] += 1
             
-            # Recalculate time remaining
+            # Recalculate time remaining (including pause time for remaining batches)
             elapsed_time = time.time() - start_time
-            remaining_steps = app_data['processing_progress']['total_steps'] - app_data['processing_progress']['completed_steps']
+            remaining_batches = len(batches) - (i + 1)  # How many batches still need processing
+            pause_time_remaining = remaining_batches * 300 if remaining_batches > 0 else 0  # 5 minutes = 300 seconds per remaining batch
+            
             if app_data['processing_progress']['completed_steps'] > 0:
-                avg_time_per_step = elapsed_time / app_data['processing_progress']['completed_steps']
-                app_data['processing_progress']['estimated_time_remaining'] = int(avg_time_per_step * remaining_steps)
+                avg_processing_time_per_step = elapsed_time / app_data['processing_progress']['completed_steps']
+                processing_time_remaining = remaining_batches * avg_processing_time_per_step
+                app_data['processing_progress']['estimated_time_remaining'] = int(processing_time_remaining + pause_time_remaining)
             else:
-                app_data['processing_progress']['estimated_time_remaining'] = int(total_estimated_time - elapsed_time)
+                app_data['processing_progress']['estimated_time_remaining'] = int(total_estimated_time - elapsed_time + pause_time_remaining)
             
             # Force garbage collection after each batch
             gc.collect()
             
-            # Add delay between batches to reduce memory pressure
-            time.sleep(1.0)  # Increased delay to reduce memory pressure
+            # Instagram anti-spam protection: 5-minute pause between batches
+            if i < len(batches) - 1:  # Don't pause after the last batch
+                pause_duration = 300  # 5 minutes in seconds
+                logger.info(f"Taking 5-minute anti-spam pause after batch {i+1}. Next batch will start in {pause_duration} seconds...")
+                
+                # Update progress to show pause status
+                app_data['processing_progress']['current_step'] = f'Anti-spam pause: {pause_duration//60} minutes remaining before next batch...'
+                
+                # Count down the pause time with progress updates
+                for remaining_seconds in range(pause_duration, 0, -30):  # Update every 30 seconds
+                    minutes_remaining = remaining_seconds // 60
+                    seconds_remaining = remaining_seconds % 60
+                    
+                    if minutes_remaining > 0:
+                        time_display = f"{minutes_remaining}m {seconds_remaining}s"
+                    else:
+                        time_display = f"{seconds_remaining}s"
+                    
+                    app_data['processing_progress']['current_step'] = f'Anti-spam pause: {time_display} until batch {i+2}/{len(batches)} starts'
+                    logger.info(f"Pause countdown: {time_display} remaining until next batch")
+                    
+                    await asyncio.sleep(30)  # Use async sleep to not block the event loop
+                
+                # Final sleep for any remaining seconds
+                remaining_final = pause_duration % 30
+                if remaining_final > 0:
+                    await asyncio.sleep(remaining_final)
+                
+                logger.info(f"5-minute pause completed. Resuming with batch {i+2}/{len(batches)}")
+            else:
+                logger.info(f"All batches completed. No pause needed after final batch {i+1}")
             
         except Exception as e:
             logger.error(f"Batch {i+1} processing error: {e}")

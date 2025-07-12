@@ -6,6 +6,29 @@ K+L Influence is a Flask-based Instagram lead generation and outreach automation
 
 ## Recent Changes
 
+### 2025-07-12: Implemented Instagram Anti-Spam Batch Processing (COMPLETED)
+- **Update**: Modified enrichment process to use 5-profile batches with 5-minute pauses to evade Instagram's switch kill blocker
+- **Changes Made**:
+  - **Batch Size**: Increased from 2 to 5 profiles per batch for more efficient processing
+  - **Anti-Spam Pauses**: Implemented 5-minute (300 seconds) pauses between batches to avoid detection
+  - **Progress Tracking**: Enhanced progress display to show pause countdowns with real-time updates
+  - **Time Estimation**: Updated calculation to include pause time in total estimated processing time
+  - **Semaphore Adjustment**: Increased concurrent processing limits to match new batch size (5 concurrent, 2 Perplexity)
+  - **Pause Countdown**: Visual countdown showing minutes and seconds remaining during anti-spam pauses
+  - **Smart Timing**: No pause after the final batch to avoid unnecessary waiting
+- **Benefits**:
+  - Reduced risk of Instagram anti-spam detection and account blocking
+  - More efficient batch processing with 5 profiles instead of 2
+  - Clear user feedback during pause periods with countdown display
+  - Better time estimation including pause periods for accurate progress tracking
+  - Maintained data integrity with incremental saves after each batch
+- **Technical Details**:
+  - Batches process 5 profiles sequentially with async/await for non-blocking execution
+  - Pause countdown updates every 30 seconds to provide user feedback
+  - Total time calculation: hashtag search + (batch time + pause time) × (batches - 1) + final batch
+  - Progress status shows current pause time remaining before next batch starts
+- **Status**: Anti-spam batch processing with 5-minute pauses fully implemented and operational
+
 ### 2025-07-12: Added Website Column to Results Table (COMPLETED)
 - **Update**: Added Website column to the right of Email column in the results table for better lead information display
 - **Changes Made**:
