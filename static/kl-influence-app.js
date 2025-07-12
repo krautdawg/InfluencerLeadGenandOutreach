@@ -363,6 +363,15 @@ async function processKeyword() {
             } else {
                 showToast(result.message || 'No leads found', 'warning');
             }
+        } else if (response.status === 206) {
+            // Partial success - some leads generated but process failed
+            const result = await response.json();
+            if (result.leads && result.leads.length > 0) {
+                displayResults(result.leads);
+                showToast(`Process partially failed but saved ${result.partial_count} leads. Error: ${result.error}`, 'warning');
+            } else {
+                showToast(`Process failed: ${result.error}`, 'error');
+            }
         } else {
             const error = await response.json();
             showToast(error.error || 'Failed to process keyword', 'error');
@@ -394,9 +403,41 @@ async function updateProgress() {
             if (progress.details) {
                 document.getElementById('progressText').textContent = progress.details;
             }
+            
+            // Handle incremental lead updates
+            if (progress.incremental_leads !== undefined && progress.keyword) {
+                // Show incremental notification
+                if (progress.incremental_leads > 0) {
+                    const notificationText = `${progress.incremental_leads} leads generated for "${progress.keyword}"`;
+                    document.getElementById('progressText').textContent = notificationText;
+                    
+                    // Refresh the table with current leads if we have any
+                    await refreshLeadsTable(progress.keyword);
+                }
+            }
+            
+            // Handle completion status
+            if (progress.final_status === 'success' && progress.total_leads_generated !== undefined) {
+                showToast(`Successfully generated ${progress.total_leads_generated} leads!`, 'success');
+            }
         }
     } catch (error) {
         console.error('Progress update error:', error);
+    }
+}
+
+// Refresh leads table for a specific keyword (used during incremental updates)
+async function refreshLeadsTable(keyword) {
+    try {
+        const response = await fetch(`/api/leads?keyword=${encodeURIComponent(keyword)}`);
+        if (response.ok) {
+            const result = await response.json();
+            if (result.leads && result.leads.length > 0) {
+                displayResults(result.leads);
+            }
+        }
+    } catch (error) {
+        console.error('Error refreshing leads table:', error);
     }
 }
 

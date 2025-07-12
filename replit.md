@@ -6,6 +6,32 @@ K+L Influence is a Flask-based Instagram lead generation and outreach automation
 
 ## Recent Changes
 
+### 2025-07-12: Automatic Sheet Updates with Incremental Lead Notifications (COMPLETED)
+- **Update**: Implemented real-time sheet updates during lead generation with incremental progress notifications
+- **Changes Made**:
+  - **Enhanced Progress Tracking**: Added `incremental_leads`, `keyword`, and `final_status` to progress tracking system
+  - **Real-time Table Updates**: Created `/api/leads` endpoint for fetching leads by keyword during processing
+  - **Incremental Notifications**: Modified progress updates to show current lead count as batches complete
+  - **Partial Results Handling**: Added support for displaying partial results when lead generation fails midway
+  - **Frontend Auto-refresh**: Implemented `refreshLeadsTable()` function for automatic table updates during processing
+  - **Enhanced Error Handling**: Process failures now return partial results with 206 status code
+  - **Visual Progress Feedback**: Progress text shows real-time lead counts during batch processing
+  - **Success Notifications**: Final completion shows total generated leads count
+- **Features**:
+  - Sheet automatically updates as each batch of leads is processed and saved
+  - Real-time notifications show "X leads generated for keyword" during processing
+  - Failed processes still show any successfully generated leads with warning notification
+  - Users see incremental progress without waiting for full completion
+  - Table refreshes automatically with new leads as they become available
+  - Partial success scenarios handled gracefully with appropriate user feedback
+- **Benefits**:
+  - Better user experience with real-time feedback during long processing runs
+  - No data loss visibility - users see progress even if process crashes
+  - Immediate access to generated leads without waiting for full completion
+  - Clear distinction between partial success and complete failure
+  - Enhanced confidence in system reliability with incremental updates
+- **Status**: Automatic sheet updates with incremental notifications fully implemented and operational
+
 ### 2025-07-11: Product Selection System with Alternative Prompts (COMPLETED)
 - **Update**: Implemented complete product selection functionality with smart OpenAI email generation that uses different prompts based on product selection
 - **Changes Made**:

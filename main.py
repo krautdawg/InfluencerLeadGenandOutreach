@@ -884,6 +884,22 @@ def get_progress():
     return jsonify(app_data['processing_progress'])
 
 
+@app.route('/api/leads')
+def get_leads_by_keyword():
+    """Get leads filtered by keyword for real-time table updates"""
+    keyword = request.args.get('keyword', '').strip()
+    
+    if not keyword:
+        return {"error": "Keyword parameter is required"}, 400
+    
+    try:
+        leads = Lead.query.filter_by(hashtag=keyword).order_by(Lead.created_at.desc()).all()
+        return {"leads": [lead.to_dict() for lead in leads]}
+    except Exception as e:
+        logger.error(f"Failed to query leads by keyword: {e}")
+        return {"error": "Failed to retrieve leads"}, 500
+
+
 @app.route('/api-metrics')
 def get_api_metrics():
     """Get comprehensive API call metrics and performance data"""
@@ -1073,7 +1089,25 @@ def process_keyword():
     except Exception as e:
         logger.error(f"Processing failed: {e}")
         app_data['processing_status'] = None
-        return {"error": str(e)}, 500
+        
+        # Get any partial results from database before failing
+        try:
+            with app.app_context():
+                partial_leads = Lead.query.filter_by(hashtag=keyword).order_by(Lead.created_at.desc()).all()
+                partial_count = len(partial_leads)
+                if partial_count > 0:
+                    # Return partial results with error information
+                    return {
+                        "error": str(e), 
+                        "partial_success": True,
+                        "leads": [lead.to_dict() for lead in partial_leads],
+                        "partial_count": partial_count
+                    }, 206  # Partial Content status
+                else:
+                    return {"error": str(e)}, 500
+        except Exception as db_error:
+            logger.error(f"Failed to query partial leads: {db_error}")
+            return {"error": str(e)}, 500
 
 
 def run_async_process(keyword, ig_sessionid, search_limit, enrich_limit, default_product_id=None):
@@ -1123,7 +1157,10 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit, enrich_limi
         'current_step': 'Starting hashtag search...',
         'total_steps': 1 + estimated_batches,  # 1 hashtag search + N profile batches
         'completed_steps': 0,
-        'estimated_time_remaining': int(total_estimated_time)
+        'estimated_time_remaining': int(total_estimated_time),
+        'incremental_leads': 0,
+        'keyword': keyword,
+        'final_status': 'processing'
     }
     
     # Step 1: Hashtag crawl - Using correct Apify API format with user-defined limit
@@ -1265,6 +1302,10 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit, enrich_limi
                 saved_count = save_leads_incrementally(result, keyword, default_product_id=default_product_id)
                 total_saved_leads += saved_count
                 logger.info(f"Batch {i+1}: Saved {saved_count} leads incrementally")
+                
+                # Update progress with incremental lead count for frontend
+                app_data['processing_progress']['incremental_leads'] = total_saved_leads
+                app_data['processing_progress']['current_step'] = f'Batch {i+1}/{len(batches)} completed - {total_saved_leads} leads generated so far'
             else:
                 logger.warning(f"Batch {i+1}: No results or unexpected type: {type(result)}")
             
@@ -1288,17 +1329,22 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit, enrich_limi
             
         except Exception as e:
             logger.error(f"Batch {i+1} processing error: {e}")
+            # Update progress with current saved count even on error
+            app_data['processing_progress']['incremental_leads'] = total_saved_leads
+            app_data['processing_progress']['current_step'] = f'Batch {i+1} failed - {total_saved_leads} leads saved so far'
             # Continue processing other batches even if one fails
             continue
 
     logger.info(f"Total enrichment complete: {total_saved_leads} leads saved to database")
     
-    # Clear progress on completion
+    # Clear progress on completion and update final status
     app_data['processing_progress'] = {
-        'current_step': '',
+        'current_step': f'Completed! Generated {total_saved_leads} leads',
         'total_steps': 0,
         'completed_steps': 0,
-        'estimated_time_remaining': 0
+        'estimated_time_remaining': 0,
+        'total_leads_generated': total_saved_leads,
+        'final_status': 'success'
     }
     
     # Return dictionary format for API response
