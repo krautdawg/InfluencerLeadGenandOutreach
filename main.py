@@ -1189,12 +1189,13 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit, enrich_limi
         app_data['processing_progress']['current_step'] = f'1. Suche Instagram-Profile für Hashtag #{keyword} (ca. {hashtag_crawl_time/60:.1f}min)...'
         hashtag_data = call_apify_actor_sync("DrF9mzPPEuVizVF4l", hashtag_input,
                                              apify_token)
-        app_data['processing_progress']['completed_steps'] += 1
+        # Don't increment completed_steps here - will do it after hashtag processing is fully done
+        logger.info(f"Hashtag search completed successfully for #{keyword}")
         
         # Update time remaining
         elapsed_time = time.time() - start_time
         remaining_steps = app_data['processing_progress']['total_steps'] - app_data['processing_progress']['completed_steps']
-        avg_time_per_step = elapsed_time / max(1, app_data['processing_progress']['completed_steps'])
+        avg_time_per_step = elapsed_time / max(1, app_data['processing_progress']['completed_steps'] + 1)
         app_data['processing_progress']['estimated_time_remaining'] = int(avg_time_per_step * remaining_steps)
         
         if not hashtag_data or not hashtag_data.get('items'):
@@ -1268,6 +1269,15 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit, enrich_limi
         logger.error(f"Failed to save hashtag-username pairs: {e}")
         # Continue processing even if saving pairs fails
 
+    # Update progress to show hashtag search completed and moving to profile enrichment
+    app_data['processing_progress']['completed_steps'] = 1
+    app_data['processing_progress']['current_step'] = f'1. Hashtag-Suche abgeschlossen - {len(unique_profiles)} Profile gefunden ✓'
+    app_data['processing_progress']['phase'] = 'hashtag_search_complete'
+    logger.info(f"Progress updated: Step 1 complete, found {len(unique_profiles)} profiles")
+    
+    # Brief pause to make transition visible
+    await asyncio.sleep(1)
+    
     # Step 3: Profile enrichment with Instagram anti-spam optimization
     semaphore = asyncio.Semaphore(3)  # Match batch size for controlled processing
     perplexity_semaphore = asyncio.Semaphore(2)  # Limit concurrent Perplexity API calls

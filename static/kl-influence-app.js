@@ -439,6 +439,8 @@ async function updateProgress() {
             // Add phase-specific details with enhanced descriptions
             if (progress.phase === 'hashtag_search') {
                 progressHTML += `<strong>Phase:</strong> Instagram Hashtag-Crawling läuft...`;
+            } else if (progress.phase === 'hashtag_search_complete') {
+                progressHTML += `<strong>Phase:</strong> Hashtag-Suche abgeschlossen, starte Profil-Anreicherung...`;
             } else if (progress.phase === 'profile_enrichment') {
                 if (progress.current_batch && progress.total_batches) {
                     progressHTML += `<strong>Phase:</strong> Profil-Anreicherung (Batch ${progress.current_batch}/${progress.total_batches})`;
