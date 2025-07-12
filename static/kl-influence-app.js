@@ -402,7 +402,7 @@ async function updateProgress() {
         const response = await fetch('/progress');
         if (response.ok) {
             const progress = await response.json();
-            document.getElementById('statusText').textContent = progress.message || 'Processing...';
+            document.getElementById('statusText').textContent = progress.message || 'Verarbeitung läuft...';
             if (progress.details) {
                 document.getElementById('progressText').textContent = progress.details;
             }
@@ -411,7 +411,7 @@ async function updateProgress() {
             if (progress.incremental_leads !== undefined && progress.keyword) {
                 // Show incremental notification
                 if (progress.incremental_leads > 0) {
-                    const notificationText = `${progress.incremental_leads} leads generated for "${progress.keyword}"`;
+                    const notificationText = `${progress.incremental_leads} Leads generiert für "${progress.keyword}"`;
                     document.getElementById('progressText').textContent = notificationText;
                     
                     // Refresh the table with current leads if we have any
@@ -421,7 +421,7 @@ async function updateProgress() {
             
             // Handle completion status
             if (progress.final_status === 'success' && progress.total_leads_generated !== undefined) {
-                showToast(`Successfully generated ${progress.total_leads_generated} leads!`, 'success');
+                showToast(`Erfolgreich ${progress.total_leads_generated} Leads generiert!`, 'success');
             }
         }
     } catch (error) {
@@ -481,30 +481,30 @@ function createLeadRow(lead, index) {
         <td data-label="Full Name">${lead.full_name || ''}</td>
         <td data-label="Followers">${formatNumber(lead.followersCount || 0)}</td>
         <td data-label="Email" class="editable-cell" onclick="startInlineEdit(this, '${lead.username}', 'email')">
-            ${lead.email || '<span style="color: var(--color-light-gray);">Click to add</span>'}
+            ${lead.email || '<span style="color: var(--color-light-gray);">Klicken zum Hinzufügen</span>'}
         </td>
         <td data-label="Website" class="editable-cell" onclick="startInlineEdit(this, '${lead.username}', 'website')">
-            ${lead.website ? `<a href="${lead.website}" target="_blank" style="color: var(--color-natural-green);">${lead.website}</a>` : '<span style="color: var(--color-light-gray);">Click to add</span>'}
+            ${lead.website ? `<a href="${lead.website}" target="_blank" style="color: var(--color-natural-green);">${lead.website}</a>` : '<span style="color: var(--color-light-gray);">Klicken zum Hinzufügen</span>'}
         </td>
         <td data-label="Product" class="editable-cell" id="product-cell-${lead.username}" onclick="editProductSelection('${lead.username}')">
             ${getProductNameById(lead.selectedProductId) || '<span style="color: var(--color-light-gray);">Kein Produkt</span>'}
         </td>
         <td data-label="Subject" class="editable-cell" data-username="${lead.username}" data-field="subject" onclick="editField(this)">
-            ${lead.subject || '<span style="color: var(--color-light-gray);">Click to add</span>'}
+            ${lead.subject || '<span style="color: var(--color-light-gray);">Klicken zum Hinzufügen</span>'}
         </td>
         <td data-label="Email Body" class="editable-cell" data-username="${lead.username}" data-field="email_body" onclick="editField(this)">
-            ${(lead.email_body || '').substring(0, 50)}${(lead.email_body || '').length > 50 ? '...' : ''}${!lead.email_body ? '<span style="color: var(--color-light-gray);">Click to add</span>' : ''}
+            ${(lead.email_body || '').substring(0, 50)}${(lead.email_body || '').length > 50 ? '...' : ''}${!lead.email_body ? '<span style="color: var(--color-light-gray);">Klicken zum Hinzufügen</span>' : ''}
         </td>
         <td data-label="Status">
             ${lead.sent ? `<span style="color: var(--color-natural-green); font-weight: 500;"><i class="fas fa-check-circle"></i> Gesendet<br><small style="color: var(--color-medium-gray); font-weight: normal;">${formatDateTime(lead.sentAt)}</small></span>` : '<span style="color: var(--color-medium-gray);">Entwurf</span>'}
         </td>
         <td data-label="Actions">
             <div class="d-flex gap-1">
-                <button class="btn btn-secondary btn-sm" onclick="generateEmailContent('${lead.username}')" title="Generate Email">
+                <button class="btn btn-secondary btn-sm" onclick="generateEmailContent('${lead.username}')" title="Email generieren">
                     <i class="fas fa-envelope"></i> Email
                 </button>
-                <button class="btn btn-tertiary btn-sm send-btn" id="send-btn-${lead.username}" onclick="sendEmail('${lead.username}')" title="Send Email">
-                    <i class="fas fa-paper-plane"></i> Send
+                <button class="btn btn-tertiary btn-sm send-btn" id="send-btn-${lead.username}" onclick="sendEmail('${lead.username}')" title="Email senden">
+                    <i class="fas fa-paper-plane"></i> Senden
                 </button>
             </div>
         </td>
@@ -566,7 +566,7 @@ async function finishInlineEdit(cell, username, field, value) {
     cell.classList.remove('editing');
     
     if (value.trim() === '') {
-        cell.innerHTML = '<span style="color: var(--color-light-gray);">Click to add</span>';
+        cell.innerHTML = '<span style="color: var(--color-light-gray);">Klicken zum Hinzufügen</span>';
         return;
     }
     
@@ -603,7 +603,7 @@ async function generateEmailContent(username) {
     // Show loading state
     const button = event.target.closest('button');
     const originalText = button.innerHTML;
-    button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
+    button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generiert...';
     button.disabled = true;
     
     try {
@@ -775,11 +775,11 @@ async function sendEmail(username) {
                 displayResults(leads);
             } else {
                 const error = await response.json();
-                showToast('Gmail opened, but failed to update send status', 'warning');
+                showToast('Gmail geöffnet, aber Status-Update fehlgeschlagen', 'warning');
             }
         } catch (error) {
             console.error('Send email error:', error);
-            showToast('An error occurred while opening Gmail', 'error');
+            showToast('Fehler beim Öffnen von Gmail', 'error');
         }
     }
 }
@@ -911,19 +911,19 @@ async function exportData(format) {
             a.click();
             window.URL.revokeObjectURL(url);
             document.body.removeChild(a);
-            showToast(`Data exported as ${format.toUpperCase()}`, 'success');
+            showToast(`Daten als ${format.toUpperCase()} exportiert`, 'success');
         } else {
-            showToast('Failed to export data', 'error');
+            showToast('Datenexport fehlgeschlagen', 'error');
         }
     } catch (error) {
         console.error('Export error:', error);
-        showToast('An error occurred during export', 'error');
+        showToast('Fehler beim Export aufgetreten', 'error');
     }
 }
 
 // Clear all data
 async function clearData() {
-    if (!confirm('Are you sure you want to clear all data? This cannot be undone.')) {
+    if (!confirm('Bist du sicher, dass du alle Daten löschen möchtest? Dies kann nicht rückgängig gemacht werden.')) {
         return;
     }
     
@@ -934,13 +934,13 @@ async function clearData() {
             document.getElementById('resultsBody').innerHTML = '';
             document.getElementById('resultsSection').style.display = 'none';
             document.getElementById('emptyState').style.display = 'block';
-            showToast('All data has been cleared', 'success');
+            showToast('Alle Daten wurden gelöscht', 'success');
         } else {
-            showToast('Failed to clear data', 'error');
+            showToast('Datenlöschung fehlgeschlagen', 'error');
         }
     } catch (error) {
         console.error('Clear data error:', error);
-        showToast('An error occurred while clearing data', 'error');
+        showToast('Fehler beim Löschen der Daten aufgetreten', 'error');
     }
 }
 
@@ -1138,15 +1138,15 @@ async function saveEmailTemplates() {
         if (response.ok) {
             const result = await response.json();
             // Show subtle success feedback
-            showToast('Email templates saved automatically', 'success');
+            showToast('Email-Vorlagen automatisch gespeichert', 'success');
         } else {
             const error = await response.json();
             console.error('Failed to save email templates:', error);
-            showToast('Failed to save email templates', 'error');
+            showToast('Speichern der Email-Vorlagen fehlgeschlagen', 'error');
         }
     } catch (error) {
         console.error('Error saving email templates:', error);
-        showToast('Failed to save email templates', 'error');
+        showToast('Speichern der Email-Vorlagen fehlgeschlagen', 'error');
     }
 }
 

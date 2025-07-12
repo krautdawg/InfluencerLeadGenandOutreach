@@ -23,9 +23,9 @@
                 <img src="{{ url_for('static', filename='instagram-icon.svg') }}" alt="Instagram" class="instagram-icon">
                 <span id="sessionStatusText">
                     {% if ig_sessionid %}
-                        Connected ({{ ig_sessionid[:8] }}...)
+                        Verbunden ({{ ig_sessionid[:8] }}...)
                     {% else %}
-                        Not Connected
+                        Nicht verbunden
                     {% endif %}
                 </span>
             </button>
@@ -108,19 +108,19 @@
             <div id="resultsSection" style="display: none;">
                 <!-- Action Bar -->
                 <div class="d-flex justify-content-between align-items-center mb-4">
-                    <h2 class="mb-0">Lead Results</h2>
+                    <h2 class="mb-0">Lead Ergebnisse</h2>
                     <div class="d-flex gap-2">
                         <button type="button" class="btn btn-secondary btn-sm" onclick="clearFilters()">
-                            <i class="fas fa-filter"></i> Clear Filters
+                            <i class="fas fa-filter"></i> Filter löschen
                         </button>
                         <button type="button" class="btn btn-secondary btn-sm" onclick="exportData('csv')">
-                            <i class="fas fa-file-csv"></i> Export CSV
+                            <i class="fas fa-file-csv"></i> CSV Export
                         </button>
                         <button type="button" class="btn btn-secondary btn-sm" onclick="exportData('json')">
-                            <i class="fas fa-file-code"></i> Export JSON
+                            <i class="fas fa-file-code"></i> JSON Export
                         </button>
                         <button type="button" class="btn btn-tertiary btn-sm" onclick="clearData()">
-                            <i class="fas fa-trash"></i> Clear All
+                            <i class="fas fa-trash"></i> Alle löschen
                         </button>
                     </div>
                 </div>
@@ -192,8 +192,8 @@
             <!-- Empty State -->
             <div id="emptyState" class="text-center" style="padding: var(--space-3xl) 0;">
                 <i class="fas fa-inbox" style="font-size: 48px; color: var(--color-light-gray); margin-bottom: var(--space-lg);"></i>
-                <h3 style="color: var(--color-medium-gray);">No leads generated yet</h3>
-                <p style="color: var(--color-medium-gray);">Enter a hashtag and click "Generate Leads" to get started</p>
+                <h3 style="color: var(--color-medium-gray);">Noch keine Leads generiert</h3>
+                <p style="color: var(--color-medium-gray);">Gib ein hashtag ein und klicke auf "Leads generieren", um zu beginnen</p>
             </div>
         </main>
     </div>
@@ -202,20 +202,20 @@
     <div class="modal" id="sessionModal">
         <div class="modal-dialog">
             <div class="modal-header">
-                <h4 class="modal-title">Instagram Session Configuration</h4>
+                <h4 class="modal-title">Instagram Session Konfiguration</h4>
             </div>
             <div class="modal-body">
                 <div class="form-group">
                     <label for="sessionInput">Instagram Session ID</label>
-                    <input type="text" class="form-control" id="sessionInput" placeholder="Enter your sessionid value...">
+                    <input type="text" class="form-control" id="sessionInput" placeholder="Gib deine sessionid ein...">
                     <small class="form-text">
-                        Find this in your browser: Developer Tools → Application → Cookies → instagram.com → sessionid
+                        Zu finden in deinem Browser: Entwicklertools → Application → Cookies → instagram.com → sessionid
                     </small>
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" onclick="closeModal('sessionModal')">Cancel</button>
-                <button type="button" class="btn btn-primary" id="saveSession">Save Session</button>
+                <button type="button" class="btn btn-secondary" onclick="closeModal('sessionModal')">Abbrechen</button>
+                <button type="button" class="btn btn-primary" id="saveSession">Session speichern</button>
             </div>
         </div>
     </div>
@@ -224,17 +224,17 @@
     <div class="modal" id="editModal">
         <div class="modal-dialog">
             <div class="modal-header">
-                <h4 class="modal-title" id="editModalTitle">Edit Content</h4>
+                <h4 class="modal-title" id="editModalTitle">Inhalt bearbeiten</h4>
             </div>
             <div class="modal-body">
                 <div class="form-group">
-                    <label id="editModalLabel">Content</label>
+                    <label id="editModalLabel">Inhalt</label>
                     <textarea class="form-control" id="editModalContent" rows="10"></textarea>
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" onclick="closeEditModal()">Cancel</button>
-                <button type="button" class="btn btn-primary" onclick="saveEditModal()">Save Changes</button>
+                <button type="button" class="btn btn-secondary" onclick="closeEditModal()">Abbrechen</button>
+                <button type="button" class="btn btn-primary" onclick="saveEditModal()">Änderungen speichern</button>
             </div>
         </div>
     </div>
