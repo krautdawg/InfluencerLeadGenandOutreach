@@ -490,7 +490,7 @@ function createLeadRow(lead, index) {
             ${(lead.email_body || '').substring(0, 50)}${(lead.email_body || '').length > 50 ? '...' : ''}${!lead.email_body ? '<span style="color: var(--color-light-gray);">Click to add</span>' : ''}
         </td>
         <td data-label="Status">
-            ${lead.sent ? '<span style="color: var(--color-natural-green); font-weight: 500;"><i class="fas fa-check-circle"></i> Gesendet</span>' : '<span style="color: var(--color-medium-gray);">Entwurf</span>'}
+            ${lead.sent ? `<span style="color: var(--color-natural-green); font-weight: 500;"><i class="fas fa-check-circle"></i> Gesendet<br><small style="color: var(--color-medium-gray); font-weight: normal;">${formatDateTime(lead.sentAt)}</small></span>` : '<span style="color: var(--color-medium-gray);">Entwurf</span>'}
         </td>
         <td data-label="Actions">
             <div class="d-flex gap-1">
@@ -960,6 +960,60 @@ function formatNumber(num) {
         return (num / 1000).toFixed(1) + 'K';
     }
     return num.toString();
+}
+
+// Helper function to format DateTime for display
+function formatDateTime(isoString) {
+    if (!isoString) return '';
+    
+    try {
+        const date = new Date(isoString);
+        const now = new Date();
+        const diffMs = now - date;
+        const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+        
+        // If within last 24 hours, show relative time
+        if (diffDays === 0) {
+            const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+            const diffMinutes = Math.floor(diffMs / (1000 * 60));
+            
+            if (diffHours === 0) {
+                if (diffMinutes === 0) {
+                    return 'gerade eben';
+                } else if (diffMinutes === 1) {
+                    return 'vor 1 Minute';
+                } else {
+                    return `vor ${diffMinutes} Minuten`;
+                }
+            } else if (diffHours === 1) {
+                return 'vor 1 Stunde';
+            } else {
+                return `vor ${diffHours} Stunden`;
+            }
+        }
+        // If yesterday
+        else if (diffDays === 1) {
+            return `gestern ${date.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}`;
+        }
+        // If within this week, show day and time
+        else if (diffDays < 7) {
+            const weekdays = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
+            return `${weekdays[date.getDay()]} ${date.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}`;
+        }
+        // Otherwise show date and time
+        else {
+            return date.toLocaleString('de-DE', { 
+                day: '2-digit', 
+                month: '2-digit', 
+                year: '2-digit',
+                hour: '2-digit', 
+                minute: '2-digit' 
+            });
+        }
+    } catch (error) {
+        console.error('Error formatting date:', error);
+        return '';
+    }
 }
 
 function parseNumber(str) {
