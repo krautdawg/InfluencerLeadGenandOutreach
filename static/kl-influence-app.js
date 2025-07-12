@@ -557,18 +557,20 @@ async function generateEmailContent(username) {
     try {
         // First, update the lead's product with the current default selection
         const defaultProductSelect = document.getElementById('defaultProductSelect');
+        const selectedProductId = defaultProductSelect ? defaultProductSelect.value : null;
+        
         if (defaultProductSelect) {
             // Update product in backend
             await fetch(`/api/leads/${username}/product`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ product_id: defaultProductSelect.value || null })
+                body: JSON.stringify({ product_id: selectedProductId || null })
             });
             
             // Update local lead data
-            if (defaultProductSelect.value) {
-                lead.selected_product_id = parseInt(defaultProductSelect.value);
-                const selectedProduct = products.find(p => p.id == defaultProductSelect.value);
+            if (selectedProductId) {
+                lead.selected_product_id = parseInt(selectedProductId);
+                const selectedProduct = products.find(p => p.id == selectedProductId);
                 if (selectedProduct) {
                     lead.selected_product = selectedProduct;
                 }
@@ -587,10 +589,24 @@ async function generateEmailContent(username) {
             lead.subject = result.subject;
             lead.email_body = result.body;
             
-            // Update the table display
+            // Update the selectedProductId field for table display consistency
+            if (selectedProductId) {
+                lead.selectedProductId = parseInt(selectedProductId);
+            } else {
+                lead.selectedProductId = null;
+            }
+            
+            // Update the table display to show the product that was used for email generation
             displayResults(leads);
             
-            showToast('Email content generated successfully!', 'success');
+            // Update the specific product cell to reflect the product used for this email
+            const productCell = document.getElementById(`product-cell-${username}`);
+            if (productCell) {
+                const productName = selectedProductId ? getProductNameById(selectedProductId) : null;
+                productCell.innerHTML = productName || '<span style="color: var(--color-light-gray);">Kein Produkt</span>';
+            }
+            
+            showToast('Email content generated successfully! Product column updated.', 'success');
         } else {
             const error = await response.json();
             showToast(error.error || 'Failed to generate email content', 'error');
