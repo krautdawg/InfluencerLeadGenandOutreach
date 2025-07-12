@@ -14,8 +14,9 @@ K+L Influence is a Flask-based Instagram lead generation and outreach automation
   - **Time Estimates**: Each batch shows estimated time including pause duration (e.g., "ca. 2.4min")
   - **Batch Progress**: Shows current batch number and total batches during processing (e.g., "Batch 1/3")
   - **Perplexity Indicators**: Displays when Perplexity API is enriching contact data for specific users
-  - **Anti-Spam Progress**: Clear pause countdown with next batch information ("⏸ Anti-Spam Pause: 2m 15s bis Batch 2/3")
+  - **Anti-Spam Progress**: Clear pause countdown with next batch information ("⏸ Anti-Spam Pause: 1m 30s bis Batch 2/3")
   - **Completion Status**: Final step shows "3. Fertig! X Leads erfolgreich generiert und gespeichert ✓"
+  - **Reduced Pause Time**: Updated from 2m15s to 90 seconds to prevent worker timeouts while maintaining anti-spam protection
 - **UI Enhancements**:
   - Progress text shows phase-specific information
   - Real-time countdown during pauses with next batch preview
@@ -26,12 +27,14 @@ K+L Influence is a Flask-based Instagram lead generation and outreach automation
   - Enhanced batch processing to update step names dynamically
   - Improved time calculation with batch-specific estimates
   - Phase-aware progress display in frontend JavaScript
+  - Updated all pause references from 135s to 90s for faster processing
 - **Benefits**:
   - Users know exactly what step the system is performing
   - Clear time estimates for each phase including pauses
   - Better understanding of the anti-spam protection process
   - No more confusion about what "Initializing" means
-- **Status**: Detailed progress display fully implemented with step-by-step information
+  - Faster processing with 90-second pauses preventing worker timeouts
+- **Status**: Detailed progress display fully implemented with step-by-step information and optimized pause timing
 
 ### 2025-07-12: Fixed Automatic Sheet Updates During Processing (COMPLETED)
 - **Update**: Enhanced the automatic sheet update mechanism to properly refresh leads without requiring page reload

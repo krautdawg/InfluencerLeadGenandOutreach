@@ -1156,7 +1156,7 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit, enrich_limi
     hashtag_crawl_time = avg_delay_time + 30  # Hashtag search takes longer
     profile_batch_time = avg_delay_time + 15  # Per batch (slightly longer for 5 profiles)
     estimated_batches = min(search_limit // 5, enrich_limit // 5)  # 5 profiles per batch
-    pause_time_per_batch = 135  # 2 minutes 15 seconds = 135 seconds between batches
+    pause_time_per_batch = 90  # 90 seconds = 1.5 minutes between batches
     
     # Total time = hashtag search + (batch processing time + pause time) * (batches - 1) + final batch processing
     total_batch_and_pause_time = (profile_batch_time + pause_time_per_batch) * max(0, estimated_batches - 1)
@@ -1296,7 +1296,7 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit, enrich_limi
     for i, batch in enumerate(batches):
         try:
             # Update progress with detailed step information
-            batch_time_estimate = (profile_batch_time + (135 if i < len(batches) - 1 else 0)) / 60  # Convert to minutes
+            batch_time_estimate = (profile_batch_time + (90 if i < len(batches) - 1 else 0)) / 60  # Convert to minutes
             app_data['processing_progress']['current_step'] = f'2. Erweitere Profil-Informationen - Batch {i+1}/{len(batches)} (ca. {batch_time_estimate:.1f}min)'
             app_data['processing_progress']['phase'] = 'profile_enrichment'
             app_data['processing_progress']['current_batch'] = i + 1
@@ -1351,8 +1351,8 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit, enrich_limi
             
             # Instagram anti-spam protection: 2 minute 15 second pause between batches
             if i < len(batches) - 1:  # Don't pause after the last batch
-                pause_duration = 135  # 2 minutes 15 seconds in seconds
-                logger.info(f"Taking 2m15s anti-spam pause after batch {i+1}. Next batch will start in {pause_duration} seconds...")
+                pause_duration = 90  # 90 seconds (1.5 minutes)
+                logger.info(f"Taking 90s anti-spam pause after batch {i+1}. Next batch will start in {pause_duration} seconds...")
                 
                 # Update progress to show pause status with next batch info
                 minutes_left = pause_duration // 60
@@ -1379,7 +1379,7 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit, enrich_limi
                 if remaining_final > 0:
                     await asyncio.sleep(remaining_final)
                 
-                logger.info(f"2m15s pause completed. Resuming with batch {i+2}/{len(batches)}")
+                logger.info(f"90s pause completed. Resuming with batch {i+2}/{len(batches)}")
             else:
                 logger.info(f"All batches completed. No pause needed after final batch {i+1}")
             
