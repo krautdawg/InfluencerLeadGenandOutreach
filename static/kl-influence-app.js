@@ -180,6 +180,7 @@ function applyFilters() {
         fullName: document.getElementById('filterFullName')?.value.toLowerCase() || '',
         followers: document.getElementById('filterFollowers')?.value || '',
         email: document.getElementById('filterEmail')?.value.toLowerCase() || '',
+        website: document.getElementById('filterWebsite')?.value.toLowerCase() || '',
         product: document.getElementById('filterProduct')?.value.toLowerCase() || '',
         subject: document.getElementById('filterSubject')?.value.toLowerCase() || '',
         emailBody: document.getElementById('filterEmailBody')?.value.toLowerCase() || ''
@@ -197,9 +198,10 @@ function applyFilters() {
         const fullName = cells[3]?.textContent.toLowerCase() || '';
         const followers = parseInt(cells[4]?.textContent.replace(/[^\d]/g, '')) || 0;
         const email = cells[5]?.textContent.toLowerCase() || '';
-        const product = cells[6]?.textContent.toLowerCase() || '';
-        const subject = cells[7]?.textContent.toLowerCase() || '';
-        const emailBody = cells[8]?.textContent.toLowerCase() || '';
+        const website = cells[6]?.textContent.toLowerCase() || '';
+        const product = cells[7]?.textContent.toLowerCase() || '';
+        const subject = cells[8]?.textContent.toLowerCase() || '';
+        const emailBody = cells[9]?.textContent.toLowerCase() || '';
         
         let show = true;
         
@@ -207,8 +209,9 @@ function applyFilters() {
         if (filters.username && !username.includes(filters.username)) show = false;
         if (filters.hashtag && !hashtag.includes(filters.hashtag)) show = false;
         if (filters.fullName && !fullName.includes(filters.fullName)) show = false;
-        if (filters.product && !product.includes(filters.product)) show = false;
         if (filters.email && !email.includes(filters.email)) show = false;
+        if (filters.website && !website.includes(filters.website)) show = false;
+        if (filters.product && !product.includes(filters.product)) show = false;
         if (filters.subject && !subject.includes(filters.subject)) show = false;
         if (filters.emailBody && !emailBody.includes(filters.emailBody)) show = false;
         
@@ -480,6 +483,9 @@ function createLeadRow(lead, index) {
         <td data-label="Email" class="editable-cell" onclick="startInlineEdit(this, '${lead.username}', 'email')">
             ${lead.email || '<span style="color: var(--color-light-gray);">Click to add</span>'}
         </td>
+        <td data-label="Website" class="editable-cell" onclick="startInlineEdit(this, '${lead.username}', 'website')">
+            ${lead.website ? `<a href="${lead.website}" target="_blank" style="color: var(--color-natural-green);">${lead.website}</a>` : '<span style="color: var(--color-light-gray);">Click to add</span>'}
+        </td>
         <td data-label="Product" class="editable-cell" id="product-cell-${lead.username}" onclick="editProductSelection('${lead.username}')">
             ${getProductNameById(lead.selectedProductId) || '<span style="color: var(--color-light-gray);">Kein Produkt</span>'}
         </td>
@@ -564,7 +570,12 @@ async function finishInlineEdit(cell, username, field, value) {
         return;
     }
     
-    cell.textContent = value;
+    // Format website as clickable link
+    if (field === 'website' && value.trim()) {
+        cell.innerHTML = `<a href="${value}" target="_blank" style="color: var(--color-natural-green);">${value}</a>`;
+    } else {
+        cell.textContent = value;
+    }
     
     // Update the lead data
     const lead = leads.find(l => l.username === username);

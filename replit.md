@@ -6,6 +6,29 @@ K+L Influence is a Flask-based Instagram lead generation and outreach automation
 
 ## Recent Changes
 
+### 2025-07-12: Added Website Column to Results Table (COMPLETED)
+- **Update**: Added Website column to the right of Email column in the results table for better lead information display
+- **Changes Made**:
+  - **New Website Column**: Added Website column positioned between Email and Product columns
+  - **Clickable Website Links**: Website URLs display as clickable links that open in new tab with green branding
+  - **Inline Editing Support**: Website field supports click-to-edit functionality for manual entry/updates
+  - **Filter Integration**: Added website filter input in filter row for searching by website domain
+  - **Table Structure Updates**:
+    - Updated table headers to include Website column with sorting capability
+    - Adjusted column indices in JavaScript for proper filtering and sorting
+    - Updated cell references to account for new column position
+  - **Data Display Enhancement**:
+    - Shows website as clickable link when available
+    - Shows "Click to add" placeholder for missing website data
+    - Maintains consistent styling with other editable fields
+  - **Backend Integration**: Website field already exists in Lead model and update endpoints
+- **Benefits**:
+  - Quick access to influencer websites for research and verification
+  - Better lead qualification with website information visible at a glance
+  - Streamlined workflow for lead outreach with direct website access
+  - Enhanced data completeness tracking and manual entry capabilities
+- **Status**: Website column fully integrated with complete editing and filtering functionality
+
 ### 2025-07-12: Sticky Username Column and Header Row Freeze (COMPLETED)
 - **Update**: Implemented frozen Username column and header rows for improved table navigation during scrolling
 - **Changes Made**:
