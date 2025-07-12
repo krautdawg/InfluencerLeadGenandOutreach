@@ -692,42 +692,88 @@ def call_apify_profile_enrichment(actor_id, input_data, token):
     profiles = []
     
     try:
+        # Pre-flight memory clearing
+        logger.info("Pre-flight memory clearing before Apify call")
+        gc.collect()  # Full collection
+        gc.collect()  # Second pass for cyclic references
+        pre_gc_mem = get_memory_usage()
+        logger.info(f"Memory after pre-flight GC: {pre_gc_mem:.1f} MB")
+        
         # Check memory before API call
-        if check_memory_threshold(450):
-            logger.warning("Memory threshold exceeded before Apify call, forcing GC")
-            gc.collect()
+        if check_memory_threshold(400):  # Lower threshold
+            logger.error("Memory threshold exceeded before Apify call, aborting")
+            return []
+        
+        # Memory profiling point 1
+        logger.info(f"[PROFILE] Before actor.call: {get_memory_usage():.1f} MB")
         
         # Run the Actor and wait for it to finish
         run = client.actor(actor_id).call(run_input=input_data)
         
+        # Memory profiling point 2
+        logger.info(f"[PROFILE] After actor.call: {get_memory_usage():.1f} MB")
+        
         # Get the dataset
         dataset = client.dataset(run["defaultDatasetId"])
         
-        # Stream response processing - process each profile as it arrives
+        # Memory profiling point 3
+        logger.info(f"[PROFILE] After dataset init: {get_memory_usage():.1f} MB")
+        
+        # Lazy dataset loading - process one item at a time using pagination
         processed_count = 0
-        for item in dataset.iterate_items():
-            if isinstance(item, dict):
-                # Profile data filtering - keep only essential fields
-                filtered_profile = {
-                    key: value for key, value in item.items() 
-                    if key in ESSENTIAL_FIELDS
-                }
-                
-                # Immediately append filtered profile
-                profiles.append(filtered_profile)
-                processed_count += 1
-                
-                # Log memory every 5 profiles
-                if processed_count % 5 == 0:
-                    current_mem = get_memory_usage()
-                    logger.info(f"Memory after {processed_count} profiles: {current_mem:.1f} MB")
+        offset = 0
+        limit = 1  # Process exactly one item at a time
+        
+        while True:
+            # Memory profiling before each item
+            item_mem_before = get_memory_usage()
+            logger.info(f"[PROFILE] Before loading item {processed_count}: {item_mem_before:.1f} MB")
+            
+            # Check memory before loading next item
+            if check_memory_threshold(420):
+                logger.warning(f"Memory threshold exceeded before loading item {processed_count}, stopping")
+                break
+            
+            # Load one item at a time
+            items_page = dataset.list_items(limit=limit, offset=offset)
+            items_list = items_page.get('items', [])
+            
+            # Memory profiling after loading
+            logger.info(f"[PROFILE] After loading item {processed_count}: {get_memory_usage():.1f} MB")
+            
+            if not items_list:
+                break  # No more items
+            
+            for item in items_list:
+                if isinstance(item, dict):
+                    # Profile data filtering - keep only essential fields
+                    filtered_profile = {
+                        key: value for key, value in item.items() 
+                        if key in ESSENTIAL_FIELDS
+                    }
                     
-                    # Check memory threshold
-                    if check_memory_threshold(450):
-                        logger.warning(f"Memory threshold exceeded after {processed_count} profiles")
-                        # Clear the original item from memory
-                        del item
-                        gc.collect()
+                    # Clear original item immediately
+                    item.clear()
+                    
+                    # Append filtered profile
+                    profiles.append(filtered_profile)
+                    processed_count += 1
+                    
+                    # Log memory after processing
+                    logger.info(f"[PROFILE] After processing item {processed_count}: {get_memory_usage():.1f} MB")
+            
+            # Clear the page data
+            items_page.clear()
+            items_list.clear()
+            
+            # Force garbage collection after each item
+            gc.collect()
+            
+            # Move to next item
+            offset += limit
+            
+            # Log memory after GC
+            logger.info(f"[PROFILE] After GC for item {processed_count}: {get_memory_usage():.1f} MB")
         
         # Final memory check
         mem_after = log_memory("apify_profile_enrichment_complete", mem_before)
@@ -787,14 +833,22 @@ async def enrich_profile_batch(usernames, ig_sessionid, apify_token,
                                perplexity_key, semaphore):
     """Enrich a batch of profiles with memory-optimized processing"""
     async with semaphore:
+        # Pre-flight memory clearing
+        logger.info(f"[PROFILE] Pre-flight clearing for batch: {usernames}")
+        gc.collect()
+        gc.collect()  # Second pass
+        
         # Log memory at batch start
         mem_start = log_memory(f"batch_start_{usernames[0] if usernames else 'empty'}")
         
         try:
             # Check memory before processing
-            if check_memory_threshold(400):  # Lower threshold for batch processing
+            if check_memory_threshold(380):  # Even lower threshold
                 logger.warning(f"Memory threshold exceeded before batch processing, skipping batch")
                 return []
+            
+            # Memory profiling before Apify call
+            logger.info(f"[PROFILE] Before Apify enrichment call: {get_memory_usage():.1f} MB")
             
             # Call Apify profile enrichment actor with correct format
             instagram_urls = [f"https://www.instagram.com/{username}" for username in usernames]
@@ -810,6 +864,9 @@ async def enrich_profile_batch(usernames, ig_sessionid, apify_token,
             # Use dedicated profile enrichment function (now with memory optimization)
             profile_items = call_apify_profile_enrichment("8WEn9FvZnhE7lM3oA",
                                                           input_data, apify_token)
+            
+            # Memory profiling after Apify call
+            logger.info(f"[PROFILE] After Apify enrichment call: {get_memory_usage():.1f} MB")
             
             # Clear input data from memory
             del instagram_urls
@@ -834,6 +891,9 @@ async def enrich_profile_batch(usernames, ig_sessionid, apify_token,
             gc.collect()
 
             for username in usernames:
+                # Memory profiling per username
+                logger.info(f"[PROFILE] Processing username {username}: {get_memory_usage():.1f} MB")
+                
                 profile_info = profile_map.get(username, {})
 
                 # Always try to enrich contact info with Perplexity for missing data
@@ -1377,12 +1437,12 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit, enrich_limi
         # Continue processing even if saving pairs fails
 
     # Step 3: Profile enrichment with aggressive memory optimization
-    semaphore = asyncio.Semaphore(20)  # Further reduced to 2 concurrent calls
+    semaphore = asyncio.Semaphore(1)  # No concurrency - process one at a time
     perplexity_semaphore = asyncio.Semaphore(1)  # Reduced to 1 concurrent Perplexity call
 
     # Extreme memory safety measures to prevent SIGKILL
     usernames = [p['username'] for p in unique_profiles]
-    batch_size = 2  # Further reduced batch size from 3 to 2 for memory safety
+    batch_size = 1  # Single profile processing to minimize memory usage
     
     # Use enrich_limit parameter to control how many profiles to enrich (for testing)
     if len(usernames) > enrich_limit:
@@ -1406,9 +1466,16 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit, enrich_limi
     
     for i, batch in enumerate(batches):
         try:
+            # Pre-flight memory clearing for each batch
+            logger.info(f"[PROFILE] Pre-batch GC for batch {i+1}")
+            gc.collect()
+            gc.collect()  # Second pass
+            
             # Check memory before processing each batch
             batch_mem_before = get_memory_usage()
-            if check_memory_threshold(420):  # Conservative threshold for main loop
+            logger.info(f"[PROFILE] Before batch {i+1}: {batch_mem_before:.1f} MB")
+            
+            if check_memory_threshold(350):  # Very conservative threshold
                 logger.error(f"Memory threshold exceeded before batch {i+1}, stopping enrichment (current: {batch_mem_before:.1f} MB)")
                 app_data['processing_progress']['current_step'] = f'Memory limit reached - {total_saved_leads} leads saved'
                 break

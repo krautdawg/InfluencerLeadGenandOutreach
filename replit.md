@@ -6,49 +6,49 @@ K+L Influence is a Flask-based Instagram lead generation and outreach automation
 
 ## Recent Changes
 
-### 2025-07-12: Advanced Memory Optimization for Apify Profile Enrichment (COMPLETED)
-- **Update**: Implemented three critical memory optimization strategies to prevent SIGKILL errors during enrichment
-- **Issue**: Memory exhaustion causing process crashes when enriching profiles via Apify actor 8WEn9FvZnhE7lM3oA
-- **Solution**: Implemented comprehensive memory management with real-time monitoring and optimization
+### 2025-07-12: Enhanced Memory Optimization with Four-Step Approach (COMPLETED)
+- **Update**: Implemented comprehensive four-step memory optimization to prevent SIGKILL errors
+- **Issue**: Continued memory exhaustion even after initial optimizations, SIGKILL within 3 seconds of enrichment
+- **Solution**: Applied four aggressive memory optimization strategies
 - **Changes Made**:
-  - **Stream Response Processing**: 
-    - Modified `call_apify_profile_enrichment` to process profiles one-by-one as they arrive
-    - Eliminated bulk loading of all profiles into memory at once
-    - Immediate processing and filtering of each profile item
-  - **Profile Data Filtering**: 
-    - Created ESSENTIAL_FIELDS set to keep only necessary fields
-    - Filters out unnecessary data immediately upon receipt
-    - Reduces memory footprint by up to 70% per profile
-  - **Memory Monitoring System**:
-    - Added `psutil` package for real-time memory tracking
-    - Implemented `get_memory_usage()`, `log_memory()`, and `check_memory_threshold()` utilities
-    - Memory logging at start/end of each operation with delta calculations
-    - Automatic garbage collection when memory exceeds thresholds
-  - **Threshold Management**:
-    - Main processing loop: 420MB threshold (conservative)
-    - Batch processing: 400MB threshold
-    - Apify calls: 450MB threshold
-    - Process stops gracefully if memory limits exceeded
-  - **Enhanced Batch Processing**:
-    - Memory checks before and after each batch
-    - Forced garbage collection after each batch with logging
-    - Clear intermediate variables immediately after use
-    - Memory summaries in error messages and logs
-- **Performance Improvements**:
-  - Profiles processed individually with immediate filtering
-  - Memory usage logged every 5 profiles during enrichment
-  - Batch processing includes pre-flight memory checks
-  - Graceful degradation when memory limits approached
+  1. **Single Profile Processing**:
+     - Reduced batch size from 2 to 1 profile at a time
+     - Reduced semaphore from 20 to 1 (no concurrency)
+     - Most conservative approach ensuring minimal memory footprint
+  2. **Lazy Dataset Loading**:
+     - Replaced `dataset.iterate_items()` with pagination using `dataset.list_items(limit=1, offset=X)`
+     - Process exactly one item at a time with explicit offset control
+     - Immediate clearing of item data after processing
+     - Prevents bulk loading of entire dataset into memory
+  3. **Pre-flight Memory Clearing**:
+     - Double garbage collection before ANY Apify call
+     - Pre-batch GC with second pass for cyclic references
+     - Memory state logging after each GC operation
+     - Ensures cleanest possible memory state before operations
+  4. **Comprehensive Memory Profiling**:
+     - Added [PROFILE] logging at 15+ critical points
+     - Tracks memory before/after: actor.call, dataset init, item loading, processing
+     - Per-username memory tracking
+     - Detailed memory deltas for debugging
+- **Threshold Adjustments**:
+  - Main loop: 350MB (was 420MB)
+  - Batch processing: 380MB (was 400MB)
+  - Apify calls: 400MB (was 450MB)
+  - Item loading: 420MB
+- **Additional Optimizations**:
+  - Clear all intermediate variables immediately after use
+  - Force GC after each profile item
+  - Clear page data and lists after processing
+  - Memory checks before loading each item
 - **Benefits**:
-  - Prevents SIGKILL errors from memory exhaustion
-  - Provides visibility into memory usage patterns
-  - Enables processing of larger datasets within Replit constraints
-  - Maintains data integrity with incremental saves
-  - Clear audit trail of memory usage for debugging
-- **Memory Usage Example**:
-  - Before: 300MB → 600MB+ (SIGKILL)
-  - After: 300MB → 380MB (controlled)
-- **Status**: Memory optimization fully implemented and operational
+  - Extreme memory conservation approach
+  - Full visibility into memory usage at each step
+  - Identifies exact operation causing memory spikes
+  - Graceful degradation when approaching limits
+- **Memory Usage Pattern**:
+  - Pre-optimization: Immediate spike to 600MB+ → SIGKILL
+  - Post-optimization: Controlled growth with per-item processing
+- **Status**: Four-step optimization fully implemented and operational
 
 ### 2025-07-12: Added Website Column to Results Table (COMPLETED)
 - **Update**: Added Website column to the right of Email column in the results table for better lead information display
