@@ -341,6 +341,9 @@ async function processKeyword() {
     document.getElementById('statusText').textContent = 'Initializing...';
     document.getElementById('runButton').disabled = true;
     
+    // Reset previous lead count for new processing run
+    previousLeadCount = 0;
+    
     // Start progress polling
     const progressInterval = setInterval(updateProgress, 2000);
     
@@ -396,25 +399,44 @@ async function processKeyword() {
     }
 }
 
+// Track previous lead count to detect new leads
+let previousLeadCount = 0;
+
 // Update progress
 async function updateProgress() {
     try {
         const response = await fetch('/progress');
         if (response.ok) {
             const progress = await response.json();
-            document.getElementById('statusText').textContent = progress.message || 'Verarbeitung läuft...';
-            if (progress.details) {
-                document.getElementById('progressText').textContent = progress.details;
+            
+            // Update status display
+            if (progress.current_step) {
+                document.getElementById('statusText').textContent = progress.current_step;
             }
             
-            // Handle incremental lead updates
+            // Update progress details
+            if (progress.total_steps > 0) {
+                const percentage = Math.round((progress.completed_steps / progress.total_steps) * 100);
+                const minutes = Math.floor(progress.estimated_time_remaining / 60);
+                const seconds = progress.estimated_time_remaining % 60;
+                document.getElementById('progressText').innerHTML = `
+                    Fortschritt: ${progress.completed_steps}/${progress.total_steps} (${percentage}%)<br>
+                    Geschätzte Restzeit: ${minutes}m ${seconds}s
+                `;
+            }
+            
+            // Handle incremental lead updates - detect when lead count changes
             if (progress.incremental_leads !== undefined && progress.keyword) {
-                // Show incremental notification
-                if (progress.incremental_leads > 0) {
-                    const notificationText = `${progress.incremental_leads} Leads generiert für "${progress.keyword}"`;
-                    document.getElementById('progressText').textContent = notificationText;
+                // Check if we have new leads (count increased)
+                if (progress.incremental_leads > previousLeadCount) {
+                    console.log(`New leads detected: ${progress.incremental_leads} (was ${previousLeadCount})`);
+                    previousLeadCount = progress.incremental_leads;
                     
-                    // Refresh the table with current leads if we have any
+                    // Show notification
+                    const notificationText = `${progress.incremental_leads} Leads generiert für "${progress.keyword}"`;
+                    showToast(notificationText, 'info');
+                    
+                    // Refresh the table with current leads
                     await refreshLeadsTable(progress.keyword);
                 }
             }
@@ -422,6 +444,8 @@ async function updateProgress() {
             // Handle completion status
             if (progress.final_status === 'success' && progress.total_leads_generated !== undefined) {
                 showToast(`Erfolgreich ${progress.total_leads_generated} Leads generiert!`, 'success');
+                // Reset previous lead count for next run
+                previousLeadCount = 0;
             }
         }
     } catch (error) {
@@ -432,15 +456,40 @@ async function updateProgress() {
 // Refresh leads table for a specific keyword (used during incremental updates)
 async function refreshLeadsTable(keyword) {
     try {
+        // Add loading indicator to table
+        const tbody = document.getElementById('resultsBody');
+        if (tbody) {
+            tbody.style.opacity = '0.7';
+        }
+        
         const response = await fetch(`/api/leads?keyword=${encodeURIComponent(keyword)}`);
         if (response.ok) {
             const result = await response.json();
             if (result.leads && result.leads.length > 0) {
+                console.log(`Refreshing table with ${result.leads.length} leads for keyword: ${keyword}`);
                 displayResults(result.leads);
+                
+                // Flash effect to show update
+                if (tbody) {
+                    tbody.style.opacity = '1';
+                    tbody.style.transition = 'opacity 0.3s ease-in-out';
+                    
+                    // Add a subtle highlight effect
+                    setTimeout(() => {
+                        tbody.style.backgroundColor = '#e8f5e9';
+                        setTimeout(() => {
+                            tbody.style.backgroundColor = '';
+                            tbody.style.transition = 'background-color 0.5s ease-in-out';
+                        }, 500);
+                    }, 100);
+                }
             }
         }
     } catch (error) {
         console.error('Error refreshing leads table:', error);
+        if (tbody) {
+            tbody.style.opacity = '1';
+        }
     }
 }
 

@@ -6,6 +6,28 @@ K+L Influence is a Flask-based Instagram lead generation and outreach automation
 
 ## Recent Changes
 
+### 2025-07-12: Fixed Automatic Sheet Updates During Processing (COMPLETED)
+- **Update**: Enhanced the automatic sheet update mechanism to properly refresh leads without requiring page reload
+- **Issue**: Leads were being generated but not automatically appearing in the sheet during processing
+- **Resolution**: 
+  - Added lead count tracking to detect when new leads are saved
+  - Enhanced progress update function to compare current vs previous lead counts
+  - Implemented automatic table refresh when lead count increases
+  - Added visual feedback with opacity transitions and background color flash
+  - Console logging for debugging automatic updates
+- **Features**:
+  - Automatic detection of new leads during processing
+  - Real-time table refresh with visual indicators
+  - Toast notifications when new leads are detected
+  - Smooth visual transitions showing table updates
+  - Lead count tracking resets between processing runs
+- **Technical Details**:
+  - `previousLeadCount` variable tracks last known lead count
+  - Progress polling detects incremental changes every 2 seconds
+  - `refreshLeadsTable()` fetches and displays new leads automatically
+  - Visual feedback includes opacity changes and green background flash
+- **Status**: Automatic sheet updates now working without page refresh
+
 ### 2025-07-12: Implemented Instagram Anti-Spam Batch Processing (COMPLETED)
 - **Update**: Modified enrichment process to use 5-profile batches with 5-minute pauses to evade Instagram's switch kill blocker
 - **Changes Made**:
