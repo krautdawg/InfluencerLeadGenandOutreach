@@ -257,7 +257,7 @@ def call_apify_actor_sync(actor_id, input_data, token):
                 logger.debug(f"Processed {total_processed} items, found {len(username_hashtag_map)} unique usernames")
 
         # Convert map to list of profile objects with hashtag
-        processed_items = [{'ownerUsername': username, 'hashtag': hashtag} 
+        processed_items = [{'username': username, 'hashtag': hashtag} 
                           for username, hashtag in username_hashtag_map.items()]
 
         # Final cleanup
@@ -1130,6 +1130,9 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit, default_pro
 
     # Advanced anti-spam optimization: batch 3 profiles with strategic pauses
     usernames = [p['username'] for p in unique_profiles]
+    
+    # Create username to hashtag mapping for later use
+    username_to_hashtag = {p['username']: p['hashtag'] for p in unique_profiles}
     
     # Filter out usernames that already exist in database
     with app.app_context():
