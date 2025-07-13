@@ -6,6 +6,31 @@ K+L Influence is a Flask-based Instagram lead generation and outreach automation
 
 ## Recent Changes
 
+### 2025-07-13: Simple Status Bar Implementation (COMPLETED)
+- **Update**: Implemented minimal status bar showing only three states as requested
+- **Changes Made**:
+  - **Added Status Bar**: Created simple status bar div in HTML template below stop button
+  - **Three States Only**: 
+    1. "In Progress" - shown when processing starts
+    2. "Hashtags: X, Y | Users: N" - shown after first API call completes
+    3. "Enriching..." - shown during profile enrichment phase
+  - **Backend Changes**:
+    - Added `/progress` endpoint returning simple status data
+    - Added `simple_status` and `hashtag_info` fields to app_data
+    - Set status to 'hashtag_complete' after hashtag search with hashtag variants and user count
+    - Set status to 'enriching' when profile enrichment begins
+  - **Frontend Changes**:
+    - Added status polling every 2 seconds during processing
+    - Updates status text based on backend state
+    - Cleans up status bar and polling when processing completes
+  - **Minimal Design**: Light gray background, centered text, clean presentation
+- **Benefits**:
+  - Simple, uncluttered status display
+  - Shows only essential information
+  - No complex progress calculations or time estimates
+  - Clean user experience
+- **Status**: Simple three-state status bar fully implemented
+
 ### 2025-07-13: Complete Removal of Status Update System (COMPLETED)
 - **Update**: Completely removed all frontend and backend status update design and code
 - **Changes Made**:

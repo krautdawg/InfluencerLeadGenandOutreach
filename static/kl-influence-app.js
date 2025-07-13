@@ -331,6 +331,9 @@ async function stopProcessing() {
     }
 }
 
+// Global variable for status polling interval
+let statusPollInterval = null;
+
 // Process keyword
 async function processKeyword() {
     const keyword = document.getElementById('keywordInput').value.trim();
@@ -349,6 +352,8 @@ async function processKeyword() {
     
     const runButton = document.getElementById('runButton');
     const stopButton = document.getElementById('stopButton');
+    const statusBar = document.getElementById('statusBar');
+    const statusText = document.getElementById('statusText');
     
     // Update UI for processing state
     runButton.disabled = true;
@@ -359,10 +364,32 @@ async function processKeyword() {
     stopButton.style.display = 'inline-block';
     stopButton.innerHTML = '<i class="fas fa-stop"></i> Stop Processing';
     
-
+    // Show status bar with "In Progress"
+    statusBar.style.display = 'block';
+    statusText.textContent = 'In Progress';
     
     // Reset previous lead count for new processing run
     previousLeadCount = 0;
+    
+    // Start polling for simple status updates
+    statusPollInterval = setInterval(async () => {
+        try {
+            const statusResponse = await fetch('/progress');
+            if (statusResponse.ok) {
+                const statusData = await statusResponse.json();
+                
+                if (statusData.status === 'hashtag_complete' && statusData.hashtag_info) {
+                    const hashtags = statusData.hashtag_info.hashtags.join(', ');
+                    const userCount = statusData.hashtag_info.user_count;
+                    statusText.textContent = `Hashtags: ${hashtags} | Users: ${userCount}`;
+                } else if (statusData.status === 'enriching') {
+                    statusText.textContent = 'Enriching...';
+                }
+            }
+        } catch (error) {
+            console.log('Status polling error:', error);
+        }
+    }, 2000); // Poll every 2 seconds
     
 
     
@@ -422,6 +449,7 @@ let previousLeadCount = 0;
 function resetProcessingUI() {
     const runButton = document.getElementById('runButton');
     const stopButton = document.getElementById('stopButton');
+    const statusBar = document.getElementById('statusBar');
     
     // Reset run button
     runButton.disabled = false;
@@ -432,7 +460,16 @@ function resetProcessingUI() {
     stopButton.disabled = true;
     stopButton.style.display = 'none';
     
-
+    // Hide status bar
+    if (statusBar) {
+        statusBar.style.display = 'none';
+    }
+    
+    // Stop status polling
+    if (statusPollInterval) {
+        clearInterval(statusPollInterval);
+        statusPollInterval = null;
+    }
 }
 
 // Refresh leads table for a specific keyword (used during incremental updates)

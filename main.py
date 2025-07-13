@@ -104,7 +104,9 @@ with app.app_context():
 app_data = {
     'processing_status': None,
     'start_time': time.time(),  # Track application startup time
-    'stop_requested': False  # Flag to request processing stop
+    'stop_requested': False,  # Flag to request processing stop
+    'simple_status': None,  # Simple status: in_progress, hashtag_complete, enriching
+    'hashtag_info': None  # Hashtag and user count info
 }
 
 
@@ -922,6 +924,8 @@ def process_keyword():
     # Start processing in background using ThreadPoolExecutor
     app_data['processing_status'] = 'Processing...'
     app_data['stop_requested'] = False  # Reset stop flag
+    app_data['simple_status'] = 'in_progress'  # Set initial simple status
+    app_data['hashtag_info'] = None  # Reset hashtag info
 
     try:
         # Run the async processing in a thread pool with memory optimization
@@ -968,15 +972,20 @@ def stop_processing():
         app_data['stop_requested'] = True
         app_data['processing_status'] = 'Stopping...'
         
-        # Update progress to show stopping
-        app_data['processing_progress']['current_step'] = 'Stoppe Verarbeitung...'
-        app_data['processing_progress']['final_status'] = 'stopped'
-        
         logger.info("Stop requested by user")
         return jsonify({"success": True, "message": "Stopp-Anfrage gesendet"})
     except Exception as e:
         logger.error(f"Failed to stop processing: {e}")
         return jsonify({"error": "Fehler beim Stoppen"}), 500
+
+
+@app.route('/progress', methods=['GET'])
+def get_progress():
+    """Get simple processing progress status"""
+    return jsonify({
+        "status": app_data.get('simple_status', 'in_progress'),
+        "hashtag_info": app_data.get('hashtag_info', None)
+    })
 
 
 def run_async_process(keyword, ig_sessionid, search_limit, default_product_id=None):
@@ -1093,6 +1102,13 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit, default_pro
         # Continue processing even if saving pairs fails
 
     logger.info(f"Found {len(hashtag_variants)} hashtag variants, {len(unique_profiles)} unique profiles")
+    
+    # Update simple status to show hashtag completion
+    app_data['simple_status'] = 'hashtag_complete'
+    app_data['hashtag_info'] = {
+        'hashtags': list(hashtag_variants),
+        'user_count': len(unique_profiles)
+    }
 
     # Brief pause to make transition visible
     await asyncio.sleep(1)
@@ -1131,6 +1147,10 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit, default_pro
         usernames[i:i + batch_size]
         for i in range(0, len(usernames), batch_size)
     ]
+    
+    # Update status to enriching
+    if len(usernames) > 0:
+        app_data['simple_status'] = 'enriching'
 
 
 
