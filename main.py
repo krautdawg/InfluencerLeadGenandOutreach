@@ -254,7 +254,7 @@ def call_apify_actor_sync(actor_id, input_data, token):
 
         # Log successful completion
         logger.info(f"Streaming extraction completed: {len(all_usernames)} unique usernames from {total_processed} items")
-        return result
+        return {"items": processed_items}
 
     except Exception as e:
         # Log the failure with detailed error information
