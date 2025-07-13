@@ -6,6 +6,24 @@ K+L Influence is a Flask-based Instagram lead generation and outreach automation
 
 ## Recent Changes
 
+### 2025-07-13: Extended Worker Timeout to 2 Hours (COMPLETED)
+- **Update**: Increased worker timeout from 30 minutes to 2 hours to handle long processing runs
+- **Issue**: Worker timeout error occurred during large batch processing with multiple anti-spam pauses
+- **Root Cause**: Processing with 33+ leads and 90-second pauses between batches exceeded 30-minute timeout
+- **Fixes Implemented**:
+  - **Backend Timeout**: Increased gunicorn worker timeout from 1800s (30min) to 7200s (2h)
+  - **Frontend Timeout**: Updated both `ui.js` and `kl-influence-app.js` fetch timeouts to 7320000ms (2h 2min)
+  - **Timeout Alignment**: Ensures frontend waits slightly longer than backend for proper error handling
+- **Technical Details**:
+  - Modified `gunicorn.conf.py` timeout configuration
+  - Updated frontend JavaScript timeout in fetch requests
+  - Prevents "WORKER TIMEOUT" errors during extended processing
+- **Benefits**:
+  - Can process large datasets with multiple batches without timeout
+  - Handles extensive anti-spam pause sequences (90s between batches)
+  - Stable processing for up to 2 hours of continuous operation
+- **Status**: 2-hour timeout configuration implemented and application restarted
+
 ### 2025-07-13: Fixed Progress Display and Hashtag Storage (COMPLETED)
 - **Update**: Fixed two critical issues with progress tracking and hashtag data storage
 - **Issue 1 - Progress Display**: Progress was stuck at "1." and didn't show profile counts or enrichment progress

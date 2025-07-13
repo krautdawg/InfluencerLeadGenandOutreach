@@ -235,7 +235,7 @@ async function processKeyword() {
     try {
         // Add timeout to match backend timeout
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 190000); // 3.17 minutes (slightly longer than backend's 180s)
+        const timeoutId = setTimeout(() => controller.abort(), 7320000); // 2h 2min (slightly longer than backend's 2h)
         
         const response = await fetch('/process', {
             method: 'POST',
