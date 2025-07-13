@@ -359,16 +359,12 @@ async function processKeyword() {
     stopButton.style.display = 'inline-block';
     stopButton.innerHTML = '<i class="fas fa-stop"></i> Stop Processing';
     
-    // Show processing status with API call description
-    document.getElementById('processingStatus').style.display = 'block';
-    document.getElementById('statusText').textContent = '1. Hashtag-Daten abrufen';
-    document.getElementById('progressText').textContent = 'Phase: Initialisierung der Hashtag-Suche';
+
     
     // Reset previous lead count for new processing run
     previousLeadCount = 0;
     
-    // Start progress polling
-    const progressInterval = setInterval(updateProgress, 2000);
+
     
     try {
         const response = await fetch('/process', {
@@ -380,8 +376,6 @@ async function processKeyword() {
             }),
             timeout: 7320000 // 2h 2min timeout to match gunicorn (2h timeout)
         });
-        
-        clearInterval(progressInterval);
         
         if (response.ok) {
             const result = await response.json();
@@ -405,7 +399,6 @@ async function processKeyword() {
             showToast(error.error || 'Failed to process keyword', 'error');
         }
     } catch (error) {
-        clearInterval(progressInterval);
         console.error('Processing error:', error);
         if (error.name === 'AbortError') {
             showToast('Anfrage ist abgelaufen. Bitte versuche es mit einem kleineren Suchlimit erneut.', 'error');
@@ -423,94 +416,7 @@ async function processKeyword() {
 // Track previous lead count to detect new leads
 let previousLeadCount = 0;
 
-// Update progress
-async function updateProgress() {
-    try {
-        const response = await fetch('/progress');
-        if (response.ok) {
-            const progress = await response.json();
-            
-            // Ensure processing status is visible during processing
-            if (progress.phase && progress.phase !== 'completed') {
-                document.getElementById('processingStatus').style.display = 'block';
-            }
-            
-            // Update progress details with simplified information
-            let progressHTML = '';
-            
-            // Display current step text if available
-            if (progress.current_step) {
-                // Replace newlines with <br> for HTML display
-                const stepText = progress.current_step.replace(/\n/g, '<br>');
-                progressHTML = stepText;
-            }
-            
-            // Add lead count if available
-            if (progress.incremental_leads > 0) {
-                progressHTML += `<br><strong>Leads generiert:</strong> ${progress.incremental_leads}`;
-            }
-            
-            if (progressHTML) {
-                document.getElementById('progressText').innerHTML = progressHTML;
-            }
-            
-            // Handle incremental lead updates - detect when lead count changes
-            if (progress.incremental_leads !== undefined && progress.keyword) {
-                // Check if we have new leads (count increased) OR if we haven't refreshed yet
-                if (progress.incremental_leads > previousLeadCount || (progress.incremental_leads > 0 && previousLeadCount === 0)) {
-                    console.log(`New leads detected: ${progress.incremental_leads} (was ${previousLeadCount}) for keyword: ${progress.keyword}`);
-                    const newLeadsCount = progress.incremental_leads - previousLeadCount;
-                    previousLeadCount = progress.incremental_leads;
-                    
-                    // Show notification only for significant new leads (batches of 3 or more) and throttle notifications
-                    if (newLeadsCount >= 3) {
-                        const now = Date.now();
-                        // Only show notification if at least 3 seconds have passed since last notification
-                        if (now - lastNotificationTime > 3000) {
-                            const notificationText = `+${newLeadsCount} neue Leads generiert (${progress.incremental_leads} gesamt)`;
-                            showToast(notificationText, 'success');
-                            lastNotificationTime = now;
-                        }
-                    }
-                    
-                    // Always refresh the table when lead count changes
-                    await refreshLeadsTable(progress.keyword);
-                }
-            }
-            
-            // Display current API call status in German
-            let apiCallStatus = '';
-            if (progress.phase === 'hashtag_search' || progress.phase === 'hashtag_search_complete') {
-                apiCallStatus = '1. Hashtag-Daten abrufen';
-            } else if (progress.phase === 'profile_enrichment') {
-                // Check if it's Perplexity enrichment based on current_step
-                if (progress.current_step && progress.current_step.includes('Perplexity')) {
-                    apiCallStatus = '3. Finale Anreicherung mit Perplexity';
-                } else {
-                    apiCallStatus = '2. Profile anreichern';
-                }
-            }
-            
-            // Update status text with current API call
-            if (apiCallStatus) {
-                document.getElementById('statusText').textContent = apiCallStatus;
-            }
-            
-            // Handle completion status
-            if (progress.final_status === 'success' && progress.total_leads_generated !== undefined) {
-                showToast(`Erfolgreich ${progress.total_leads_generated} Leads generiert!`, 'success');
-                // Reset previous lead count for next run
-                previousLeadCount = 0;
-                resetProcessingUI();
-            } else if (progress.final_status === 'stopped') {
-                showToast('Verarbeitung gestoppt', 'warning');
-                resetProcessingUI();
-            }
-        }
-    } catch (error) {
-        console.error('Progress update error:', error);
-    }
-}
+
 
 // Reset processing UI to initial state
 function resetProcessingUI() {
@@ -526,8 +432,7 @@ function resetProcessingUI() {
     stopButton.disabled = true;
     stopButton.style.display = 'none';
     
-    // Hide processing status
-    document.getElementById('processingStatus').style.display = 'none';
+
 }
 
 // Refresh leads table for a specific keyword (used during incremental updates)

@@ -103,12 +103,6 @@ with app.app_context():
 # Global storage for processing status (only for status, data is in DB)
 app_data = {
     'processing_status': None,
-    'processing_progress': {
-        'current_step': '',
-        'total_steps': 0,
-        'completed_steps': 0,
-        'estimated_time_remaining': 0
-    },
     'start_time': time.time(),  # Track application startup time
     'stop_requested': False  # Flag to request processing stop
 }
@@ -758,10 +752,7 @@ def ping():
     return {"status": "OK"}, 200
 
 
-@app.route('/progress')
-def get_progress():
-    """Get current processing progress"""
-    return jsonify(app_data['processing_progress'])
+
 
 
 @app.route('/api/leads')
@@ -1034,20 +1025,7 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit, default_pro
     final_batch_time = profile_batch_time if estimated_batches > 0 else 0
     total_estimated_time = hashtag_crawl_time + total_batch_and_pause_time + final_batch_time
 
-    # Initialize progress with detailed step tracking
-    app_data['processing_progress'] = {
-        'current_step': '1. Suche Instagram-Profile für Hashtag...',
-        'phase': 'hashtag_search',
-        'total_steps': 1 + estimated_batches,  # 1 hashtag search + N profile batches
-        'completed_steps': 0,
-        'estimated_time_remaining': int(total_estimated_time),
-        'incremental_leads': 0,
-        'keyword': keyword,
-        'final_status': 'processing',
-        'current_batch': 0,
-        'total_batches': estimated_batches,
-        'phase_start_time': time.time()
-    }
+
 
     # Step 1: Hashtag crawl - Using correct Apify API format with user-defined limit
     hashtag_input = {
@@ -1060,21 +1038,12 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit, default_pro
         # Check if stop was requested before starting
         if app_data.get('stop_requested', False):
             logger.info("Processing stopped by user before hashtag search")
-            app_data['processing_progress']['final_status'] = 'stopped'
             app_data['processing_status'] = None
             return []
             
-        app_data['processing_progress']['current_step'] = f'1. Suche Instagram-Profile für Hashtag #{keyword} (ca. {hashtag_crawl_time/60:.1f}min)...'
         hashtag_data = call_apify_actor_sync("DrF9mzPPEuVizVF4l", hashtag_input,
                                              apify_token)
-        # Don't increment completed_steps here - will do it after hashtag processing is fully done
         logger.info(f"Hashtag search completed successfully for #{keyword}")
-
-        # Update time remaining
-        elapsed_time = time.time() - start_time
-        remaining_steps = app_data['processing_progress']['total_steps'] - app_data['processing_progress']['completed_steps']
-        avg_time_per_step = elapsed_time / max(1, app_data['processing_progress']['completed_steps'] + 1)
-        app_data['processing_progress']['estimated_time_remaining'] = int(avg_time_per_step * remaining_steps)
 
         if not hashtag_data or not hashtag_data.get('items'):
             logger.error(f"No hashtag data returned for keyword: {keyword}")
@@ -1123,17 +1092,7 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit, default_pro
         logger.error(f"Failed to save hashtag-username pairs: {e}")
         # Continue processing even if saving pairs fails
 
-    # Update progress to show hashtag variants and deduplication counts
-    hashtag_list = ', '.join(sorted(hashtag_variants)[:5])  # Show first 5 hashtags
-    if len(hashtag_variants) > 5:
-        hashtag_list += f' ... (+{len(hashtag_variants) - 5} more)'
-    
-    app_data['processing_progress']['completed_steps'] = 1
-    app_data['processing_progress']['current_step'] = f'Hashtags gefunden: {hashtag_list}\nDeduplizierte Benutzer: {len(unique_profiles)}'
-    app_data['processing_progress']['phase'] = 'hashtag_search_complete'
-    app_data['processing_progress']['total_usernames'] = len(unique_profiles)
-    app_data['processing_progress']['hashtag_variants'] = list(hashtag_variants)
-    logger.info(f"Progress updated: Found {len(hashtag_variants)} hashtag variants, {len(unique_profiles)} unique profiles")
+    logger.info(f"Found {len(hashtag_variants)} hashtag variants, {len(unique_profiles)} unique profiles")
 
     # Brief pause to make transition visible
     await asyncio.sleep(1)
@@ -1162,13 +1121,7 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit, default_pro
         logger.info(f"Filtered out {len(existing_usernames)} existing usernames from database")
         logger.info(f"Will enrich {len(usernames_to_enrich)} new usernames")
         
-        # Update progress with de-duplication info
-        app_data['processing_progress']['total_usernames'] = len(usernames)
-        app_data['processing_progress']['existing_usernames'] = len(existing_usernames)
-        app_data['processing_progress']['usernames_to_enrich'] = len(usernames_to_enrich)
-        
-        # Update progress display to show enrichment is starting
-        app_data['processing_progress']['current_step'] = f'Anreicherung läuft für {len(usernames_to_enrich)} neue Profile...'
+
         
         usernames = usernames_to_enrich  # Use filtered list
     
@@ -1179,8 +1132,7 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit, default_pro
         for i in range(0, len(usernames), batch_size)
     ]
 
-    # Update progress total steps based on actual batches
-    app_data['processing_progress']['total_steps'] = 1 + len(batches)
+
 
     # Process batches sequentially to minimize memory usage
     total_saved_leads = 0
@@ -1190,14 +1142,12 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit, default_pro
         # Check if stop was requested before processing each batch
         if app_data.get('stop_requested', False):
             logger.info(f"Processing stopped by user during batch {i+1}")
-            app_data['processing_progress']['final_status'] = 'stopped'
             app_data['processing_status'] = None
             # Return any leads saved so far
             return total_saved_leads
             
         try:
-            # Simple progress update
-            app_data['processing_progress']['phase'] = 'profile_enrichment'
+
             logger.info(f"Processing batch {i+1}/{len(batches)} with {len(batch)} usernames")
 
             # Process one batch at a time
@@ -1220,17 +1170,12 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit, default_pro
                 total_saved_leads += saved_count
                 logger.info(f"Batch {i+1}: Saved {saved_count} leads incrementally")
 
-                # Update progress with incremental lead count for frontend - force immediate update
-                app_data['processing_progress']['incremental_leads'] = total_saved_leads
-                app_data['processing_progress']['keyword'] = keyword
+
 
                 # Force immediate progress update for UI refresh
                 logger.info(f"UI Refresh Trigger: {total_saved_leads} leads saved for keyword '{keyword}'")
             else:
                 logger.warning(f"Batch {i+1}: No results or unexpected type: {type(result)}")
-
-            # Update progress after batch completion
-            app_data['processing_progress']['completed_steps'] += 1
 
             # Recalculate time remaining (including pause time for remaining batches)
             elapsed_time = time.time() - start_time
@@ -1288,24 +1233,13 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit, default_pro
 
         except Exception as e:
             logger.error(f"Batch {i+1} processing error: {e}")
-            # Update progress with current saved count even on error
-            app_data['processing_progress']['incremental_leads'] = total_saved_leads
-            app_data['processing_progress']['current_step'] = f'Batch {i+1} failed - {total_saved_leads} leads saved so far'
+
             # Continue processing other batches even if one fails
             continue
 
     logger.info(f"Total enrichment complete: {total_saved_leads} leads saved to database")
 
-    # Show final completion status
-    app_data['processing_progress'] = {
-        'current_step': f'Fertig! {total_saved_leads} Leads generiert',
-        'phase': 'completed',
-        'total_steps': 0,
-        'completed_steps': 0,
-        'estimated_time_remaining': 0,
-        'total_leads_generated': total_saved_leads,
-        'final_status': 'success'
-    }
+
 
     # Return dictionary format for API response
     # Query fresh leads from database to avoid session issues
