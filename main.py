@@ -109,7 +109,8 @@ app_data = {
         'completed_steps': 0,
         'estimated_time_remaining': 0
     },
-    'start_time': time.time()  # Track application startup time
+    'start_time': time.time(),  # Track application startup time
+    'stop_requested': False  # Flag to request processing stop
 }
 
 
@@ -924,6 +925,7 @@ def process_keyword():
 
     # Start processing in background using ThreadPoolExecutor
     app_data['processing_status'] = 'Processing...'
+    app_data['stop_requested'] = False  # Reset stop flag
 
     try:
         # Run the async processing in a thread pool with memory optimization
@@ -961,6 +963,24 @@ def process_keyword():
         except Exception as db_error:
             logger.error(f"Failed to query partial leads: {db_error}")
             return {"error": str(e)}, 500
+
+
+@app.route('/stop-processing', methods=['POST'])
+def stop_processing():
+    """Stop current processing"""
+    try:
+        app_data['stop_requested'] = True
+        app_data['processing_status'] = 'Stopping...'
+        
+        # Update progress to show stopping
+        app_data['processing_progress']['current_step'] = 'Stoppe Verarbeitung...'
+        app_data['processing_progress']['final_status'] = 'stopped'
+        
+        logger.info("Stop requested by user")
+        return jsonify({"success": True, "message": "Stopp-Anfrage gesendet"})
+    except Exception as e:
+        logger.error(f"Failed to stop processing: {e}")
+        return jsonify({"error": "Fehler beim Stoppen"}), 500
 
 
 def run_async_process(keyword, ig_sessionid, search_limit, enrich_limit, default_product_id=None):
@@ -1032,6 +1052,13 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit, enrich_limi
     }
     
     try:
+        # Check if stop was requested before starting
+        if app_data.get('stop_requested', False):
+            logger.info("Processing stopped by user before hashtag search")
+            app_data['processing_progress']['final_status'] = 'stopped'
+            app_data['processing_status'] = None
+            return []
+            
         app_data['processing_progress']['current_step'] = f'1. Suche Instagram-Profile für Hashtag #{keyword} (ca. {hashtag_crawl_time/60:.1f}min)...'
         hashtag_data = call_apify_actor_sync("DrF9mzPPEuVizVF4l", hashtag_input,
                                              apify_token)
@@ -1152,6 +1179,14 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit, enrich_limi
     import gc
 
     for i, batch in enumerate(batches):
+        # Check if stop was requested before processing each batch
+        if app_data.get('stop_requested', False):
+            logger.info(f"Processing stopped by user during batch {i+1}")
+            app_data['processing_progress']['final_status'] = 'stopped'
+            app_data['processing_status'] = None
+            # Return any leads saved so far
+            return total_saved_leads
+            
         try:
             # Update progress with detailed step information
             batch_time_estimate = (profile_batch_time + (90 if i < len(batches) - 1 else 0)) / 60  # Convert to minutes

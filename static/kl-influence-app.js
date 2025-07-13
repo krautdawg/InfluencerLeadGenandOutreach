@@ -97,6 +97,9 @@ function initializeEventListeners() {
     // Run button
     document.getElementById('runButton')?.addEventListener('click', processKeyword);
     
+    // Stop button
+    document.getElementById('stopButton')?.addEventListener('click', stopProcessing);
+    
     // Email template auto-save
     initializeEmailTemplateAutoSave();
     
@@ -313,6 +316,31 @@ function updateSessionIdDisplay(sessionId) {
     }
 }
 
+// Stop processing
+async function stopProcessing() {
+    try {
+        const response = await fetch('/stop-processing', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        });
+        
+        if (response.ok) {
+            const result = await response.json();
+            showToast(result.message || 'Stop request sent', 'info');
+            
+            // Update button states
+            const stopButton = document.getElementById('stopButton');
+            stopButton.disabled = true;
+            stopButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Stopping...';
+        } else {
+            showToast('Failed to stop processing', 'error');
+        }
+    } catch (error) {
+        console.error('Error stopping processing:', error);
+        showToast('Error stopping processing', 'error');
+    }
+}
+
 // Process keyword
 async function processKeyword() {
     const keyword = document.getElementById('keywordInput').value.trim();
@@ -336,11 +364,22 @@ async function processKeyword() {
         return;
     }
     
+    const runButton = document.getElementById('runButton');
+    const stopButton = document.getElementById('stopButton');
+    
+    // Update UI for processing state
+    runButton.disabled = true;
+    runButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+    runButton.style.display = 'none';
+    
+    stopButton.disabled = false;
+    stopButton.style.display = 'inline-block';
+    stopButton.innerHTML = '<i class="fas fa-stop"></i> Stop Processing';
+    
     // Show processing status with detailed initial step
     document.getElementById('processingStatus').style.display = 'block';
     document.getElementById('statusText').textContent = '1. Suche Instagram-Profile für Hashtag wird vorbereitet...';
     document.getElementById('progressText').textContent = 'Phase: Initialisierung der Hashtag-Suche';
-    document.getElementById('runButton').disabled = true;
     
     // Reset previous lead count for new processing run
     previousLeadCount = 0;
@@ -394,9 +433,8 @@ async function processKeyword() {
             showToast(`Verarbeitungsfehler: ${error.message || 'Unbekannter Fehler'}`, 'error');
         }
     } finally {
-        document.getElementById('processingStatus').style.display = 'none';
-        document.getElementById('runButton').disabled = false;
-        document.getElementById('runButton').innerHTML = '<i class="fas fa-play"></i><span>Leads generieren</span>';
+        // Reset button states
+        resetProcessingUI();
     }
 }
 
@@ -481,11 +519,33 @@ async function updateProgress() {
                 showToast(`Erfolgreich ${progress.total_leads_generated} Leads generiert!`, 'success');
                 // Reset previous lead count for next run
                 previousLeadCount = 0;
+                resetProcessingUI();
+            } else if (progress.final_status === 'stopped') {
+                showToast('Verarbeitung wurde gestoppt', 'info');
+                resetProcessingUI();
             }
         }
     } catch (error) {
         console.error('Progress update error:', error);
     }
+}
+
+// Reset processing UI to initial state
+function resetProcessingUI() {
+    const runButton = document.getElementById('runButton');
+    const stopButton = document.getElementById('stopButton');
+    
+    // Reset run button
+    runButton.disabled = false;
+    runButton.innerHTML = '<i class="fas fa-play"></i><span>Leads generieren</span>';
+    runButton.style.display = 'inline-block';
+    
+    // Hide stop button
+    stopButton.disabled = true;
+    stopButton.style.display = 'none';
+    
+    // Hide processing status
+    document.getElementById('processingStatus').style.display = 'none';
 }
 
 // Refresh leads table for a specific keyword (used during incremental updates)
