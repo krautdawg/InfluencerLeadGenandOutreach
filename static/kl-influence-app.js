@@ -9,6 +9,7 @@ let editingUsername = null;
 let editingField = null;
 let products = [];
 let defaultProductId = null;
+let lastNotificationTime = 0;
 
 // Template prompts for different scenarios
 const TEMPLATE_PROMPTS = {
@@ -326,14 +327,14 @@ async function stopProcessing() {
         
         if (response.ok) {
             const result = await response.json();
-            showToast(result.message || 'Stop request sent', 'info');
+            showToast('Stopp-Anfrage gesendet...', 'info');
             
             // Update button states
             const stopButton = document.getElementById('stopButton');
             stopButton.disabled = true;
             stopButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Stopping...';
         } else {
-            showToast('Failed to stop processing', 'error');
+            showToast('Stopp fehlgeschlagen', 'error');
         }
     } catch (error) {
         console.error('Error stopping processing:', error);
@@ -503,10 +504,15 @@ async function updateProgress() {
                     const newLeadsCount = progress.incremental_leads - previousLeadCount;
                     previousLeadCount = progress.incremental_leads;
                     
-                    // Show notification only for actual new leads
-                    if (newLeadsCount > 0) {
-                        const notificationText = `+${newLeadsCount} neue Leads generiert (${progress.incremental_leads} gesamt) für "${progress.keyword}"`;
-                        showToast(notificationText, 'success');
+                    // Show notification only for significant new leads (batches of 3 or more) and throttle notifications
+                    if (newLeadsCount >= 3) {
+                        const now = Date.now();
+                        // Only show notification if at least 3 seconds have passed since last notification
+                        if (now - lastNotificationTime > 3000) {
+                            const notificationText = `+${newLeadsCount} neue Leads generiert (${progress.incremental_leads} gesamt)`;
+                            showToast(notificationText, 'success');
+                            lastNotificationTime = now;
+                        }
                     }
                     
                     // Always refresh the table when lead count changes
@@ -521,7 +527,7 @@ async function updateProgress() {
                 previousLeadCount = 0;
                 resetProcessingUI();
             } else if (progress.final_status === 'stopped') {
-                showToast('Verarbeitung wurde gestoppt', 'info');
+                showToast('Verarbeitung gestoppt', 'warning');
                 resetProcessingUI();
             }
         }
