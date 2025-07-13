@@ -6,6 +6,27 @@ K+L Influence is a Flask-based Instagram lead generation and outreach automation
 
 ## Recent Changes
 
+### 2025-07-13: Fixed Progress Display and Hashtag Storage (COMPLETED)
+- **Update**: Fixed two critical issues with progress tracking and hashtag data storage
+- **Issue 1 - Progress Display**: Progress was stuck at "1." and didn't show profile counts or enrichment progress
+- **Issue 2 - Hashtag Storage**: Only storing input keyword instead of actual hashtags from Instagram posts
+- **Fixes Implemented**:
+  - **Hashtag Extraction**: Modified `call_apify_actor_sync` to extract both username AND hashtag ID from each post
+  - **Username-Hashtag Mapping**: Changed from simple username set to username-hashtag map to preserve hashtag data
+  - **Progress Updates**: Added de-duplication statistics display after hashtag search
+  - **Enrichment Progress**: Shows "X/Y Profile angereichert" during batch processing
+  - **De-duplication Display**: Shows total found, existing in DB, and new to enrich counts
+- **Technical Details**:
+  - Extracts hashtag from item fields: `id`, `ID`, `hashtag`, `name` (falls back to keyword)
+  - Stores hashtag with each username in the extraction phase
+  - Progress now shows: "139 Profile gefunden (60 bereits in Datenbank, 79 werden angereichert)"
+  - During enrichment shows: "24/79 Profile angereichert - Batch 9/27"
+- **Benefits**:
+  - Users can see exact progress and de-duplication statistics
+  - Proper hashtag tracking for analytics and filtering
+  - Clear visibility into what the system is doing at each step
+- **Status**: Progress tracking and hashtag storage fully fixed and operational
+
 ### 2025-07-13: Implemented User-Controlled Stop Processing Feature (COMPLETED)
 - **Update**: Added comprehensive stop functionality allowing users to cancel lead generation processing at any time
 - **Features Implemented**:

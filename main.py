@@ -206,8 +206,8 @@ def call_apify_actor_sync(actor_id, input_data, token):
 
         dataset = client.dataset(run["defaultDatasetId"])
 
-        # Stream process with immediate username extraction - no item storage
-        all_usernames = set()  # Use set for automatic deduplication
+        # Stream process with immediate username and hashtag extraction
+        username_hashtag_map = {}  # Map username to hashtag for deduplication
         total_processed = 0
 
         # Use smaller chunks and more frequent garbage collection
@@ -220,15 +220,24 @@ def call_apify_actor_sync(actor_id, input_data, token):
                 logger.info(f"Reached maximum item limit of {max_items} for memory safety")
                 break
 
-            # Extract usernames immediately without storing the item
+            # Extract usernames and hashtags from posts
             if isinstance(item, dict):
+                # Get the hashtag ID from the item
+                hashtag_id = item.get('id') or item.get('ID') or item.get('hashtag') or item.get('name') or keyword
+                
+                # Debug log to see what fields are available
+                if total_processed == 0:
+                    logger.info(f"First item keys: {list(item.keys())}")
+                    logger.info(f"Hashtag ID extracted: {hashtag_id}")
+                
                 # Extract from latestPosts
                 if 'latestPosts' in item and isinstance(item['latestPosts'], list):
                     for post in item['latestPosts']:
                         if isinstance(post, dict) and 'ownerUsername' in post:
                             username = post['ownerUsername']
                             if username and isinstance(username, str):
-                                all_usernames.add(username)
+                                # Store with hashtag ID
+                                username_hashtag_map[username] = hashtag_id
 
                 # Extract from topPosts
                 if 'topPosts' in item and isinstance(item['topPosts'], list):
@@ -236,7 +245,8 @@ def call_apify_actor_sync(actor_id, input_data, token):
                         if isinstance(post, dict) and 'ownerUsername' in post:
                             username = post['ownerUsername']
                             if username and isinstance(username, str):
-                                all_usernames.add(username)
+                                # Store with hashtag ID
+                                username_hashtag_map[username] = hashtag_id
 
             total_processed += 1
 
@@ -244,16 +254,17 @@ def call_apify_actor_sync(actor_id, input_data, token):
             if total_processed % batch_size == 0:
                 gc.collect()  # Force garbage collection
                 time.sleep(processing_delay)
-                logger.debug(f"Processed {total_processed} items, found {len(all_usernames)} unique usernames")
+                logger.debug(f"Processed {total_processed} items, found {len(username_hashtag_map)} unique usernames")
 
-        # Convert set to list of profile objects
-        processed_items = [{'ownerUsername': username} for username in all_usernames]
+        # Convert map to list of profile objects with hashtag
+        processed_items = [{'ownerUsername': username, 'hashtag': hashtag} 
+                          for username, hashtag in username_hashtag_map.items()]
 
         # Final cleanup
         gc.collect()
 
         # Log successful completion
-        logger.info(f"Streaming extraction completed: {len(all_usernames)} unique usernames from {total_processed} items")
+        logger.info(f"Streaming extraction completed: {len(username_hashtag_map)} unique usernames from {total_processed} items")
         return {"items": processed_items}
 
     except Exception as e:
@@ -1069,8 +1080,7 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit, default_pro
         logger.error(f"Hashtag crawl failed for keyword '{keyword}': {e}")
         return []
 
-    # Extract usernames and hashtag IDs from the processed data
-    # The call_apify_actor_sync function already processed and extracted usernames
+    # The call_apify_actor_sync function already processed and extracted username-hashtag pairs
     hashtag_items = hashtag_data.get('items', [])
     logger.info(f"Processing {len(hashtag_items)} hashtag items")
 
@@ -1079,39 +1089,8 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit, default_pro
         logger.debug(f"First item structure: {list(hashtag_items[0].keys()) if isinstance(hashtag_items[0], dict) else type(hashtag_items[0])}")
         logger.debug(f"First item sample: {str(hashtag_items[0])[:200]}")
 
-    username_hashtag_pairs = []  # Store username-hashtag pairs
-
-    # Extract usernames and their associated hashtag IDs from the processed items
-    try:
-        for item in hashtag_items:
-            if not isinstance(item, dict):
-                logger.warning(f"Skipping non-dict item: {type(item)}")
-                continue
-
-            # The streaming process already extracted usernames and stored them as ownerUsername
-            username = item.get('ownerUsername')
-            # Get the hashtag ID from the item - this should come from the original post data
-            hashtag_id = item.get('hashtag_id') or item.get('ID') or item.get('id')
-
-            if username and isinstance(username, str):
-                # Use hashtag ID if available, otherwise fall back to search keyword
-                hashtag_value = hashtag_id if hashtag_id else keyword
-                username_hashtag_pairs.append({'hashtag': hashtag_value, 'username': username})
-            else:
-                logger.debug(f"Item without ownerUsername: {list(item.keys()) if isinstance(item, dict) else 'not a dict'}")
-
-    except Exception as e:
-        logger.error(f"Error during username and hashtag extraction: {e}")
-        # Continue with whatever pairs we have
-
-    # Clear hashtag_data from memory to help with garbage collection
-    hashtag_data = None
-    hashtag_items = None
-
-    logger.info(f"Found {len(username_hashtag_pairs)} username-hashtag pairs from posts")
-
-    # Use the extracted pairs directly
-    profiles = username_hashtag_pairs
+    # Use the extracted username-hashtag pairs directly from Apify result
+    profiles = hashtag_items
 
     # Store count before clearing for logging
     usernames_count = len(profiles)
@@ -1135,10 +1114,11 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit, default_pro
         logger.error(f"Failed to save hashtag-username pairs: {e}")
         # Continue processing even if saving pairs fails
 
-    # Update progress to show hashtag search completed and moving to profile enrichment
+    # Update progress to show hashtag search completed with counts
     app_data['processing_progress']['completed_steps'] = 1
     app_data['processing_progress']['current_step'] = f'1. Hashtag-Suche abgeschlossen - {len(unique_profiles)} Profile gefunden ✓'
     app_data['processing_progress']['phase'] = 'hashtag_search_complete'
+    app_data['processing_progress']['total_usernames'] = len(unique_profiles)
     logger.info(f"Progress updated: Step 1 complete, found {len(unique_profiles)} profiles")
 
     # Brief pause to make transition visible
@@ -1169,6 +1149,9 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit, default_pro
         app_data['processing_progress']['total_usernames'] = len(usernames)
         app_data['processing_progress']['existing_usernames'] = len(existing_usernames)
         app_data['processing_progress']['usernames_to_enrich'] = len(usernames_to_enrich)
+        
+        # Update progress display to show de-duplication stats
+        app_data['processing_progress']['current_step'] = f'1. Hashtag-Suche abgeschlossen - {len(usernames)} Profile gefunden ({len(existing_usernames)} bereits in Datenbank, {len(usernames_to_enrich)} werden angereichert) ✓'
         
         usernames = usernames_to_enrich  # Use filtered list
     
@@ -1201,7 +1184,7 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit, default_pro
             profiles_processed = i * batch_size
             profiles_current_batch = min(len(batch), batch_size)
             total_profiles_after_batch = profiles_processed + profiles_current_batch
-            app_data['processing_progress']['current_step'] = f'2. Erweitere Profil-Informationen - {total_profiles_after_batch}/{len(usernames)} Profile - Batch {i+1}/{len(batches)} (ca. {batch_time_estimate:.1f}min)'
+            app_data['processing_progress']['current_step'] = f'2. Erweitere Profil-Informationen - {profiles_processed}/{len(usernames)} Profile angereichert - Batch {i+1}/{len(batches)} (ca. {batch_time_estimate:.1f}min)'
             app_data['processing_progress']['phase'] = 'profile_enrichment'
             app_data['processing_progress']['current_batch'] = i + 1
             app_data['processing_progress']['total_batches'] = len(batches)
