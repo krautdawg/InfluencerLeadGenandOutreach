@@ -14,12 +14,50 @@ from apify_client import ApifyClient
 import csv
 import io
 
-# Import robust debug logging system
-from debug_logger import debug_logger, track_api_call, DebugLogger
+# Debug logging functionality removed for simplified startup
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
+
+# Simple stub class to replace debug_logger functionality
+class SimpleDebugLogger:
+    def __init__(self):
+        self.logger = logger
+    
+    def log_api_call_start(self, service, operation, details=None):
+        logger.info(f"Starting API call: {service} - {operation}")
+        return f"{service}_{operation}_{time.time()}"
+    
+    def log_api_call_success(self, call_id, response_data=None, **kwargs):
+        logger.info(f"API call successful: {call_id}")
+    
+    def log_api_call_failure(self, call_id, error, **kwargs):
+        logger.error(f"API call failed: {call_id} - {error}")
+    
+    def log_business_logic_error(self, operation, error, context=None):
+        logger.error(f"Business logic error in {operation}: {error}")
+    
+    def get_api_summary(self, time_window_minutes=None):
+        return {
+            'total_calls': 0,
+            'success_calls': 0,
+            'failed_calls': 0,
+            'success_rate': 100.0,
+            'avg_response_time': 0.0
+        }
+    
+    def _sanitize_data(self, data):
+        return str(data)[:100] + "..." if len(str(data)) > 100 else str(data)
+
+# Create debug logger instance
+debug_logger = SimpleDebugLogger()
+
+# Stub function for track_api_call decorator
+def track_api_call(service_name, operation_name):
+    def decorator(func):
+        return func
+    return decorator
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SESSION_SECRET",
