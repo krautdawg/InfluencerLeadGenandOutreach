@@ -14,50 +14,9 @@ from apify_client import ApifyClient
 import csv
 import io
 
-# Debug logging functionality removed for simplified startup
-
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
-
-# Simple stub class to replace debug_logger functionality
-class SimpleDebugLogger:
-    def __init__(self):
-        self.logger = logger
-    
-    def log_api_call_start(self, service, operation, details=None):
-        logger.info(f"Starting API call: {service} - {operation}")
-        return f"{service}_{operation}_{time.time()}"
-    
-    def log_api_call_success(self, call_id, response_data=None, **kwargs):
-        logger.info(f"API call successful: {call_id}")
-    
-    def log_api_call_failure(self, call_id, error, **kwargs):
-        logger.error(f"API call failed: {call_id} - {error}")
-    
-    def log_business_logic_error(self, operation, error, context=None):
-        logger.error(f"Business logic error in {operation}: {error}")
-    
-    def get_api_summary(self, time_window_minutes=None):
-        return {
-            'total_calls': 0,
-            'success_calls': 0,
-            'failed_calls': 0,
-            'success_rate': 100.0,
-            'avg_response_time': 0.0
-        }
-    
-    def _sanitize_data(self, data):
-        return str(data)[:100] + "..." if len(str(data)) > 100 else str(data)
-
-# Create debug logger instance
-debug_logger = SimpleDebugLogger()
-
-# Stub function for track_api_call decorator
-def track_api_call(service_name, operation_name):
-    def decorator(func):
-        return func
-    return decorator
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SESSION_SECRET",
@@ -225,20 +184,14 @@ def save_hashtag_username_pairs(profiles, duplicates):
 def call_apify_actor_sync(actor_id, input_data, token):
     """Call Apify actor using official client - memory optimized streaming version"""
     # Start tracking this API call
-    call_id = debug_logger.log_api_call_start(
-        api_name="Apify_Hashtag_Search",
-        endpoint=f"actor/{actor_id}",
-        method="POST",
-        request_data=input_data,
-        session_id=input_data.get('SessionID', '')[:8] if input_data.get('SessionID') else None
-    )
+    call_id = None
 
     start_time = time.time()
     client = ApifyClient(token)
 
     # Add random delay before Apify call to avoid anti-spam measures
     delay = random.uniform(1, 10)
-    debug_logger.logger.info(f"Anti-spam delay: {delay:.1f}s before Apify hashtag search")
+    logger.info(f"Anti-spam delay: {delay:.1f}s before Apify hashtag search")
     time.sleep(delay)
 
     try:
@@ -259,11 +212,11 @@ def call_apify_actor_sync(actor_id, input_data, token):
         # Use smaller chunks and more frequent garbage collection
         import gc
 
-        debug_logger.logger.info(f"Starting streaming extraction with max_items={max_items}")
+        logger.info(f"Starting streaming extraction with max_items={max_items}")
 
         for item in dataset.iterate_items():
             if total_processed >= max_items:
-                debug_logger.logger.info(f"Reached maximum item limit of {max_items} for memory safety")
+                logger.info(f"Reached maximum item limit of {max_items} for memory safety")
                 break
 
             # Extract usernames immediately without storing the item
@@ -290,7 +243,7 @@ def call_apify_actor_sync(actor_id, input_data, token):
             if total_processed % batch_size == 0:
                 gc.collect()  # Force garbage collection
                 time.sleep(processing_delay)
-                debug_logger.logger.debug(f"Processed {total_processed} items, found {len(all_usernames)} unique usernames")
+                logger.debug(f"Processed {total_processed} items, found {len(all_usernames)} unique usernames")
 
         # Convert set to list of profile objects
         processed_items = [{'ownerUsername': username} for username in all_usernames]
@@ -299,45 +252,12 @@ def call_apify_actor_sync(actor_id, input_data, token):
         gc.collect()
 
         # Log successful completion
-        result = {"items": processed_items}
-        debug_logger.log_api_call_success(
-            call_id=call_id,
-            response_data={
-                "total_usernames_found": len(all_usernames),
-                "items_processed": total_processed,
-                "memory_optimizations": {
-                    "max_items": max_items,
-                    "batch_size": batch_size,
-                    "processing_delay": processing_delay
-                }
-            },
-            status_code=200,
-            response_size=len(json.dumps(result))
-        )
-
-        debug_logger.logger.info(f"Streaming extraction completed: {len(all_usernames)} unique usernames from {total_processed} items")
+        logger.info(f"Streaming extraction completed: {len(all_usernames)} unique usernames from {total_processed} items")
         return result
 
     except Exception as e:
         # Log the failure with detailed error information
-        debug_logger.log_api_call_failure(
-            call_id=call_id,
-            error=e,
-            status_code=getattr(e, 'status_code', None),
-            response_text=str(e)
-        )
-
-        # Log business logic error for additional context
-        debug_logger.log_business_logic_error(
-            operation="hashtag_username_extraction",
-            error_details={
-                "actor_id": actor_id,
-                "input_data": debug_logger._sanitize_data(input_data),
-                "processing_stage": "data_extraction",
-                "error_message": str(e)
-            }
-        )
-
+        logger.error(f"Apify hashtag search failed: {e}")
         return {"items": []}
 
 
@@ -346,18 +266,7 @@ async def call_perplexity_api(profile_info, api_key):
     username = profile_info.get('username', '')
 
     # Start tracking this API call
-    call_id = debug_logger.log_api_call_start(
-        api_name="Perplexity_Contact_Search",
-        endpoint="https://api.perplexity.ai/chat/completions",
-        method="POST",
-        request_data={
-            "username": username,
-            "model": "sonar",
-            "has_existing_email": bool(profile_info.get('email') or profile_info.get('public_email')),
-            "has_existing_phone": bool(profile_info.get('phone') or profile_info.get('contact_phone_number')),
-            "has_existing_website": bool(profile_info.get('website') or profile_info.get('external_url'))
-        }
-    )
+    call_id = None
 
     url = "https://api.perplexity.ai/chat/completions"
     headers = {
@@ -448,35 +357,11 @@ async def call_perplexity_api(profile_info, api_key):
                     }
 
                     # Log successful completion
-                    debug_logger.log_api_call_success(
-                        call_id=call_id,
-                        response_data={
-                            "username": username,
-                            "found_new_email": bool(contact_info.get("email") and not existing_email),
-                            "found_new_phone": bool(contact_info.get("phone") and not existing_phone),
-                            "found_new_website": bool(contact_info.get("website") and not existing_website),
-                            "total_fields_found": sum(1 for v in merged_contact.values() if v),
-                            "api_response_length": len(content)
-                        },
-                        status_code=response.status_code,
-                        response_size=len(json.dumps(result))
-                    )
-
-                    debug_logger.logger.info(f"Perplexity API enrichment for {username}: found {sum(1 for v in contact_info.values() if v)} new fields")
+                    logger.info(f"Perplexity API enrichment for {username}: found {sum(1 for v in contact_info.values() if v)} new fields")
                     return merged_contact
                 else:
                     # No JSON found, return existing contact info if available
-                    debug_logger.log_business_logic_error(
-                        operation="perplexity_json_extraction",
-                        error_details={
-                            "username": username,
-                            "issue": "No JSON found in response",
-                            "response_content": content[:200],
-                            "response_length": len(content)
-                        },
-                        severity="WARNING"
-                    )
-
+                    logger.warning(f"No JSON found in Perplexity response for {username}")
                     return {
                         "email": existing_email or "",
                         "phone": existing_phone or "",
@@ -484,24 +369,7 @@ async def call_perplexity_api(profile_info, api_key):
                     }
             except (json.JSONDecodeError, KeyError) as e:
                 # Log parsing failure
-                debug_logger.log_api_call_failure(
-                    call_id=call_id,
-                    error=e,
-                    status_code=response.status_code,
-                    response_text=content[:500] if 'content' in locals() else "No content available"
-                )
-
-                debug_logger.log_business_logic_error(
-                    operation="perplexity_response_parsing",
-                    error_details={
-                        "username": username,
-                        "error_type": type(e).__name__,
-                        "error_message": str(e),
-                        "response_content": content[:200] if 'content' in locals() else "No content",
-                        "response_status": response.status_code
-                    }
-                )
-
+                logger.error(f"Failed to parse Perplexity response for {username}: {e}")
                 return {
                     "email": existing_email or "",
                     "phone": existing_phone or "",
@@ -509,13 +377,7 @@ async def call_perplexity_api(profile_info, api_key):
                 }
         except httpx.HTTPStatusError as e:
             # Log HTTP error
-            debug_logger.log_api_call_failure(
-                call_id=call_id,
-                error=e,
-                status_code=e.response.status_code,
-                response_text=e.response.text[:500] if e.response.text else ""
-            )
-
+            
             return {
                 "email": existing_email or "",
                 "phone": existing_phone or "",
@@ -523,12 +385,7 @@ async def call_perplexity_api(profile_info, api_key):
             }
         except Exception as e:
             # Log general error
-            debug_logger.log_api_call_failure(
-                call_id=call_id,
-                error=e,
-                response_text=str(e)
-            )
-
+            logger.error(f"Perplexity API error for {username}: {e}")
             return {
                 "email": existing_email or "",
                 "phone": existing_phone or "",
@@ -667,23 +524,13 @@ def call_apify_profile_enrichment(actor_id, input_data, token):
     usernames = input_data.get('instagram_ids', [])
     username_count = len(usernames) if isinstance(usernames, list) else 1
 
-    call_id = debug_logger.log_api_call_start(
-        api_name="Apify_Profile_Enrichment",
-        endpoint=f"actor/{actor_id}",
-        method="POST",
-        request_data={
-            "usernames_count": username_count,
-            "has_session_id": bool(input_data.get('SessionID')),
-            "has_proxy": bool(input_data.get('proxy'))
-        },
-        session_id=input_data.get('SessionID', '')[:8] if input_data.get('SessionID') else None
-    )
+    call_id = None
 
     client = ApifyClient(token)
 
     # Add random delay before Apify call to avoid anti-spam measures
     delay = random.uniform(1, 10)
-    debug_logger.logger.info(f"Anti-spam delay: {delay:.1f}s before Apify profile enrichment...")
+    logger.info(f"Anti-spam delay: {delay:.1f}s before Apify profile enrichment...")
     time.sleep(delay)
 
     try:
@@ -700,40 +547,13 @@ def call_apify_profile_enrichment(actor_id, input_data, token):
                 profiles.append(item)
 
         # Log successful completion
-        debug_logger.log_api_call_success(
-            call_id=call_id,
-            response_data={
-                "profiles_returned": len(profiles),
-                "usernames_requested": username_count,
-                "success_rate": round((len(profiles) / username_count) * 100, 2) if username_count > 0 else 0,
-                "response_fields": list(profiles[0].keys()) if profiles else []
-            },
-            status_code=200,
-            response_size=len(json.dumps(profiles))
-        )
 
-        debug_logger.logger.info(f"Profile enrichment API returned {len(profiles)} profiles for {username_count} requested usernames")
+        logger.info(f"Profile enrichment API returned {len(profiles)} profiles for {username_count} requested usernames")
         return profiles
 
     except Exception as e:
         # Log the failure
-        debug_logger.log_api_call_failure(
-            call_id=call_id,
-            error=e,
-            status_code=getattr(e, 'status_code', None),
-            response_text=str(e)
-        )
-
-        debug_logger.log_business_logic_error(
-            operation="profile_enrichment_batch",
-            error_details={
-                "actor_id": actor_id,
-                "usernames_requested": username_count,
-                "input_data": debug_logger._sanitize_data(input_data),
-                "error_message": str(e)
-            }
-        )
-
+        logger.error(f"Profile enrichment API error: {e}")
         return []
 
 
@@ -951,7 +771,7 @@ def get_api_metrics():
     time_window = request.args.get('time_window', 60, type=int)  # Default 60 minutes
 
     try:
-        metrics_summary = debug_logger.get_api_summary(time_window_minutes=time_window)
+        metrics_summary = {'total_calls': 0, 'success_calls': 0, 'failed_calls': 0, 'success_rate': 100.0, 'avg_response_time': 0.0}
 
         # Add additional system information
         metrics_summary.update({
@@ -964,13 +784,6 @@ def get_api_metrics():
 
         return jsonify(metrics_summary)
     except Exception as e:
-        debug_logger.log_business_logic_error(
-            operation="api_metrics_retrieval",
-            error_details={
-                "time_window": time_window,
-                "error_message": str(e)
-            }
-        )
         return jsonify({"error": "Failed to retrieve API metrics", "details": str(e)}), 500
 
 
@@ -979,7 +792,7 @@ def get_api_health():
     """Get API health status and recent error trends"""
     try:
         # Get recent metrics
-        recent_metrics = debug_logger.get_api_summary(time_window_minutes=15)
+        recent_metrics = {'total_calls': 0, 'success_calls': 0, 'failed_calls': 0, 'success_rate': 100.0, 'avg_response_time': 0.0}
 
         # Determine health status
         if recent_metrics.get('total_calls', 0) == 0:
@@ -998,11 +811,7 @@ def get_api_health():
             db.session.commit()
         except Exception as e:
             db_healthy = False
-            debug_logger.log_business_logic_error(
-                operation="database_health_check",
-                error_details={"error_message": str(e)},
-                severity="ERROR"
-            )
+            logger.error(f"Database health check failed: {e}")
 
         health_info = {
             "status": health_status,
@@ -1016,7 +825,6 @@ def get_api_health():
                 "instagram_session": "configured" if session.get('ig_sessionid') else "not_configured"
             }
         }
-
         return jsonify(health_info)
     except Exception as e:
         return jsonify({
@@ -1222,7 +1030,7 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit, enrich_limi
         "searchType": "hashtag",
         "searchLimit": search_limit
     }
-
+    
     try:
         app_data['processing_progress']['current_step'] = f'1. Suche Instagram-Profile für Hashtag #{keyword} (ca. {hashtag_crawl_time/60:.1f}min)...'
         hashtag_data = call_apify_actor_sync("DrF9mzPPEuVizVF4l", hashtag_input,
@@ -1724,12 +1532,9 @@ def export_data(format):
         elif format == 'json':
             leads_data = [lead.to_dict() for lead in leads]
             return {
-                "data":
-                json.dumps(leads_data, indent=2),
-                "filename":
-                f"leads_export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+                "data": json.dumps(leads_data, indent=2),
+                "filename": f"leads_export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
             }
-
         else:
             return {"error": "Unsupported format"}, 400
 
