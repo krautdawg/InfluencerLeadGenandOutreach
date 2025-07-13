@@ -359,9 +359,9 @@ async function processKeyword() {
     stopButton.style.display = 'inline-block';
     stopButton.innerHTML = '<i class="fas fa-stop"></i> Stop Processing';
     
-    // Show processing status with detailed initial step
+    // Show processing status with API call description
     document.getElementById('processingStatus').style.display = 'block';
-    document.getElementById('statusText').textContent = '1. Suche Instagram-Profile für Hashtag wird vorbereitet...';
+    document.getElementById('statusText').textContent = '1. Hashtag-Daten abrufen';
     document.getElementById('progressText').textContent = 'Phase: Initialisierung der Hashtag-Suche';
     
     // Reset previous lead count for new processing run
@@ -430,14 +430,9 @@ async function updateProgress() {
         if (response.ok) {
             const progress = await response.json();
             
-            // Update status display with more detailed information
-            if (progress.current_step && progress.current_step.trim() !== '') {
-                document.getElementById('statusText').textContent = progress.current_step;
-                
-                // Ensure processing status is visible during processing
-                if (progress.phase && progress.phase !== 'completed') {
-                    document.getElementById('processingStatus').style.display = 'block';
-                }
+            // Ensure processing status is visible during processing
+            if (progress.phase && progress.phase !== 'completed') {
+                document.getElementById('processingStatus').style.display = 'block';
             }
             
             // Update progress details with phase-specific information
@@ -506,6 +501,24 @@ async function updateProgress() {
                     // Always refresh the table when lead count changes
                     await refreshLeadsTable(progress.keyword);
                 }
+            }
+            
+            // Display current API call status in German
+            let apiCallStatus = '';
+            if (progress.phase === 'hashtag_search' || progress.phase === 'hashtag_search_complete') {
+                apiCallStatus = '1. Hashtag-Daten abrufen';
+            } else if (progress.phase === 'profile_enrichment') {
+                // Check if it's Perplexity enrichment based on current_step
+                if (progress.current_step && progress.current_step.includes('Perplexity')) {
+                    apiCallStatus = '3. Finale Anreicherung mit Perplexity';
+                } else {
+                    apiCallStatus = '2. Profile anreichern';
+                }
+            }
+            
+            // Update status text with current API call
+            if (apiCallStatus) {
+                document.getElementById('statusText').textContent = apiCallStatus;
             }
             
             // Handle completion status
