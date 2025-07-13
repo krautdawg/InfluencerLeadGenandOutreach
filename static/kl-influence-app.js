@@ -331,9 +331,6 @@ async function stopProcessing() {
     }
 }
 
-// Global variable for status polling interval
-let statusPollInterval = null;
-
 // Process keyword
 async function processKeyword() {
     const keyword = document.getElementById('keywordInput').value.trim();
@@ -352,8 +349,6 @@ async function processKeyword() {
     
     const runButton = document.getElementById('runButton');
     const stopButton = document.getElementById('stopButton');
-    const statusBar = document.getElementById('statusBar');
-    const statusText = document.getElementById('statusText');
     
     // Update UI for processing state
     runButton.disabled = true;
@@ -364,34 +359,16 @@ async function processKeyword() {
     stopButton.style.display = 'inline-block';
     stopButton.innerHTML = '<i class="fas fa-stop"></i> Stop Processing';
     
-    // Show status bar with "In Progress"
-    statusBar.style.display = 'block';
-    statusText.textContent = 'In Progress';
+    // Show processing status with detailed initial step
+    document.getElementById('processingStatus').style.display = 'block';
+    document.getElementById('statusText').textContent = '1. Suche Instagram-Profile für Hashtag wird vorbereitet...';
+    document.getElementById('progressText').textContent = 'Phase: Initialisierung der Hashtag-Suche';
     
     // Reset previous lead count for new processing run
     previousLeadCount = 0;
     
-    // Start polling for simple status updates
-    statusPollInterval = setInterval(async () => {
-        try {
-            const statusResponse = await fetch('/progress');
-            if (statusResponse.ok) {
-                const statusData = await statusResponse.json();
-                
-                if (statusData.status === 'hashtag_complete' && statusData.hashtag_info) {
-                    const hashtags = statusData.hashtag_info.hashtags.join(', ');
-                    const userCount = statusData.hashtag_info.user_count;
-                    statusText.textContent = `Hashtags: ${hashtags} | Users: ${userCount}`;
-                } else if (statusData.status === 'enriching') {
-                    statusText.textContent = 'Enriching...';
-                }
-            }
-        } catch (error) {
-            console.log('Status polling error:', error);
-        }
-    }, 2000); // Poll every 2 seconds
-    
-
+    // Start progress polling
+    const progressInterval = setInterval(updateProgress, 2000);
     
     try {
         const response = await fetch('/process', {
@@ -403,6 +380,8 @@ async function processKeyword() {
             }),
             timeout: 7320000 // 2h 2min timeout to match gunicorn (2h timeout)
         });
+        
+        clearInterval(progressInterval);
         
         if (response.ok) {
             const result = await response.json();
@@ -426,6 +405,7 @@ async function processKeyword() {
             showToast(error.error || 'Failed to process keyword', 'error');
         }
     } catch (error) {
+        clearInterval(progressInterval);
         console.error('Processing error:', error);
         if (error.name === 'AbortError') {
             showToast('Anfrage ist abgelaufen. Bitte versuche es mit einem kleineren Suchlimit erneut.', 'error');
@@ -443,13 +423,111 @@ async function processKeyword() {
 // Track previous lead count to detect new leads
 let previousLeadCount = 0;
 
-
+// Update progress
+async function updateProgress() {
+    try {
+        const response = await fetch('/progress');
+        if (response.ok) {
+            const progress = await response.json();
+            
+            // Update status display with more detailed information
+            if (progress.current_step && progress.current_step.trim() !== '') {
+                document.getElementById('statusText').textContent = progress.current_step;
+                
+                // Ensure processing status is visible during processing
+                if (progress.phase && progress.phase !== 'completed') {
+                    document.getElementById('processingStatus').style.display = 'block';
+                }
+            }
+            
+            // Update progress details with phase-specific information
+            let progressHTML = '';
+            
+            if (progress.total_steps > 0) {
+                const percentage = Math.round((progress.completed_steps / progress.total_steps) * 100);
+                const minutes = Math.floor(progress.estimated_time_remaining / 60);
+                const seconds = progress.estimated_time_remaining % 60;
+                
+                progressHTML += `Fortschritt: ${progress.completed_steps}/${progress.total_steps} (${percentage}%)<br>`;
+                
+                // Add time estimate if available
+                if (progress.estimated_time_remaining > 0) {
+                    progressHTML += `Geschätzte Restzeit: ${minutes}m ${seconds}s<br>`;
+                }
+            }
+            
+            // Add de-duplication info if available
+            if (progress.usernames_to_enrich !== undefined) {
+                progressHTML += `<strong>Gefunden:</strong> ${progress.total_usernames} Profile<br>`;
+                progressHTML += `<strong>Bereits vorhanden:</strong> ${progress.existing_usernames}<br>`;
+                progressHTML += `<strong>Werden angereichert:</strong> ${progress.usernames_to_enrich}<br>`;
+            }
+            
+            // Add phase-specific details with enhanced descriptions
+            if (progress.phase === 'hashtag_search') {
+                progressHTML += `<strong>Phase:</strong> Instagram Hashtag-Crawling läuft...`;
+            } else if (progress.phase === 'hashtag_search_complete') {
+                progressHTML += `<strong>Phase:</strong> Hashtag-Suche abgeschlossen, starte Profil-Anreicherung...`;
+            } else if (progress.phase === 'profile_enrichment') {
+                if (progress.current_batch && progress.total_batches) {
+                    progressHTML += `<strong>Phase:</strong> Profil-Anreicherung (Batch ${progress.current_batch}/${progress.total_batches})`;
+                } else {
+                    progressHTML += `<strong>Phase:</strong> Profile werden angereichert...`;
+                }
+            } else if (progress.phase === 'completed') {
+                progressHTML += `<strong>Phase:</strong> Erfolgreich abgeschlossen ✓`;
+            } else if (progress.incremental_leads > 0) {
+                progressHTML += `<strong>Leads generiert:</strong> ${progress.incremental_leads}`;
+            }
+            
+            if (progressHTML) {
+                document.getElementById('progressText').innerHTML = progressHTML;
+            }
+            
+            // Handle incremental lead updates - detect when lead count changes
+            if (progress.incremental_leads !== undefined && progress.keyword) {
+                // Check if we have new leads (count increased) OR if we haven't refreshed yet
+                if (progress.incremental_leads > previousLeadCount || (progress.incremental_leads > 0 && previousLeadCount === 0)) {
+                    console.log(`New leads detected: ${progress.incremental_leads} (was ${previousLeadCount}) for keyword: ${progress.keyword}`);
+                    const newLeadsCount = progress.incremental_leads - previousLeadCount;
+                    previousLeadCount = progress.incremental_leads;
+                    
+                    // Show notification only for significant new leads (batches of 3 or more) and throttle notifications
+                    if (newLeadsCount >= 3) {
+                        const now = Date.now();
+                        // Only show notification if at least 3 seconds have passed since last notification
+                        if (now - lastNotificationTime > 3000) {
+                            const notificationText = `+${newLeadsCount} neue Leads generiert (${progress.incremental_leads} gesamt)`;
+                            showToast(notificationText, 'success');
+                            lastNotificationTime = now;
+                        }
+                    }
+                    
+                    // Always refresh the table when lead count changes
+                    await refreshLeadsTable(progress.keyword);
+                }
+            }
+            
+            // Handle completion status
+            if (progress.final_status === 'success' && progress.total_leads_generated !== undefined) {
+                showToast(`Erfolgreich ${progress.total_leads_generated} Leads generiert!`, 'success');
+                // Reset previous lead count for next run
+                previousLeadCount = 0;
+                resetProcessingUI();
+            } else if (progress.final_status === 'stopped') {
+                showToast('Verarbeitung gestoppt', 'warning');
+                resetProcessingUI();
+            }
+        }
+    } catch (error) {
+        console.error('Progress update error:', error);
+    }
+}
 
 // Reset processing UI to initial state
 function resetProcessingUI() {
     const runButton = document.getElementById('runButton');
     const stopButton = document.getElementById('stopButton');
-    const statusBar = document.getElementById('statusBar');
     
     // Reset run button
     runButton.disabled = false;
@@ -460,16 +538,8 @@ function resetProcessingUI() {
     stopButton.disabled = true;
     stopButton.style.display = 'none';
     
-    // Hide status bar
-    if (statusBar) {
-        statusBar.style.display = 'none';
-    }
-    
-    // Stop status polling
-    if (statusPollInterval) {
-        clearInterval(statusPollInterval);
-        statusPollInterval = null;
-    }
+    // Hide processing status
+    document.getElementById('processingStatus').style.display = 'none';
 }
 
 // Refresh leads table for a specific keyword (used during incremental updates)
