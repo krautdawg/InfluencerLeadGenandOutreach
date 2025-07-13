@@ -894,7 +894,6 @@ def process_keyword():
     data = request.get_json()
     keyword = data.get('keyword', '').strip()
     search_limit = data.get('searchLimit', 100)
-    enrich_limit = data.get('enrichLimit', 25)  # New parameter for testing
 
     if not keyword:
         return {"error": "Keyword is required"}, 400
@@ -906,14 +905,6 @@ def process_keyword():
             return {"error": "Search limit must be between 1 and 50"}, 400
     except (ValueError, TypeError):
         return {"error": "Invalid search limit value"}, 400
-
-    # Validate enrich limit for testing purposes
-    try:
-        enrich_limit = int(enrich_limit)
-        if enrich_limit < 1 or enrich_limit > 25:
-            return {"error": "Enrich limit must be between 1 and 25"}, 400
-    except (ValueError, TypeError):
-        return {"error": "Invalid enrich limit value"}, 400
 
     ig_sessionid = session.get('ig_sessionid') or os.environ.get(
         'IG_SESSIONID')
@@ -930,7 +921,7 @@ def process_keyword():
     try:
         # Run the async processing in a thread pool with memory optimization
         with ThreadPoolExecutor(max_workers=1) as executor:
-            future = executor.submit(run_async_process, keyword, ig_sessionid, search_limit, enrich_limit, default_product_id)
+            future = executor.submit(run_async_process, keyword, ig_sessionid, search_limit, default_product_id)
             try:
                 result = future.result(timeout=180)  # Reduced to 3 minutes
             except TimeoutError:
@@ -983,7 +974,7 @@ def stop_processing():
         return jsonify({"error": "Fehler beim Stoppen"}), 500
 
 
-def run_async_process(keyword, ig_sessionid, search_limit, enrich_limit, default_product_id=None):
+def run_async_process(keyword, ig_sessionid, search_limit, default_product_id=None):
     """Run async processing in a separate thread"""
     try:
         # Create new event loop for this thread
@@ -991,7 +982,7 @@ def run_async_process(keyword, ig_sessionid, search_limit, enrich_limit, default
         asyncio.set_event_loop(loop)
         try:
             return loop.run_until_complete(
-                process_keyword_async(keyword, ig_sessionid, search_limit, enrich_limit, default_product_id))
+                process_keyword_async(keyword, ig_sessionid, search_limit, default_product_id))
         finally:
             loop.close()
     except Exception as e:
@@ -999,7 +990,7 @@ def run_async_process(keyword, ig_sessionid, search_limit, enrich_limit, default
         raise
 
 
-async def process_keyword_async(keyword, ig_sessionid, search_limit, enrich_limit, default_product_id=None):
+async def process_keyword_async(keyword, ig_sessionid, search_limit, default_product_id=None):
     """Async processing of keyword"""
     apify_token = os.environ.get('APIFY_TOKEN')
     perplexity_key = os.environ.get('PERPLEXITY_API_KEY')
@@ -1020,8 +1011,8 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit, enrich_limi
     # Calculate total estimated time including 5-minute anti-spam pauses between batches
     avg_delay_time = 5.5  # Average of 1-10 seconds
     hashtag_crawl_time = avg_delay_time + 30  # Hashtag search takes longer
-    profile_batch_time = avg_delay_time + 15  # Per batch (slightly longer for 5 profiles)
-    estimated_batches = min(search_limit // 5, enrich_limit // 5)  # 5 profiles per batch
+    profile_batch_time = avg_delay_time + 15  # Per batch (slightly longer for 3 profiles)
+    estimated_batches = search_limit // 3  # 3 profiles per batch
     pause_time_per_batch = 90  # 90 seconds = 1.5 minutes between batches
 
     # Total time = hashtag search + (batch processing time + pause time) * (batches - 1) + final batch processing
@@ -1159,12 +1150,29 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit, enrich_limi
 
     # Advanced anti-spam optimization: batch 3 profiles with strategic pauses
     usernames = [p['username'] for p in unique_profiles]
+    
+    # Filter out usernames that already exist in database
+    with app.app_context():
+        existing_usernames = set()
+        existing_leads = Lead.query.filter(Lead.username.in_(usernames)).all()
+        for lead in existing_leads:
+            existing_usernames.add(lead.username)
+        
+        # Filter out usernames that already exist in database
+        usernames_to_enrich = [u for u in usernames if u not in existing_usernames]
+        
+        logger.info(f"Found {len(usernames)} unique usernames from hashtag search")
+        logger.info(f"Filtered out {len(existing_usernames)} existing usernames from database")
+        logger.info(f"Will enrich {len(usernames_to_enrich)} new usernames")
+        
+        # Update progress with de-duplication info
+        app_data['processing_progress']['total_usernames'] = len(usernames)
+        app_data['processing_progress']['existing_usernames'] = len(existing_usernames)
+        app_data['processing_progress']['usernames_to_enrich'] = len(usernames_to_enrich)
+        
+        usernames = usernames_to_enrich  # Use filtered list
+    
     batch_size = 3  # Process 3 profiles at a time with extended pauses between groups
-
-    # Use enrich_limit parameter to control how many profiles to enrich (for testing)
-    if len(usernames) > enrich_limit:
-        logger.info(f"Limiting usernames from {len(usernames)} to {enrich_limit} for testing (enrich_limit)")
-        usernames = usernames[:enrich_limit]
 
     batches = [
         usernames[i:i + batch_size]
@@ -1190,7 +1198,10 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit, enrich_limi
         try:
             # Update progress with detailed step information
             batch_time_estimate = (profile_batch_time + (90 if i < len(batches) - 1 else 0)) / 60  # Convert to minutes
-            app_data['processing_progress']['current_step'] = f'2. Erweitere Profil-Informationen - Batch {i+1}/{len(batches)} (ca. {batch_time_estimate:.1f}min)'
+            profiles_processed = i * batch_size
+            profiles_current_batch = min(len(batch), batch_size)
+            total_profiles_after_batch = profiles_processed + profiles_current_batch
+            app_data['processing_progress']['current_step'] = f'2. Erweitere Profil-Informationen - {total_profiles_after_batch}/{len(usernames)} Profile - Batch {i+1}/{len(batches)} (ca. {batch_time_estimate:.1f}min)'
             app_data['processing_progress']['phase'] = 'profile_enrichment'
             app_data['processing_progress']['current_batch'] = i + 1
             app_data['processing_progress']['total_batches'] = len(batches)

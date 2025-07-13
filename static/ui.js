@@ -184,7 +184,6 @@ async function saveSessionId() {
 async function processKeyword() {
     const keyword = document.getElementById('keywordInput').value.trim();
     const searchLimit = parseInt(document.getElementById('searchLimitInput').value) || 25;
-    const enrichLimit = parseInt(document.getElementById('enrichLimitInput').value) || 5;
     
     if (!keyword) {
         showToast('Bitte gib einen Suchbegriff ein', 'error');
@@ -196,18 +195,13 @@ async function processKeyword() {
         return;
     }
     
-    if (enrichLimit < 1 || enrichLimit > 25) {
-        showToast('Anreicherungs-Limit muss zwischen 1 und 25 liegen (für Tests)', 'error');
-        return;
-    }
-    
     // Show processing status
     const statusDiv = document.getElementById('processingStatus');
     const statusText = document.getElementById('statusText');
     const runButton = document.getElementById('runButton');
     
     statusDiv.style.display = 'block';
-    statusText.textContent = `Verarbeite Suchbegriff, sammle bis zu ${searchLimit} Leads, reichere ${enrichLimit} Profile an...`;
+    statusText.textContent = `Verarbeite Suchbegriff, sammle bis zu ${searchLimit} Leads...`;
     runButton.disabled = true;
     runButton.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Verarbeitung...';
     
@@ -248,7 +242,7 @@ async function processKeyword() {
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ keyword: keyword, searchLimit: searchLimit, enrichLimit: enrichLimit }),
+            body: JSON.stringify({ keyword: keyword, searchLimit: searchLimit }),
             signal: controller.signal
         });
         

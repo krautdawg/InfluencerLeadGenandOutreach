@@ -144,15 +144,6 @@ function optimizeMobileInputs() {
         input.addEventListener('input', function(e) {
             let value = parseInt(e.target.value);
             
-            // Handle enrichment limit validation
-            if (e.target.id === 'enrichLimitInput') {
-                if (value < 1) {
-                    e.target.value = 1;
-                } else if (value > 25) {
-                    e.target.value = 25;
-                }
-            }
-            
             // Handle search limit validation
             if (e.target.id === 'searchLimitInput') {
                 if (value < 1) {
@@ -166,9 +157,7 @@ function optimizeMobileInputs() {
         // Add blur event to ensure valid values
         input.addEventListener('blur', function(e) {
             if (!e.target.value) {
-                if (e.target.id === 'enrichLimitInput') {
-                    e.target.value = 5;
-                } else if (e.target.id === 'searchLimitInput') {
+                if (e.target.id === 'searchLimitInput') {
                     e.target.value = 25;
                 }
             }
@@ -346,7 +335,6 @@ async function stopProcessing() {
 async function processKeyword() {
     const keyword = document.getElementById('keywordInput').value.trim();
     const searchLimit = parseInt(document.getElementById('searchLimitInput').value) || 25;
-    const enrichLimit = parseInt(document.getElementById('enrichLimitInput').value) || 5;
     
     if (!keyword) {
         showToast('Bitte gib einen Suchbegriff ein', 'warning');
@@ -356,12 +344,6 @@ async function processKeyword() {
     // Validate search limit
     if (searchLimit < 1 || searchLimit > 50) {
         showToast('Suchlimit muss zwischen 1 und 50 liegen (Speichersicherheit)', 'error');
-        return;
-    }
-    
-    // Validate enrichment limit
-    if (enrichLimit < 1 || enrichLimit > 25) {
-        showToast('Anreicherungs-Limit muss zwischen 1 und 25 liegen (für Tests)', 'error');
         return;
     }
     
@@ -394,8 +376,7 @@ async function processKeyword() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
                 keyword: keyword,
-                searchLimit: searchLimit,
-                enrichLimit: enrichLimit
+                searchLimit: searchLimit
             }),
             timeout: 1800000 // 30 minute timeout to match gunicorn
         });
@@ -473,6 +454,13 @@ async function updateProgress() {
                 if (progress.estimated_time_remaining > 0) {
                     progressHTML += `Geschätzte Restzeit: ${minutes}m ${seconds}s<br>`;
                 }
+            }
+            
+            // Add de-duplication info if available
+            if (progress.usernames_to_enrich !== undefined) {
+                progressHTML += `<strong>Gefunden:</strong> ${progress.total_usernames} Profile<br>`;
+                progressHTML += `<strong>Bereits vorhanden:</strong> ${progress.existing_usernames}<br>`;
+                progressHTML += `<strong>Werden angereichert:</strong> ${progress.usernames_to_enrich}<br>`;
             }
             
             // Add phase-specific details with enhanced descriptions
