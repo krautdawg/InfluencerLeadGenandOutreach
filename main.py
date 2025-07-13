@@ -44,29 +44,29 @@ openai_client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
 # Create database tables
 with app.app_context():
     db.create_all()
-    
+
     # Initialize default email templates if they don't exist
     def initialize_default_templates():
         """Initialize default email templates if they don't exist"""
         default_subject_template = 'Schreibe in DU-Form eine persönliche Betreffzeile mit freundlichen Hook für eine Influencer Kooperation mit Kasimir + Liselotte. Nutze persönliche Infos (z.B. Username, BIO, Interessen), sprich sie direkt in DU-Form. Falls ein Produkt ausgewählt ist, erwähne es subtil in der Betreffzeile. Antworte im JSON-Format: {"subject": "betreff text"}'
         default_body_template = 'Erstelle eine personalisierte, professionelle deutsche E-Mail, ohne die Betreffzeile, für potenzielle Instagram Influencer Kooperationen. Die E-Mail kommt von Kasimir vom Store KasimirLieselotte. Verwende einen höflichen, professionellen Ton auf Deutsch aber in DU-Form um es casual im Instagram feel zu bleiben. WICHTIG: Falls ein Produkt ausgewählt ist, integriere unbedingt folgende Elemente in die E-Mail: 1) Erwähne das Produkt namentlich, 2) Füge den direkten Link zum Produkt ein (Produkt-URL), 3) Erkläre kurz die Produkteigenschaften basierend auf der Beschreibung, 4) Beziehe das Produkt auf die Bio/Interessen des Influencers. Die E-Mail sollte den Produktlink natürlich in den Text einbetten. Füge am Ende die Signatur mit der Website https://www.kasimirlieselotte.de/ hinzu. Antworte im JSON-Format: {"body": "email inhalt"}'
-        
+
         # Check if subject template exists
         subject_template = EmailTemplate.query.filter_by(name='subject').first()
         if not subject_template:
             subject_template = EmailTemplate(name='subject', template=default_subject_template)
             db.session.add(subject_template)
-        
+
         # Check if body template exists
         body_template = EmailTemplate.query.filter_by(name='body').first()
         if not body_template:
             body_template = EmailTemplate(name='body', template=default_body_template)
             db.session.add(body_template)
-        
+
         db.session.commit()
-    
+
     initialize_default_templates()
-    
+
     # Initialize default products if they don't exist
     def initialize_default_products():
         """Initialize default product catalog if it doesn't exist"""
@@ -86,7 +86,7 @@ with app.app_context():
                 'price': '50 ml'
             }
         ]
-        
+
         for product_data in default_products:
             existing_product = Product.query.filter_by(name=product_data['name']).first()
             if not existing_product:
@@ -98,9 +98,9 @@ with app.app_context():
                     price=product_data['price']
                 )
                 db.session.add(product)
-        
+
         db.session.commit()
-    
+
     initialize_default_products()
 
 # Global storage for processing status (only for status, data is in DB)
@@ -137,22 +137,22 @@ def save_hashtag_username_pairs(profiles, duplicates):
     """Save deduplicated hashtag-username pairs to database"""
     saved_pairs = []
     batch_size = 50  # Process in batches for better performance
-    
+
     with app.app_context():
         try:
             for i, profile in enumerate(profiles):
                 hashtag = profile.get('hashtag', '')
                 username = profile.get('username', '')
-                
+
                 if not hashtag or not username:
                     continue
-                
+
                 # Check if pair already exists
                 existing_pair = HashtagUsernamePair.query.filter_by(
                     hashtag=hashtag,
                     username=username
                 ).first()
-                
+
                 if existing_pair:
                     # Update existing pair
                     existing_pair.is_duplicate = username in duplicates
@@ -166,18 +166,18 @@ def save_hashtag_username_pairs(profiles, duplicates):
                     )
                     db.session.add(new_pair)
                     saved_pairs.append(new_pair)
-                
+
                 # Commit in batches
                 if (i + 1) % batch_size == 0:
                     db.session.commit()
                     logger.info(f"Committed batch {i + 1} hashtag-username pairs to database")
-            
+
             # Final commit for remaining items
             db.session.commit()
             logger.info(f"Successfully saved {len(saved_pairs)} hashtag-username pairs to database")
-            
+
             return saved_pairs
-            
+
         except Exception as e:
             logger.error(f"Failed to save hashtag-username pairs: {e}")
             db.session.rollback()
@@ -194,40 +194,40 @@ def call_apify_actor_sync(actor_id, input_data, token):
         request_data=input_data,
         session_id=input_data.get('SessionID', '')[:8] if input_data.get('SessionID') else None
     )
-    
+
     start_time = time.time()
     client = ApifyClient(token)
-    
+
     # Add random delay before Apify call to avoid anti-spam measures
     delay = random.uniform(1, 10)
     debug_logger.logger.info(f"Anti-spam delay: {delay:.1f}s before Apify hashtag search")
     time.sleep(delay)
-    
+
     try:
         # Run the Actor and wait for it to finish
         run = client.actor(actor_id).call(run_input=input_data)
-        
+
         # Extreme memory optimization to prevent SIGKILL
         max_items = 50   # Drastically reduced from 100 to 50
         batch_size = 10  # Reduced batch size from 20 to 10
         processing_delay = 0.8  # Increased delay to reduce memory pressure
-        
+
         dataset = client.dataset(run["defaultDatasetId"])
-        
+
         # Stream process with immediate username extraction - no item storage
         all_usernames = set()  # Use set for automatic deduplication
         total_processed = 0
-        
+
         # Use smaller chunks and more frequent garbage collection
         import gc
-        
+
         debug_logger.logger.info(f"Starting streaming extraction with max_items={max_items}")
-        
+
         for item in dataset.iterate_items():
             if total_processed >= max_items:
                 debug_logger.logger.info(f"Reached maximum item limit of {max_items} for memory safety")
                 break
-            
+
             # Extract usernames immediately without storing the item
             if isinstance(item, dict):
                 # Extract from latestPosts
@@ -237,7 +237,7 @@ def call_apify_actor_sync(actor_id, input_data, token):
                             username = post['ownerUsername']
                             if username and isinstance(username, str):
                                 all_usernames.add(username)
-                
+
                 # Extract from topPosts
                 if 'topPosts' in item and isinstance(item['topPosts'], list):
                     for post in item['topPosts']:
@@ -245,21 +245,21 @@ def call_apify_actor_sync(actor_id, input_data, token):
                             username = post['ownerUsername']
                             if username and isinstance(username, str):
                                 all_usernames.add(username)
-            
+
             total_processed += 1
-            
+
             # Aggressive memory cleanup
             if total_processed % batch_size == 0:
                 gc.collect()  # Force garbage collection
                 time.sleep(processing_delay)
                 debug_logger.logger.debug(f"Processed {total_processed} items, found {len(all_usernames)} unique usernames")
-        
+
         # Convert set to list of profile objects
         processed_items = [{'ownerUsername': username} for username in all_usernames]
-        
+
         # Final cleanup
         gc.collect()
-        
+
         # Log successful completion
         result = {"items": processed_items}
         debug_logger.log_api_call_success(
@@ -276,10 +276,10 @@ def call_apify_actor_sync(actor_id, input_data, token):
             status_code=200,
             response_size=len(json.dumps(result))
         )
-        
+
         debug_logger.logger.info(f"Streaming extraction completed: {len(all_usernames)} unique usernames from {total_processed} items")
         return result
-        
+
     except Exception as e:
         # Log the failure with detailed error information
         debug_logger.log_api_call_failure(
@@ -288,7 +288,7 @@ def call_apify_actor_sync(actor_id, input_data, token):
             status_code=getattr(e, 'status_code', None),
             response_text=str(e)
         )
-        
+
         # Log business logic error for additional context
         debug_logger.log_business_logic_error(
             operation="hashtag_username_extraction",
@@ -299,14 +299,14 @@ def call_apify_actor_sync(actor_id, input_data, token):
                 "error_message": str(e)
             }
         )
-        
+
         return {"items": []}
 
 
 async def call_perplexity_api(profile_info, api_key):
     """Call Perplexity API to find contact information using full profile data"""
     username = profile_info.get('username', '')
-    
+
     # Start tracking this API call
     call_id = debug_logger.log_api_call_start(
         api_name="Perplexity_Contact_Search",
@@ -320,7 +320,7 @@ async def call_perplexity_api(profile_info, api_key):
             "has_existing_website": bool(profile_info.get('website') or profile_info.get('external_url'))
         }
     )
-    
+
     url = "https://api.perplexity.ai/chat/completions"
     headers = {
         "Authorization": f"Bearer {api_key}",
@@ -334,12 +334,12 @@ async def call_perplexity_api(profile_info, api_key):
     following = profile_info.get('following_count', 0)
     posts = profile_info.get('media_count', 0)
     is_verified = profile_info.get('is_verified', False)
-    
+
     # Extract existing contact information from the lead database
     existing_email = profile_info.get('email', '') or profile_info.get('public_email', '')
     existing_phone = profile_info.get('phone', '') or profile_info.get('contact_phone_number', '')
     existing_website = profile_info.get('website', '') or profile_info.get('external_url', '')
-    
+
     # Create detailed profile description including existing contact info
     profile_description = f"""
     Instagram Profile Information:
@@ -350,7 +350,7 @@ async def call_perplexity_api(profile_info, api_key):
     - Following: {following}
     - Posts: {posts}
     - Verified: {is_verified}
-    
+
     Existing Contact Information:
     - Email: {existing_email if existing_email else 'Not found'}
     - Phone: {existing_phone if existing_phone else 'Not found'}
@@ -381,7 +381,7 @@ async def call_perplexity_api(profile_info, api_key):
 
             try:
                 content = result['choices'][0]['message']['content']
-                
+
                 # Try to extract JSON from the response (may contain additional text)
                 # Find the first { and matching } to extract just the JSON part
                 json_start = content.find('{')
@@ -397,10 +397,10 @@ async def call_perplexity_api(profile_info, api_key):
                             if brace_count == 0:
                                 json_end = i + 1
                                 break
-                    
+
                     json_content = content[json_start:json_end]
                     contact_info = json.loads(json_content)
-                    
+
                     # Merge existing contact info with new findings
                     # Prioritize existing data from the lead database
                     merged_contact = {
@@ -408,7 +408,7 @@ async def call_perplexity_api(profile_info, api_key):
                         "phone": existing_phone or contact_info.get("phone", ""),
                         "website": existing_website or contact_info.get("website", "")
                     }
-                    
+
                     # Log successful completion
                     debug_logger.log_api_call_success(
                         call_id=call_id,
@@ -423,7 +423,7 @@ async def call_perplexity_api(profile_info, api_key):
                         status_code=response.status_code,
                         response_size=len(json.dumps(result))
                     )
-                    
+
                     debug_logger.logger.info(f"Perplexity API enrichment for {username}: found {sum(1 for v in contact_info.values() if v)} new fields")
                     return merged_contact
                 else:
@@ -438,7 +438,7 @@ async def call_perplexity_api(profile_info, api_key):
                         },
                         severity="WARNING"
                     )
-                    
+
                     return {
                         "email": existing_email or "",
                         "phone": existing_phone or "",
@@ -452,7 +452,7 @@ async def call_perplexity_api(profile_info, api_key):
                     status_code=response.status_code,
                     response_text=content[:500] if 'content' in locals() else "No content available"
                 )
-                
+
                 debug_logger.log_business_logic_error(
                     operation="perplexity_response_parsing",
                     error_details={
@@ -463,7 +463,7 @@ async def call_perplexity_api(profile_info, api_key):
                         "response_status": response.status_code
                     }
                 )
-                
+
                 return {
                     "email": existing_email or "",
                     "phone": existing_phone or "",
@@ -477,7 +477,7 @@ async def call_perplexity_api(profile_info, api_key):
                 status_code=e.response.status_code,
                 response_text=e.response.text[:500] if e.response.text else ""
             )
-            
+
             return {
                 "email": existing_email or "",
                 "phone": existing_phone or "",
@@ -490,7 +490,7 @@ async def call_perplexity_api(profile_info, api_key):
                 error=e,
                 response_text=str(e)
             )
-            
+
             return {
                 "email": existing_email or "",
                 "phone": existing_phone or "",
@@ -550,7 +550,7 @@ def save_leads_incrementally(enriched_leads, keyword, default_product_id=None):
                         username=lead_data['username'],
                         hashtag=keyword
                     ).first()
-                    
+
                     if existing_lead:
                         # Update existing lead
                         existing_lead.full_name = lead_data.get('full_name', '')
@@ -570,10 +570,10 @@ def save_leads_incrementally(enriched_leads, keyword, default_product_id=None):
                         existing_lead.longitude = lead_data.get('longitude')
                         existing_lead.is_duplicate = lead_data.get('is_duplicate', False)
                         existing_lead.updated_at = datetime.utcnow()
-                        
+
                         # Create backup before updating
                         backup_lead_to_backup_table(existing_lead)
-                        
+
                         current_lead = existing_lead
                     else:
                         # Create new lead
@@ -600,26 +600,26 @@ def save_leads_incrementally(enriched_leads, keyword, default_product_id=None):
                         )
                         db.session.add(new_lead)
                         current_lead = new_lead
-                    
+
                     # Commit each lead immediately
                     db.session.commit()
-                    
+
                     # Create backup after successful save
                     backup_lead_to_backup_table(current_lead)
-                    
+
                     saved_count += 1
                     logger.info(f"Saved lead {lead_data['username']} to database")
-                    
+
                 except Exception as e:
                     logger.error(f"Failed to save lead {lead_data.get('username', 'unknown')}: {e}")
                     db.session.rollback()
                     continue
-            
+
             logger.info(f"Incremental save completed: {saved_count} leads saved")
-            
+
     except Exception as e:
         logger.error(f"Error during incremental save: {e}")
-    
+
     return saved_count
 
 
@@ -628,7 +628,7 @@ def call_apify_profile_enrichment(actor_id, input_data, token):
     # Start tracking this API call
     usernames = input_data.get('instagram_ids', [])
     username_count = len(usernames) if isinstance(usernames, list) else 1
-    
+
     call_id = debug_logger.log_api_call_start(
         api_name="Apify_Profile_Enrichment",
         endpoint=f"actor/{actor_id}",
@@ -640,27 +640,27 @@ def call_apify_profile_enrichment(actor_id, input_data, token):
         },
         session_id=input_data.get('SessionID', '')[:8] if input_data.get('SessionID') else None
     )
-    
+
     client = ApifyClient(token)
-    
+
     # Add random delay before Apify call to avoid anti-spam measures
     delay = random.uniform(1, 10)
     debug_logger.logger.info(f"Anti-spam delay: {delay:.1f}s before Apify profile enrichment...")
     time.sleep(delay)
-    
+
     try:
         # Run the Actor and wait for it to finish
         run = client.actor(actor_id).call(run_input=input_data)
-        
+
         # Get the dataset
         dataset = client.dataset(run["defaultDatasetId"])
-        
+
         # The profile enrichment API returns profiles directly
         profiles = []
         for item in dataset.iterate_items():
             if isinstance(item, dict):
                 profiles.append(item)
-        
+
         # Log successful completion
         debug_logger.log_api_call_success(
             call_id=call_id,
@@ -673,10 +673,10 @@ def call_apify_profile_enrichment(actor_id, input_data, token):
             status_code=200,
             response_size=len(json.dumps(profiles))
         )
-        
+
         debug_logger.logger.info(f"Profile enrichment API returned {len(profiles)} profiles for {username_count} requested usernames")
         return profiles
-        
+
     except Exception as e:
         # Log the failure
         debug_logger.log_api_call_failure(
@@ -685,7 +685,7 @@ def call_apify_profile_enrichment(actor_id, input_data, token):
             status_code=getattr(e, 'status_code', None),
             response_text=str(e)
         )
-        
+
         debug_logger.log_business_logic_error(
             operation="profile_enrichment_batch",
             error_details={
@@ -695,7 +695,7 @@ def call_apify_profile_enrichment(actor_id, input_data, token):
                 "error_message": str(e)
             }
         )
-        
+
         return []
 
 
@@ -741,7 +741,7 @@ async def enrich_profile_batch(usernames, ig_sessionid, apify_token,
                 missing_email = not profile_info.get('public_email')
                 missing_phone = not profile_info.get('contact_phone_number') 
                 missing_website = not profile_info.get('external_url')
-                
+
                 if missing_email or missing_phone or missing_website:
                     try:
                         # Update progress to show Perplexity enrichment in progress
@@ -750,7 +750,7 @@ async def enrich_profile_batch(usernames, ig_sessionid, apify_token,
                             batch_num = current_progress['current_batch']
                             total_batches = current_progress.get('total_batches', 1)
                             current_progress['current_step'] = f'2.1 Erweitere Kontaktdaten mit Perplexity für @{username} (Batch {batch_num}/{total_batches})'
-                        
+
                         # Pass full profile info instead of just username
                         profile_with_username = dict(profile_info)
                         profile_with_username['username'] = username
@@ -758,7 +758,7 @@ async def enrich_profile_batch(usernames, ig_sessionid, apify_token,
                         profile_with_username['email'] = profile_info.get('public_email', '')
                         profile_with_username['phone'] = profile_info.get('contact_phone_number', '')
                         profile_with_username['website'] = profile_info.get('external_url', '')
-                        
+
                         perplexity_contact = await call_perplexity_api(
                             profile_with_username, perplexity_key)
                         logger.info(f"Perplexity enrichment for {username}: {perplexity_contact}")
@@ -779,21 +779,21 @@ async def enrich_profile_batch(usernames, ig_sessionid, apify_token,
                     profile_info.get('followers', 0) or 
                     profile_info.get('followerCount', 0) or 0
                 )
-                
+
                 following_count = (
                     profile_info.get('following_count', 0) or 
                     profile_info.get('followings_count', 0) or 
                     profile_info.get('following', 0) or 
                     profile_info.get('followingCount', 0) or 0
                 )
-                
+
                 media_count = (
                     profile_info.get('media_count', 0) or 
                     profile_info.get('posts_count', 0) or 
                     profile_info.get('posts', 0) or 
                     profile_info.get('postsCount', 0) or 0
                 )
-                
+
                 # Log what we found for debugging
                 logger.info(f"Follower count mapping for {username}: follower_count={follower_count}, following_count={following_count}, media_count={media_count}")
 
@@ -852,24 +852,24 @@ def index():
     """Main page"""
     ig_sessionid = session.get('ig_sessionid') or os.environ.get(
         'IG_SESSIONID')
-    
+
     # Get leads from database
     leads = Lead.query.order_by(Lead.created_at.desc()).all()
     leads_dict = [lead.to_dict() for lead in leads]
-    
+
     # Get email templates
     subject_template = EmailTemplate.query.filter_by(name='subject').first()
     body_template = EmailTemplate.query.filter_by(name='body').first()
-    
+
     templates = {
         'subject': subject_template.template if subject_template else '',
         'body': body_template.template if body_template else ''
     }
-    
+
     # Get products
     products = Product.query.all()
     products_dict = [product.to_dict() for product in products]
-    
+
     return render_template('index.html',
                            ig_sessionid=ig_sessionid,
                            leads=leads_dict,
@@ -895,10 +895,10 @@ def get_progress():
 def get_leads_by_keyword():
     """Get leads filtered by keyword for real-time table updates"""
     keyword = request.args.get('keyword', '').strip()
-    
+
     if not keyword:
         return {"error": "Keyword parameter is required"}, 400
-    
+
     try:
         leads = Lead.query.filter_by(hashtag=keyword).order_by(Lead.created_at.desc()).all()
         return {"leads": [lead.to_dict() for lead in leads]}
@@ -911,10 +911,10 @@ def get_leads_by_keyword():
 def get_api_metrics():
     """Get comprehensive API call metrics and performance data"""
     time_window = request.args.get('time_window', 60, type=int)  # Default 60 minutes
-    
+
     try:
         metrics_summary = debug_logger.get_api_summary(time_window_minutes=time_window)
-        
+
         # Add additional system information
         metrics_summary.update({
             "system_info": {
@@ -923,7 +923,7 @@ def get_api_metrics():
                 "uptime_minutes": int((time.time() - app_data.get('start_time', time.time())) / 60)
             }
         })
-        
+
         return jsonify(metrics_summary)
     except Exception as e:
         debug_logger.log_business_logic_error(
@@ -942,7 +942,7 @@ def get_api_health():
     try:
         # Get recent metrics
         recent_metrics = debug_logger.get_api_summary(time_window_minutes=15)
-        
+
         # Determine health status
         if recent_metrics.get('total_calls', 0) == 0:
             health_status = "IDLE"
@@ -952,7 +952,7 @@ def get_api_health():
             health_status = "WARNING"
         else:
             health_status = "CRITICAL"
-        
+
         # Get database status
         db_healthy = True
         try:
@@ -965,7 +965,7 @@ def get_api_health():
                 error_details={"error_message": str(e)},
                 severity="ERROR"
             )
-        
+
         health_info = {
             "status": health_status,
             "timestamp": datetime.utcnow().isoformat(),
@@ -978,7 +978,7 @@ def get_api_health():
                 "instagram_session": "configured" if session.get('ig_sessionid') else "not_configured"
             }
         }
-        
+
         return jsonify(health_info)
     except Exception as e:
         return jsonify({
@@ -994,17 +994,17 @@ def get_debug_logs():
     try:
         lines = request.args.get('lines', 100, type=int)
         log_file = 'api_debug.log'
-        
+
         if not os.path.exists(log_file):
             return jsonify({"logs": [], "message": "Log file not found"})
-        
+
         # Read last N lines from log file
         with open(log_file, 'r') as f:
             log_lines = f.readlines()
-        
+
         # Get the last N lines
         recent_logs = log_lines[-lines:] if len(log_lines) > lines else log_lines
-        
+
         # Parse JSON logs
         parsed_logs = []
         for line in recent_logs:
@@ -1014,7 +1014,7 @@ def get_debug_logs():
             except json.JSONDecodeError:
                 # If not JSON, treat as plain text
                 parsed_logs.append({"raw_log": line.strip()})
-        
+
         return jsonify({
             "logs": parsed_logs,
             "total_lines": len(log_lines),
@@ -1051,7 +1051,7 @@ def process_keyword():
 
     if not keyword:
         return {"error": "Keyword is required"}, 400
-    
+
     # Validate search limit - further reduced maximum to prevent memory issues
     try:
         search_limit = int(search_limit)
@@ -1059,7 +1059,7 @@ def process_keyword():
             return {"error": "Search limit must be between 1 and 50"}, 400
     except (ValueError, TypeError):
         return {"error": "Invalid search limit value"}, 400
-    
+
     # Validate enrich limit for testing purposes
     try:
         enrich_limit = int(enrich_limit)
@@ -1096,7 +1096,7 @@ def process_keyword():
     except Exception as e:
         logger.error(f"Processing failed: {e}")
         app_data['processing_status'] = None
-        
+
         # Get any partial results from database before failing
         try:
             with app.app_context():
@@ -1137,10 +1137,10 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit, enrich_limi
     """Async processing of keyword"""
     apify_token = os.environ.get('APIFY_TOKEN')
     perplexity_key = os.environ.get('PERPLEXITY_API_KEY')
-    
+
     # Initialize progress tracking
     start_time = time.time()
-    
+
     if not all([apify_token, perplexity_key
                 ]) or not apify_token.strip() or not perplexity_key.strip():
         missing_keys = []
@@ -1157,12 +1157,12 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit, enrich_limi
     profile_batch_time = avg_delay_time + 15  # Per batch (slightly longer for 5 profiles)
     estimated_batches = min(search_limit // 5, enrich_limit // 5)  # 5 profiles per batch
     pause_time_per_batch = 90  # 90 seconds = 1.5 minutes between batches
-    
+
     # Total time = hashtag search + (batch processing time + pause time) * (batches - 1) + final batch processing
     total_batch_and_pause_time = (profile_batch_time + pause_time_per_batch) * max(0, estimated_batches - 1)
     final_batch_time = profile_batch_time if estimated_batches > 0 else 0
     total_estimated_time = hashtag_crawl_time + total_batch_and_pause_time + final_batch_time
-    
+
     # Initialize progress with detailed step tracking
     app_data['processing_progress'] = {
         'current_step': '1. Suche Instagram-Profile für Hashtag...',
@@ -1177,7 +1177,7 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit, enrich_limi
         'total_batches': estimated_batches,
         'phase_start_time': time.time()
     }
-    
+
     # Step 1: Hashtag crawl - Using correct Apify API format with user-defined limit
     hashtag_input = {
         "search": keyword,
@@ -1191,13 +1191,13 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit, enrich_limi
                                              apify_token)
         # Don't increment completed_steps here - will do it after hashtag processing is fully done
         logger.info(f"Hashtag search completed successfully for #{keyword}")
-        
+
         # Update time remaining
         elapsed_time = time.time() - start_time
         remaining_steps = app_data['processing_progress']['total_steps'] - app_data['processing_progress']['completed_steps']
         avg_time_per_step = elapsed_time / max(1, app_data['processing_progress']['completed_steps'] + 1)
         app_data['processing_progress']['estimated_time_remaining'] = int(avg_time_per_step * remaining_steps)
-        
+
         if not hashtag_data or not hashtag_data.get('items'):
             logger.error(f"No hashtag data returned for keyword: {keyword}")
             return []
@@ -1205,53 +1205,55 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit, enrich_limi
         logger.error(f"Hashtag crawl failed for keyword '{keyword}': {e}")
         return []
 
-    # Step 2: Extract usernames from the processed data
+    # Extract usernames and hashtag IDs from the processed data
     # The call_apify_actor_sync function already processed and extracted usernames
     hashtag_items = hashtag_data.get('items', [])
     logger.info(f"Processing {len(hashtag_items)} hashtag items")
-    
+
     # Debug: Log the structure of the first item
     if hashtag_items:
         logger.debug(f"First item structure: {list(hashtag_items[0].keys()) if isinstance(hashtag_items[0], dict) else type(hashtag_items[0])}")
         logger.debug(f"First item sample: {str(hashtag_items[0])[:200]}")
-    
-    usernames_set = set()  # Use set for deduplication
-    
-    # Extract usernames from the processed items (these already contain ownerUsername)
+
+    username_hashtag_pairs = []  # Store username-hashtag pairs
+
+    # Extract usernames and their associated hashtag IDs from the processed items
     try:
         for item in hashtag_items:
             if not isinstance(item, dict):
                 logger.warning(f"Skipping non-dict item: {type(item)}")
                 continue
-                
+
             # The streaming process already extracted usernames and stored them as ownerUsername
             username = item.get('ownerUsername')
+            # Get the hashtag ID from the item - this should come from the original post data
+            hashtag_id = item.get('hashtag_id') or item.get('ID') or item.get('id')
+
             if username and isinstance(username, str):
-                usernames_set.add(username)
+                # Use hashtag ID if available, otherwise fall back to search keyword
+                hashtag_value = hashtag_id if hashtag_id else keyword
+                username_hashtag_pairs.append({'hashtag': hashtag_value, 'username': username})
             else:
                 logger.debug(f"Item without ownerUsername: {list(item.keys()) if isinstance(item, dict) else 'not a dict'}")
-    
+
     except Exception as e:
-        logger.error(f"Error during username extraction: {e}")
-        # Continue with whatever usernames we have
-    
+        logger.error(f"Error during username and hashtag extraction: {e}")
+        # Continue with whatever pairs we have
+
     # Clear hashtag_data from memory to help with garbage collection
     hashtag_data = None
     hashtag_items = None
-    
-    logger.info(f"Found {len(usernames_set)} unique usernames from posts")
 
-    # Convert to profiles list using search keyword as hashtag
-    profiles = [{'hashtag': keyword, 'username': username} for username in usernames_set]
-    
+    logger.info(f"Found {len(username_hashtag_pairs)} username-hashtag pairs from posts")
+
+    # Use the extracted pairs directly
+    profiles = username_hashtag_pairs
+
     # Store count before clearing for logging
-    usernames_count = len(usernames_set)
-    
-    # Clear usernames_set from memory
-    usernames_set = None
+    usernames_count = len(profiles)
 
     logger.info(f"Found {len(profiles)} profiles")
-    
+
     # If no profiles found, return empty result
     if not profiles:
         logger.warning(f"No profiles found in hashtag data for keyword: {keyword}")
@@ -1274,10 +1276,10 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit, enrich_limi
     app_data['processing_progress']['current_step'] = f'1. Hashtag-Suche abgeschlossen - {len(unique_profiles)} Profile gefunden ✓'
     app_data['processing_progress']['phase'] = 'hashtag_search_complete'
     logger.info(f"Progress updated: Step 1 complete, found {len(unique_profiles)} profiles")
-    
+
     # Brief pause to make transition visible
     await asyncio.sleep(1)
-    
+
     # Step 3: Profile enrichment with Instagram anti-spam optimization
     semaphore = asyncio.Semaphore(3)  # Match batch size for controlled processing
     perplexity_semaphore = asyncio.Semaphore(2)  # Limit concurrent Perplexity API calls
@@ -1285,12 +1287,12 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit, enrich_limi
     # Advanced anti-spam optimization: batch 3 profiles with strategic pauses
     usernames = [p['username'] for p in unique_profiles]
     batch_size = 3  # Process 3 profiles at a time with extended pauses between groups
-    
+
     # Use enrich_limit parameter to control how many profiles to enrich (for testing)
     if len(usernames) > enrich_limit:
         logger.info(f"Limiting usernames from {len(usernames)} to {enrich_limit} for testing (enrich_limit)")
         usernames = usernames[:enrich_limit]
-    
+
     batches = [
         usernames[i:i + batch_size]
         for i in range(0, len(usernames), batch_size)
@@ -1298,11 +1300,11 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit, enrich_limi
 
     # Update progress total steps based on actual batches
     app_data['processing_progress']['total_steps'] = 1 + len(batches)
-    
+
     # Process batches sequentially to minimize memory usage
     total_saved_leads = 0
     import gc
-    
+
     for i, batch in enumerate(batches):
         try:
             # Update progress with detailed step information
@@ -1312,11 +1314,11 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit, enrich_limi
             app_data['processing_progress']['current_batch'] = i + 1
             app_data['processing_progress']['total_batches'] = len(batches)
             logger.info(f"Processing batch {i+1}/{len(batches)} with {len(batch)} usernames")
-            
+
             # Process one batch at a time
             result = await enrich_profile_batch(batch, ig_sessionid, apify_token,
                                               perplexity_key, semaphore)
-            
+
             if isinstance(result, list) and result:
                 # Mark duplicates and add hashtag information for this batch
                 for lead in result:
@@ -1324,27 +1326,28 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit, enrich_limi
                         lead['is_duplicate'] = True
                     else:
                         lead['is_duplicate'] = False
-                    # Use search keyword as hashtag
-                    lead['hashtag'] = keyword
-                
+                    # Ensure hashtag is present from unique profiles or extracted IDs.
+                    hashtag = next((p['hashtag'] for p in unique_profiles if p['username'] == lead['username']), keyword)
+                    lead['hashtag'] = hashtag
+
                 # Save this batch immediately to prevent data loss
                 saved_count = save_leads_incrementally(result, keyword, default_product_id=default_product_id)
                 total_saved_leads += saved_count
                 logger.info(f"Batch {i+1}: Saved {saved_count} leads incrementally")
-                
+
                 # Update progress with incremental lead count for frontend - force immediate update
                 app_data['processing_progress']['incremental_leads'] = total_saved_leads
                 app_data['processing_progress']['keyword'] = keyword
                 app_data['processing_progress']['current_step'] = f'2. Batch {i+1}/{len(batches)} abgeschlossen - {total_saved_leads} Leads generiert'
-                
+
                 # Force immediate progress update for UI refresh
                 logger.info(f"UI Refresh Trigger: {total_saved_leads} leads saved for keyword '{keyword}'")
             else:
                 logger.warning(f"Batch {i+1}: No results or unexpected type: {type(result)}")
-            
+
             # Update progress after batch completion
             app_data['processing_progress']['completed_steps'] += 1
-            
+
             # Recalculate time remaining (including pause time for remaining batches)
             elapsed_time = time.time() - start_time
             remaining_batches = len(batches) - (i + 1)  # How many batches still need processing
@@ -1352,7 +1355,7 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit, enrich_limi
             if remaining_batches > 0:
                 remaining_groups = remaining_batches // 3
                 remaining_in_current_group = remaining_batches % 3
-                
+
                 # Calculate total pause time
                 pause_time_remaining = 0
                 # Full groups have 2x90s + 1x180s = 360s
@@ -1362,67 +1365,68 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit, enrich_limi
                     pause_time_remaining += (remaining_in_current_group - 1) * 90
             else:
                 pause_time_remaining = 0
-            
+
             if app_data['processing_progress']['completed_steps'] > 0:
                 avg_processing_time_per_step = elapsed_time / app_data['processing_progress']['completed_steps']
                 processing_time_remaining = remaining_batches * avg_processing_time_per_step
                 app_data['processing_progress']['estimated_time_remaining'] = int(processing_time_remaining + pause_time_remaining)
             else:
                 app_data['processing_progress']['estimated_time_remaining'] = int(total_estimated_time - elapsed_time + pause_time_remaining)
-            
+
             # Force garbage collection after each batch
             gc.collect()
-            
+
             # Advanced Instagram anti-spam protection: 90s pause between batches, 3min pause after 3 batches
             if i < len(batches) - 1:  # Don't pause after the last batch
                 # Determine pause duration based on batch group position
                 batch_position_in_group = i % 3  # 0, 1, or 2
                 is_end_of_group = (batch_position_in_group == 2) or (i == len(batches) - 2)
-                
+
                 if is_end_of_group and i < len(batches) - 2:  # End of group but not last batch
                     pause_duration = 180  # 3 minutes between groups
                     pause_reason = "Extended anti-spam pause between batch groups"
                 else:
                     pause_duration = 90  # 90 seconds within group
                     pause_reason = "Standard anti-spam pause"
-                
+
                 logger.info(f"{pause_reason}: Taking {pause_duration}s pause after batch {i+1}. Next batch will start in {pause_duration} seconds...")
-                
+
                 # Update progress to show pause status with next batch info
                 minutes_left = pause_duration // 60
                 seconds_left = pause_duration % 60
+
                 if pause_duration == 180:
                     app_data['processing_progress']['current_step'] = f'⏸ Erweiterte Anti-Spam Pause (3min): {minutes_left}m {seconds_left}s bis Batch-Gruppe {(i+2)//3 + 1}'
                 else:
                     app_data['processing_progress']['current_step'] = f'⏸ Anti-Spam Pause: {minutes_left}m {seconds_left}s bis Batch {i+2}/{len(batches)}'
-                
+
                 # Count down the pause time with progress updates
                 for remaining_seconds in range(pause_duration, 0, -15):  # Update every 15 seconds
                     minutes_remaining = remaining_seconds // 60
                     seconds_remaining = remaining_seconds % 60
-                    
+
                     if minutes_remaining > 0:
                         time_display = f"{minutes_remaining}m {seconds_remaining}s"
                     else:
                         time_display = f"{seconds_remaining}s"
-                    
+
                     if pause_duration == 180:
                         app_data['processing_progress']['current_step'] = f'⏸ Erweiterte Anti-Spam Pause (3min): {time_display} bis Batch-Gruppe {(i+2)//3 + 1}'
                     else:
                         app_data['processing_progress']['current_step'] = f'⏸ Anti-Spam Pause: {time_display} bis Batch {i+2}/{len(batches)}'
                     logger.info(f"Pause countdown: {time_display} remaining until next batch")
-                    
+
                     await asyncio.sleep(15)  # Use async sleep to not block the event loop
-                
+
                 # Final sleep for any remaining seconds
                 remaining_final = pause_duration % 15
                 if remaining_final > 0:
                     await asyncio.sleep(remaining_final)
-                
+
                 logger.info(f"90s pause completed. Resuming with batch {i+2}/{len(batches)}")
             else:
                 logger.info(f"All batches completed. No pause needed after final batch {i+1}")
-            
+
         except Exception as e:
             logger.error(f"Batch {i+1} processing error: {e}")
             # Update progress with current saved count even on error
@@ -1432,7 +1436,7 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit, enrich_limi
             continue
 
     logger.info(f"Total enrichment complete: {total_saved_leads} leads saved to database")
-    
+
     # Show final completion status
     app_data['processing_progress'] = {
         'current_step': f'3. Fertig! {total_saved_leads} Leads erfolgreich generiert und gespeichert ✓',
@@ -1443,7 +1447,7 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit, enrich_limi
         'total_leads_generated': total_saved_leads,
         'final_status': 'success'
     }
-    
+
     # Return dictionary format for API response
     # Query fresh leads from database to avoid session issues
     try:
@@ -1461,7 +1465,7 @@ def draft_email(username):
     # Get templates from database
     subject_template = EmailTemplate.query.filter_by(name='subject').first()
     body_template = EmailTemplate.query.filter_by(name='body').first()
-    
+
     # Use stored templates or fallback to defaults
     subject_prompt = subject_template.template if subject_template else 'Schreibe in DU-Form eine persönliche Betreffzeile mit freundlichen Hook für eine Influencer Kooperation mit Kasimir + Liselotte. Nutze persönliche Infos (z.B. Username, BIO, Interessen), sprich sie direkt in DU-Form. Falls ein Produkt ausgewählt ist, erwähne es subtil in der Betreffzeile. Antworte im JSON-Format: {"subject": "betreff text"}'
     body_prompt = body_template.template if body_template else 'Erstelle eine personalisierte, professionelle deutsche E-Mail, ohne die Betreffzeile, für potenzielle Instagram Influencer Kooperationen. Die E-Mail kommt von Kasimir vom Store KasimirLieselotte. Verwende einen höflichen, professionellen Ton auf Deutsch aber in DU-Form um es casual im Instagram feel zu bleiben. WICHTIG: Falls ein Produkt ausgewählt ist, integriere unbedingt folgende Elemente in die E-Mail: 1) Erwähne das Produkt namentlich, 2) Füge den direkten Link zum Produkt ein (Produkt-URL), 3) Erkläre kurz die Produkteigenschaften basierend auf der Beschreibung, 4) Beziehe das Produkt auf die Bio/Interessen des Influencers. Die E-Mail sollte den Produktlink natürlich in den Text einbetten. Füge am Ende die Signatur mit der Website https://www.kasimirlieselotte.de/ hinzu. Antworte im JSON-Format: {"body": "email inhalt"}'
@@ -1474,26 +1478,26 @@ def draft_email(username):
     try:
         # Build user content with profile and product information
         profile_content = f"Profil: @{lead.username}, Name: {lead.full_name}, Bio: {lead.bio}, Hashtag: {lead.hashtag}"
-        
+
         # Create different prompts based on whether product is selected
         if lead.selected_product:
             # WITH PRODUCT: Use current prompts with product instructions
             product_info = f"\n\nAusgewähltes Produkt: {lead.selected_product.name}\nProdukt-URL: {lead.selected_product.url}\nBeschreibung: {lead.selected_product.description}"
             profile_content += product_info
             profile_content_with_email = f"Profil: @{lead.username}, Name: {lead.full_name}, Bio: {lead.bio}, Email: {lead.email}, Hashtag: {lead.hashtag}" + product_info
-            
+
             # Use current prompts with product instructions
             final_subject_prompt = subject_prompt
             final_body_prompt = body_prompt
         else:
             # WITHOUT PRODUCT: Use alternative prompts without product references
             profile_content_with_email = f"Profil: @{lead.username}, Name: {lead.full_name}, Bio: {lead.bio}, Email: {lead.email}, Hashtag: {lead.hashtag}"
-            
+
             # Create clean alternative prompts without any product mentions
             final_subject_prompt = 'Schreibe in DU-Form eine persönliche Betreffzeile mit freundlichen Hook für eine Influencer Kooperation mit Kasimir + Liselotte. Nutze persönliche Infos (z.B. Username, BIO, Interessen), sprich sie direkt in DU-Form. Fokussiere dich auf die Interessen und den Content des Influencers. Antworte im JSON-Format: {"subject": "betreff text"}'
-            
+
             final_body_prompt = 'Erstelle eine personalisierte, professionelle deutsche E-Mail, ohne die Betreffzeile, für potenzielle Instagram Influencer Kooperationen. Die E-Mail kommt von Kasimir vom Store KasimirLieselotte. Verwende einen höflichen, professionellen Ton auf Deutsch aber in DU-Form um es casual im Instagram feel zu bleiben. Fokussiere dich auf eine allgemeine Kooperationsanfrage, die auf die Interessen und den Content des Influencers eingeht. Erwähne deine Begeisterung für ihren Content und schlage eine mögliche Zusammenarbeit vor, ohne spezifische Produkte zu erwähnen. Füge am Ende die Signatur mit der Website https://www.kasimirlieselotte.de/ hinzu. Antworte im JSON-Format: {"body": "email inhalt"}'
-        
+
         # Generate subject using appropriate prompt
         subject_response = openai_client.chat.completions.create(
             model="gpt-4o",
@@ -1529,7 +1533,7 @@ def draft_email(username):
         lead.email_body = body_data.get(
             'body',
             'Hello, I would like to discuss a collaboration opportunity.')
-        
+
         # Save to database
         db.session.commit()
 
@@ -1558,7 +1562,7 @@ def get_email(username):
 def update_lead(username):
     """Update lead information"""
     data = request.get_json()
-    
+
     # Find the lead in database
     lead = Lead.query.filter_by(username=username).first()
     if not lead:
@@ -1576,9 +1580,9 @@ def update_lead(username):
             lead.phone = data['phone']
         if 'website' in data:
             lead.website = data['website']
-        
+
         lead.updated_at = datetime.now()
-        
+
         # Save to database
         db.session.commit()
 
@@ -1607,7 +1611,7 @@ def send_email(username):
         # Mark as sent since Gmail will handle the actual sending
         lead.sent = True
         lead.sent_at = datetime.now()
-        
+
         # Save to database
         db.session.commit()
 
@@ -1636,7 +1640,7 @@ def mark_sent(username):
         lead.sent_at = datetime.now()
         lead.subject = subject
         lead.email_body = body
-        
+
         # Save to database
         db.session.commit()
 
@@ -1705,7 +1709,7 @@ def clear_data():
         ProcessingSession.query.delete()
         HashtagUsernamePair.query.delete()
         db.session.commit()
-        
+
         app_data['processing_status'] = None
         return {"success": True}
     except Exception as e:
@@ -1720,7 +1724,7 @@ def get_email_templates():
     try:
         subject_template = EmailTemplate.query.filter_by(name='subject').first()
         body_template = EmailTemplate.query.filter_by(name='body').first()
-        
+
         return jsonify({
             'subject': subject_template.template if subject_template else '',
             'body': body_template.template if body_template else ''
@@ -1735,7 +1739,7 @@ def save_email_templates():
     """Save email templates"""
     try:
         data = request.get_json()
-        
+
         if 'subject' in data:
             subject_template = EmailTemplate.query.filter_by(name='subject').first()
             if subject_template:
@@ -1744,7 +1748,7 @@ def save_email_templates():
             else:
                 subject_template = EmailTemplate(name='subject', template=data['subject'])
                 db.session.add(subject_template)
-        
+
         if 'body' in data:
             body_template = EmailTemplate.query.filter_by(name='body').first()
             if body_template:
@@ -1753,9 +1757,9 @@ def save_email_templates():
             else:
                 body_template = EmailTemplate(name='body', template=data['body'])
                 db.session.add(body_template)
-        
+
         db.session.commit()
-        
+
         return jsonify({"success": True, "message": "Email templates saved successfully"})
     except Exception as e:
         logger.error(f"Failed to save email templates: {e}")
@@ -1782,11 +1786,11 @@ def update_lead_product(username):
     try:
         data = request.get_json()
         product_id = data.get('product_id')
-        
+
         lead = Lead.query.filter_by(username=username).first()
         if not lead:
             return {"error": "Lead not found"}, 404
-        
+
         if product_id:
             product = Product.query.get(product_id)
             if not product:
@@ -1794,10 +1798,10 @@ def update_lead_product(username):
             lead.selected_product_id = product_id
         else:
             lead.selected_product_id = None
-        
+
         lead.updated_at = datetime.utcnow()
         db.session.commit()
-        
+
         return jsonify({"success": True, "message": "Product updated successfully"})
     except Exception as e:
         logger.error(f"Failed to update lead product: {e}")
@@ -1811,7 +1815,7 @@ def set_default_product():
     try:
         data = request.get_json()
         product_id = data.get('product_id')
-        
+
         if product_id:
             # Validate product exists
             product = Product.query.get(product_id)
@@ -1821,7 +1825,7 @@ def set_default_product():
         else:
             # Clear default product
             session.pop('default_product_id', None)
-        
+
         return jsonify({"success": True})
     except Exception as e:
         logger.error(f"Failed to set default product: {e}")
