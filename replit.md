@@ -6,6 +6,25 @@ K+L Influence is a Flask-based Instagram lead generation and outreach automation
 
 ## Recent Changes
 
+### 2025-07-13: Simplified Status Display and Fixed Hashtag Storage in Lead Table (COMPLETED)
+- **Update**: Simplified progress tracking and fixed hashtag storage to use actual hashtags from posts
+- **Changes Made**:
+  - **Fixed Hashtag Storage**: Modified save_leads_incrementally to use actual hashtag from lead_data instead of keyword
+  - **Hashtag Variants Display**: Now shows list of hashtag variants found during search
+  - **Simplified Status**: Removed complex step-by-step progress in favor of simple status messages
+  - **Status Messages**: 
+    - Shows hashtag variants and deduplicated username count after search
+    - Simple "Anreicherung läuft für X neue Profile..." during enrichment
+    - Clean "Fertig! X Leads generiert" on completion
+  - **Frontend Updates**: Simplified progress display to show current step text with line breaks
+  - **API Call Status**: Maintained simple API call indicators (1. Hashtag-Daten abrufen, 2. Profile anreichern, 3. Finale Anreicherung mit Perplexity)
+- **Benefits**:
+  - Leads now correctly store actual hashtags from Instagram posts
+  - Cleaner, less cluttered progress display
+  - Users can see which hashtag variants were found
+  - Better data accuracy for hashtag-based filtering
+- **Status**: Simplified status display and hashtag storage fix fully implemented
+
 ### 2025-07-13: Extended Worker Timeout to 2 Hours (COMPLETED)
 - **Update**: Increased worker timeout from 30 minutes to 2 hours to handle long processing runs
 - **Issue**: Worker timeout error occurred during large batch processing with multiple anti-spam pauses

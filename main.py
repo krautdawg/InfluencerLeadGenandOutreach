@@ -452,10 +452,13 @@ def save_leads_incrementally(enriched_leads, keyword, default_product_id=None):
         with app.app_context():
             for lead_data in enriched_leads:
                 try:
+                    # Use actual hashtag from lead_data, fallback to keyword if not present
+                    actual_hashtag = lead_data.get('hashtag', keyword)
+                    
                     # Check if lead already exists
                     existing_lead = Lead.query.filter_by(
                         username=lead_data['username'],
-                        hashtag=keyword
+                        hashtag=actual_hashtag
                     ).first()
 
                     if existing_lead:
@@ -486,7 +489,7 @@ def save_leads_incrementally(enriched_leads, keyword, default_product_id=None):
                         # Create new lead
                         new_lead = Lead(
                             username=lead_data['username'],
-                            hashtag=keyword,
+                            hashtag=actual_hashtag,
                             full_name=lead_data.get('full_name', ''),
                             bio=lead_data.get('biography', ''),
                             email=lead_data.get('public_email', ''),
@@ -1106,6 +1109,12 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit, default_pro
     unique_profiles, duplicates = deduplicate_profiles(profiles)
     logger.info(f"After deduplication: {len(unique_profiles)} unique profiles")
 
+    # Collect hashtag variants
+    hashtag_variants = set()
+    for profile in unique_profiles:
+        if 'hashtag' in profile and profile['hashtag']:
+            hashtag_variants.add(profile['hashtag'])
+    
     # Save deduplicated hashtag-username pairs to database
     try:
         saved_pairs = save_hashtag_username_pairs(unique_profiles, duplicates)
@@ -1114,12 +1123,17 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit, default_pro
         logger.error(f"Failed to save hashtag-username pairs: {e}")
         # Continue processing even if saving pairs fails
 
-    # Update progress to show hashtag search completed with counts
+    # Update progress to show hashtag variants and deduplication counts
+    hashtag_list = ', '.join(sorted(hashtag_variants)[:5])  # Show first 5 hashtags
+    if len(hashtag_variants) > 5:
+        hashtag_list += f' ... (+{len(hashtag_variants) - 5} more)'
+    
     app_data['processing_progress']['completed_steps'] = 1
-    app_data['processing_progress']['current_step'] = f'1. Hashtag-Suche abgeschlossen - {len(unique_profiles)} Profile gefunden ✓'
+    app_data['processing_progress']['current_step'] = f'Hashtags gefunden: {hashtag_list}\nDeduplizierte Benutzer: {len(unique_profiles)}'
     app_data['processing_progress']['phase'] = 'hashtag_search_complete'
     app_data['processing_progress']['total_usernames'] = len(unique_profiles)
-    logger.info(f"Progress updated: Step 1 complete, found {len(unique_profiles)} profiles")
+    app_data['processing_progress']['hashtag_variants'] = list(hashtag_variants)
+    logger.info(f"Progress updated: Found {len(hashtag_variants)} hashtag variants, {len(unique_profiles)} unique profiles")
 
     # Brief pause to make transition visible
     await asyncio.sleep(1)
@@ -1153,8 +1167,8 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit, default_pro
         app_data['processing_progress']['existing_usernames'] = len(existing_usernames)
         app_data['processing_progress']['usernames_to_enrich'] = len(usernames_to_enrich)
         
-        # Update progress display to show de-duplication stats
-        app_data['processing_progress']['current_step'] = f'1. Hashtag-Suche abgeschlossen - {len(usernames)} Profile gefunden ({len(existing_usernames)} bereits in Datenbank, {len(usernames_to_enrich)} werden angereichert) ✓'
+        # Update progress display to show enrichment is starting
+        app_data['processing_progress']['current_step'] = f'Anreicherung läuft für {len(usernames_to_enrich)} neue Profile...'
         
         usernames = usernames_to_enrich  # Use filtered list
     
@@ -1182,15 +1196,8 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit, default_pro
             return total_saved_leads
             
         try:
-            # Update progress with detailed step information
-            batch_time_estimate = (profile_batch_time + (90 if i < len(batches) - 1 else 0)) / 60  # Convert to minutes
-            profiles_processed = i * batch_size
-            profiles_current_batch = min(len(batch), batch_size)
-            total_profiles_after_batch = profiles_processed + profiles_current_batch
-            app_data['processing_progress']['current_step'] = f'2. Erweitere Profil-Informationen - {profiles_processed}/{len(usernames)} Profile angereichert - Batch {i+1}/{len(batches)} (ca. {batch_time_estimate:.1f}min)'
+            # Simple progress update
             app_data['processing_progress']['phase'] = 'profile_enrichment'
-            app_data['processing_progress']['current_batch'] = i + 1
-            app_data['processing_progress']['total_batches'] = len(batches)
             logger.info(f"Processing batch {i+1}/{len(batches)} with {len(batch)} usernames")
 
             # Process one batch at a time
@@ -1216,7 +1223,6 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit, default_pro
                 # Update progress with incremental lead count for frontend - force immediate update
                 app_data['processing_progress']['incremental_leads'] = total_saved_leads
                 app_data['processing_progress']['keyword'] = keyword
-                app_data['processing_progress']['current_step'] = f'2. Batch {i+1}/{len(batches)} abgeschlossen - {total_saved_leads} Leads generiert'
 
                 # Force immediate progress update for UI refresh
                 logger.info(f"UI Refresh Trigger: {total_saved_leads} leads saved for keyword '{keyword}'")
@@ -1273,33 +1279,8 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit, default_pro
                 minutes_left = pause_duration // 60
                 seconds_left = pause_duration % 60
 
-                if pause_duration == 180:
-                    app_data['processing_progress']['current_step'] = f'⏸ Erweiterte Anti-Spam Pause (3min): {minutes_left}m {seconds_left}s bis Batch-Gruppe {(i+2)//3 + 1}'
-                else:
-                    app_data['processing_progress']['current_step'] = f'⏸ Anti-Spam Pause: {minutes_left}m {seconds_left}s bis Batch {i+2}/{len(batches)}'
-
-                # Count down the pause time with progress updates
-                for remaining_seconds in range(pause_duration, 0, -15):  # Update every 15 seconds
-                    minutes_remaining = remaining_seconds // 60
-                    seconds_remaining = remaining_seconds % 60
-
-                    if minutes_remaining > 0:
-                        time_display = f"{minutes_remaining}m {seconds_remaining}s"
-                    else:
-                        time_display = f"{seconds_remaining}s"
-
-                    if pause_duration == 180:
-                        app_data['processing_progress']['current_step'] = f'⏸ Erweiterte Anti-Spam Pause (3min): {time_display} bis Batch-Gruppe {(i+2)//3 + 1}'
-                    else:
-                        app_data['processing_progress']['current_step'] = f'⏸ Anti-Spam Pause: {time_display} bis Batch {i+2}/{len(batches)}'
-                    logger.info(f"Pause countdown: {time_display} remaining until next batch")
-
-                    await asyncio.sleep(15)  # Use async sleep to not block the event loop
-
-                # Final sleep for any remaining seconds
-                remaining_final = pause_duration % 15
-                if remaining_final > 0:
-                    await asyncio.sleep(remaining_final)
+                # Simple pause without countdown updates
+                await asyncio.sleep(pause_duration)
 
                 logger.info(f"90s pause completed. Resuming with batch {i+2}/{len(batches)}")
             else:
@@ -1317,7 +1298,7 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit, default_pro
 
     # Show final completion status
     app_data['processing_progress'] = {
-        'current_step': f'3. Fertig! {total_saved_leads} Leads erfolgreich generiert und gespeichert ✓',
+        'current_step': f'Fertig! {total_saved_leads} Leads generiert',
         'phase': 'completed',
         'total_steps': 0,
         'completed_steps': 0,
