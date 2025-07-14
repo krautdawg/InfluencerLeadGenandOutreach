@@ -1279,12 +1279,16 @@ async def discover_hashtags_async(keyword, ig_sessionid, search_limit):
             hashtag = item.get('hashtag', keyword)
             
             if username:
-                if hashtag not in hashtag_counts:
-                    hashtag_counts[hashtag] = 0
-                    hashtag_usernames[hashtag] = []
+                # URL decode the hashtag for display
+                import urllib.parse
+                decoded_hashtag = urllib.parse.unquote(hashtag)
                 
-                hashtag_counts[hashtag] += 1
-                hashtag_usernames[hashtag].append(username)
+                if decoded_hashtag not in hashtag_counts:
+                    hashtag_counts[decoded_hashtag] = 0
+                    hashtag_usernames[decoded_hashtag] = []
+                
+                hashtag_counts[decoded_hashtag] += 1
+                hashtag_usernames[decoded_hashtag].append(username)
         
         # Create hashtag variants list with counts
         variants = []
