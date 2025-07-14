@@ -567,44 +567,13 @@ async function updateProgress() {
                 }
             }
             
-            // Update progress details with phase-specific information
+
+            // Keep progress display simple - just show basic step information
             let progressHTML = '';
             
             if (progress.total_steps > 0) {
                 const percentage = Math.round((progress.completed_steps / progress.total_steps) * 100);
-                const minutes = Math.floor(progress.estimated_time_remaining / 60);
-                const seconds = progress.estimated_time_remaining % 60;
-                
-                progressHTML += `Fortschritt: ${progress.completed_steps}/${progress.total_steps} (${percentage}%)<br>`;
-                
-                // Add time estimate if available
-                if (progress.estimated_time_remaining > 0) {
-                    progressHTML += `Geschätzte Restzeit: ${minutes}m ${seconds}s<br>`;
-                }
-            }
-            
-            // Add de-duplication info if available
-            if (progress.usernames_to_enrich !== undefined) {
-                progressHTML += `<strong>Gefunden:</strong> ${progress.total_usernames} Profile<br>`;
-                progressHTML += `<strong>Bereits vorhanden:</strong> ${progress.existing_usernames}<br>`;
-                progressHTML += `<strong>Werden angereichert:</strong> ${progress.usernames_to_enrich}<br>`;
-            }
-            
-            // Add phase-specific details with enhanced descriptions
-            if (progress.phase === 'hashtag_search') {
-                progressHTML += `<strong>Phase:</strong> Instagram Hashtag-Crawling läuft...`;
-            } else if (progress.phase === 'hashtag_search_complete') {
-                progressHTML += `<strong>Phase:</strong> Hashtag-Suche abgeschlossen, starte Profil-Anreicherung...`;
-            } else if (progress.phase === 'profile_enrichment') {
-                if (progress.current_batch && progress.total_batches) {
-                    progressHTML += `<strong>Phase:</strong> Profil-Anreicherung (Batch ${progress.current_batch}/${progress.total_batches})`;
-                } else {
-                    progressHTML += `<strong>Phase:</strong> Profile werden angereichert...`;
-                }
-            } else if (progress.phase === 'completed') {
-                progressHTML += `<strong>Phase:</strong> Erfolgreich abgeschlossen ✓`;
-            } else if (progress.incremental_leads > 0) {
-                progressHTML += `<strong>Leads generiert:</strong> ${progress.incremental_leads}`;
+                progressHTML += `Fortschritt: ${progress.completed_steps}/${progress.total_steps} (${percentage}%)`;
             }
             
             if (progressHTML) {

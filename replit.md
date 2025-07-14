@@ -6,6 +6,28 @@ K+L Influence is a Flask-based Instagram lead generation and outreach automation
 
 ## Recent Changes
 
+### 2025-07-14: Fixed URL Encoding and Missing HTML Container Issues (COMPLETED)
+- **Update**: Fixed URL-encoded hashtag display and missing resultsContainer element
+- **Issues Resolved**:
+  - Hashtag names were displaying URL-encoded (e.g., `zeckenhalsb%c3%a4nder` instead of `zeckenhalsbänder`)
+  - Missing `resultsContainer` div in HTML template prevented hashtag selection UI from displaying
+  - Undefined `keyword` variable in `call_apify_actor_sync` function caused extraction errors
+- **Fixes Implemented**:
+  - **URL Decoding**: Added `urllib.parse.unquote()` to decode URL-encoded hashtag names in `discover_hashtags_async`
+  - **HTML Structure**: Added missing `resultsContainer` div to wrap the main content area in index.html
+  - **Keyword Parameter**: Fixed keyword extraction from `input_data` in `call_apify_actor_sync` function
+  - **Debug Logging**: Added console logging to frontend response processing for better debugging
+- **Technical Details**:
+  - URL decoding ensures proper German character display (ä, ö, ü, ß)
+  - HTML container structure now supports dynamic content injection for hashtag selection
+  - Keyword parameter properly extracted from search input for hashtag fallback
+- **Benefits**:
+  - Hashtag variants now display with proper German characters and umlauts
+  - Hashtag selection UI displays correctly in the main content area
+  - Better user experience with readable hashtag names
+  - Improved debugging capabilities for response handling
+- **Status**: All fixes implemented and hashtag selection functionality working correctly
+
 ### 2025-07-14: Hashtag Selection Step Before Enrichment (COMPLETED)
 - **Update**: Added intermediate hashtag selection step after discovery phase
 - **New Workflow**: 
