@@ -6,6 +6,33 @@ K+L Influence is a Flask-based Instagram lead generation and outreach automation
 
 ## Recent Changes
 
+### 2025-07-14: Hashtag Selection Step Before Enrichment (COMPLETED)
+- **Update**: Added intermediate hashtag selection step after discovery phase
+- **New Workflow**: 
+  1. User enters keyword and search limit
+  2. System discovers hashtag variants and shows them for selection
+  3. User selects which hashtag variants to enrich
+  4. System proceeds with enrichment only for selected hashtags
+- **Changes Made**:
+  - **Backend Split**: Separated processing into two phases:
+    - `discover_hashtags_async`: Finds hashtag variants without enrichment
+    - `enrich_selected_profiles_async`: Enriches only selected profiles
+  - **New API Endpoints**:
+    - `/api/hashtag-variants`: Returns discovered hashtag variants with user counts
+    - `/continue-enrichment`: Processes selected hashtags for enrichment
+  - **Frontend Updates**:
+    - Created hashtag selection UI with checkboxes and user counts
+    - Added "Select All" and "Deselect All" buttons for convenience
+    - Shows number of profiles per hashtag variant
+    - Continue button proceeds with enrichment for selected hashtags only
+  - **Styling**: Added CSS for hashtag selection container with K+L branding
+- **Benefits**:
+  - Users can avoid processing irrelevant hashtag variants
+  - Saves time and API calls by skipping unwanted hashtags
+  - Better control over which profiles to enrich
+  - Clear visibility of hashtag distribution before processing
+- **Status**: Hashtag selection functionality fully implemented and operational
+
 ### 2025-07-13: Extended Worker Timeout to 2 Hours (COMPLETED)
 - **Update**: Increased worker timeout from 30 minutes to 2 hours to handle long processing runs
 - **Issue**: Worker timeout error occurred during large batch processing with multiple anti-spam pauses

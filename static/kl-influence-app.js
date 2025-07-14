@@ -385,7 +385,12 @@ async function processKeyword() {
         
         if (response.ok) {
             const result = await response.json();
-            if (result.success && result.leads) {
+            if (result.success && result.phase === 'hashtag_selection') {
+                // Handle hashtag selection phase
+                clearInterval(progressInterval);
+                showHashtagSelection(result.hashtag_variants);
+                showToast(`Found ${result.hashtag_variants.length} hashtag variants`, 'success');
+            } else if (result.success && result.leads) {
                 displayResults(result.leads);
                 showToast(`Successfully generated ${result.leads.length} leads`, 'success');
             } else {
@@ -422,6 +427,127 @@ async function processKeyword() {
 
 // Track previous lead count to detect new leads
 let previousLeadCount = 0;
+
+// Show hashtag selection UI
+function showHashtagSelection(hashtag_variants) {
+    // Hide processing status
+    document.getElementById('processingStatus').style.display = 'none';
+    
+    // Create hashtag selection UI
+    const resultsContainer = document.getElementById('resultsContainer');
+    resultsContainer.innerHTML = '';
+    
+    const selectionContainer = document.createElement('div');
+    selectionContainer.className = 'hashtag-selection-container p-4';
+    selectionContainer.innerHTML = `
+        <h3 class="mb-4">Hashtag-Varianten gefunden</h3>
+        <p class="text-muted mb-4">Wählen Sie die Hashtags aus, für die Sie Profile anreichern möchten:</p>
+        <div id="hashtagList" class="mb-4"></div>
+        <div class="d-flex gap-2">
+            <button id="selectAllHashtags" class="btn btn-sm btn-outline-primary">
+                <i class="fas fa-check-square"></i> Alle auswählen
+            </button>
+            <button id="deselectAllHashtags" class="btn btn-sm btn-outline-secondary">
+                <i class="far fa-square"></i> Alle abwählen
+            </button>
+        </div>
+        <div class="mt-4">
+            <button id="continueEnrichment" class="btn btn-primary">
+                <i class="fas fa-arrow-right"></i> Mit Anreicherung fortfahren
+            </button>
+            <button id="cancelSelection" class="btn btn-secondary">
+                <i class="fas fa-times"></i> Abbrechen
+            </button>
+        </div>
+    `;
+    
+    resultsContainer.appendChild(selectionContainer);
+    
+    // Populate hashtag list
+    const hashtagList = document.getElementById('hashtagList');
+    hashtag_variants.forEach((variant, index) => {
+        const hashtagItem = document.createElement('div');
+        hashtagItem.className = 'form-check mb-2';
+        hashtagItem.innerHTML = `
+            <input class="form-check-input hashtag-checkbox" type="checkbox" 
+                   value="${variant.hashtag}" id="hashtag${index}" checked>
+            <label class="form-check-label" for="hashtag${index}">
+                <strong>#${variant.hashtag}</strong> - ${variant.user_count} Profile
+            </label>
+        `;
+        hashtagList.appendChild(hashtagItem);
+    });
+    
+    // Add event listeners
+    document.getElementById('selectAllHashtags').addEventListener('click', () => {
+        document.querySelectorAll('.hashtag-checkbox').forEach(cb => cb.checked = true);
+    });
+    
+    document.getElementById('deselectAllHashtags').addEventListener('click', () => {
+        document.querySelectorAll('.hashtag-checkbox').forEach(cb => cb.checked = false);
+    });
+    
+    document.getElementById('continueEnrichment').addEventListener('click', continueWithEnrichment);
+    
+    document.getElementById('cancelSelection').addEventListener('click', () => {
+        resultsContainer.innerHTML = '';
+        resetProcessingUI();
+        showToast('Verarbeitung abgebrochen', 'info');
+    });
+}
+
+// Continue with enrichment for selected hashtags
+async function continueWithEnrichment() {
+    const selectedHashtags = [];
+    document.querySelectorAll('.hashtag-checkbox:checked').forEach(cb => {
+        selectedHashtags.push(cb.value);
+    });
+    
+    if (selectedHashtags.length === 0) {
+        showToast('Bitte wählen Sie mindestens einen Hashtag aus', 'warning');
+        return;
+    }
+    
+    // Hide selection UI and show processing status
+    document.getElementById('resultsContainer').innerHTML = '';
+    document.getElementById('processingStatus').style.display = 'block';
+    document.getElementById('statusText').textContent = '2. Starte Profil-Anreicherung...';
+    
+    // Start progress polling
+    const progressInterval = setInterval(updateProgress, 2000);
+    
+    try {
+        const response = await fetch('/continue-enrichment', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                selected_hashtags: selectedHashtags
+            }),
+            timeout: 7320000 // 2h 2min timeout
+        });
+        
+        clearInterval(progressInterval);
+        
+        if (response.ok) {
+            const result = await response.json();
+            if (result.success && result.leads) {
+                displayResults(result.leads);
+                showToast(`Successfully generated ${result.leads.length} leads`, 'success');
+            } else {
+                showToast(result.message || 'No leads found', 'warning');
+            }
+        } else {
+            const error = await response.json();
+            showToast(error.error || 'Failed to enrich profiles', 'error');
+        }
+    } catch (error) {
+        clearInterval(progressInterval);
+        console.error('Enrichment error:', error);
+        showToast(`Enrichment error: ${error.message || 'Unknown error'}`, 'error');
+    } finally {
+        resetProcessingUI();
+    }
+}
 
 // Update progress
 async function updateProgress() {

@@ -930,18 +930,25 @@ def process_keyword():
     app_data['stop_requested'] = False  # Reset stop flag
 
     try:
-        # Run the async processing in a thread pool with memory optimization
+        # Run hashtag discovery only - no enrichment yet
         with ThreadPoolExecutor(max_workers=1) as executor:
-            future = executor.submit(run_async_process, keyword, ig_sessionid, search_limit, default_product_id)
+            future = executor.submit(discover_hashtags_sync, keyword, ig_sessionid, search_limit)
             try:
-                result = future.result(timeout=180)  # Reduced to 3 minutes
+                hashtag_variants = future.result(timeout=180)  # Reduced to 3 minutes
             except TimeoutError:
-                logger.error("Processing timed out after 3 minutes")
+                logger.error("Hashtag discovery timed out after 3 minutes")
                 app_data['processing_status'] = None
-                return {"error": "Processing timed out. Please try with a smaller search limit."}, 408
+                return {"error": "Hashtag discovery timed out. Please try with a smaller search limit."}, 408
 
-        app_data['processing_status'] = None
-        return {"success": True, "leads": result}
+        # Store hashtag variants in app_data for later enrichment
+        app_data['hashtag_variants'] = hashtag_variants
+        app_data['keyword'] = keyword
+        app_data['ig_sessionid'] = ig_sessionid
+        app_data['search_limit'] = search_limit
+        app_data['default_product_id'] = default_product_id
+        app_data['processing_status'] = 'hashtag_selection'  # New status
+        
+        return {"success": True, "phase": "hashtag_selection", "hashtag_variants": hashtag_variants}
 
     except Exception as e:
         logger.error(f"Processing failed: {e}")
@@ -985,6 +992,118 @@ def stop_processing():
         return jsonify({"error": "Fehler beim Stoppen"}), 500
 
 
+@app.route('/api/hashtag-variants', methods=['GET'])
+def get_hashtag_variants():
+    """Get discovered hashtag variants"""
+    try:
+        variants = app_data.get('hashtag_variants', [])
+        if not variants:
+            return jsonify({"error": "No hashtag variants found"}), 404
+        
+        # Don't send full username lists to frontend, just counts
+        simplified_variants = []
+        for variant in variants:
+            simplified_variants.append({
+                'hashtag': variant['hashtag'],
+                'user_count': variant['user_count']
+            })
+        
+        return jsonify({
+            'success': True,
+            'hashtag_variants': simplified_variants,
+            'keyword': app_data.get('keyword', '')
+        })
+    except Exception as e:
+        logger.error(f"Failed to get hashtag variants: {e}")
+        return jsonify({"error": "Failed to get hashtag variants"}), 500
+
+
+@app.route('/continue-enrichment', methods=['POST'])
+def continue_enrichment():
+    """Continue with enrichment for selected hashtags"""
+    try:
+        data = request.get_json()
+        selected_hashtags = data.get('selected_hashtags', [])
+        
+        if not selected_hashtags:
+            return jsonify({"error": "No hashtags selected"}), 400
+        
+        # Get stored data
+        hashtag_variants = app_data.get('hashtag_variants', [])
+        keyword = app_data.get('keyword', '')
+        ig_sessionid = app_data.get('ig_sessionid', '')
+        search_limit = app_data.get('search_limit', 100)
+        default_product_id = app_data.get('default_product_id')
+        
+        if not hashtag_variants:
+            return jsonify({"error": "No hashtag data found. Please run hashtag search first."}), 400
+        
+        # Filter to only selected hashtags
+        selected_profiles = []
+        for variant in hashtag_variants:
+            if variant['hashtag'] in selected_hashtags:
+                # Add all usernames from this hashtag variant
+                for username in variant['usernames']:
+                    selected_profiles.append({
+                        'username': username,
+                        'hashtag': variant['hashtag']
+                    })
+        
+        logger.info(f"Selected {len(selected_profiles)} profiles from {len(selected_hashtags)} hashtags")
+        
+        # Reset processing status
+        app_data['processing_status'] = 'Processing...'
+        app_data['stop_requested'] = False
+        
+        # Start enrichment in background
+        with ThreadPoolExecutor(max_workers=1) as executor:
+            future = executor.submit(run_enrichment_process, selected_profiles, ig_sessionid, default_product_id)
+            try:
+                result = future.result(timeout=7200)  # 2 hours for enrichment
+            except TimeoutError:
+                logger.error("Enrichment timed out after 2 hours")
+                app_data['processing_status'] = None
+                return {"error": "Enrichment timed out."}, 408
+        
+        app_data['processing_status'] = None
+        return {"success": True, "leads": result}
+        
+    except Exception as e:
+        logger.error(f"Failed to continue enrichment: {e}")
+        app_data['processing_status'] = None
+        return jsonify({"error": str(e)}), 500
+
+
+def discover_hashtags_sync(keyword, ig_sessionid, search_limit):
+    """Discover hashtags only - no enrichment"""
+    try:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        try:
+            return loop.run_until_complete(
+                discover_hashtags_async(keyword, ig_sessionid, search_limit))
+        finally:
+            loop.close()
+    except Exception as e:
+        logger.error(f"Hashtag discovery failed: {e}")
+        raise
+
+
+def run_enrichment_process(selected_profiles, ig_sessionid, default_product_id=None):
+    """Run enrichment process for selected profiles"""
+    try:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        try:
+            return loop.run_until_complete(
+                enrich_selected_profiles_async(selected_profiles, ig_sessionid, default_product_id))
+        finally:
+            loop.close()
+    except Exception as e:
+        logger.error(f"Enrichment process failed: {e}")
+        raise
+
+
 def run_async_process(keyword, ig_sessionid, search_limit, default_product_id=None):
     """Run async processing in a separate thread"""
     try:
@@ -999,6 +1118,194 @@ def run_async_process(keyword, ig_sessionid, search_limit, default_product_id=No
     except Exception as e:
         logger.error(f"Async processing failed: {e}")
         raise
+
+
+async def enrich_selected_profiles_async(selected_profiles, ig_sessionid, default_product_id=None):
+    """Enrich selected profiles only"""
+    apify_token = os.environ.get('APIFY_TOKEN')
+    perplexity_key = os.environ.get('PERPLEXITY_API_KEY')
+    
+    if not all([apify_token, perplexity_key]) or not apify_token.strip() or not perplexity_key.strip():
+        missing_keys = []
+        if not apify_token or not apify_token.strip():
+            missing_keys.append('APIFY_TOKEN')
+        if not perplexity_key or not perplexity_key.strip():
+            missing_keys.append('PERPLEXITY_API_KEY')
+        raise ValueError(f"Missing or empty API tokens: {', '.join(missing_keys)}")
+    
+    # Initialize progress tracking
+    start_time = time.time()
+    batch_size = 3
+    
+    # Filter out existing usernames from database
+    usernames = [p['username'] for p in selected_profiles]
+    username_to_hashtag = {p['username']: p['hashtag'] for p in selected_profiles}
+    
+    with app.app_context():
+        existing_usernames = set()
+        existing_leads = Lead.query.filter(Lead.username.in_(usernames)).all()
+        for lead in existing_leads:
+            existing_usernames.add(lead.username)
+        
+        usernames_to_enrich = [u for u in usernames if u not in existing_usernames]
+        
+        logger.info(f"Selected {len(usernames)} profiles")
+        logger.info(f"Filtered out {len(existing_usernames)} existing usernames")
+        logger.info(f"Will enrich {len(usernames_to_enrich)} new usernames")
+        
+        # Create batches
+        batches = [usernames_to_enrich[i:i + batch_size] for i in range(0, len(usernames_to_enrich), batch_size)]
+        
+        # Update progress
+        app_data['processing_progress'] = {
+            'current_step': f'2. Erweitere {len(usernames_to_enrich)} neue Profile...',
+            'phase': 'profile_enrichment',
+            'total_steps': len(batches),
+            'completed_steps': 0,
+            'estimated_time_remaining': len(batches) * 105,  # 15s processing + 90s pause
+            'total_usernames': len(usernames),
+            'existing_usernames': len(existing_usernames),
+            'usernames_to_enrich': len(usernames_to_enrich)
+        }
+    
+    # Process batches
+    semaphore = asyncio.Semaphore(3)
+    perplexity_semaphore = asyncio.Semaphore(2)
+    total_saved_leads = 0
+    
+    for i, batch in enumerate(batches):
+        if app_data.get('stop_requested', False):
+            logger.info(f"Processing stopped by user during batch {i+1}")
+            break
+            
+        try:
+            app_data['processing_progress']['current_step'] = f'2. Erweitere Profile - Batch {i+1}/{len(batches)}'
+            app_data['processing_progress']['current_batch'] = i + 1
+            app_data['processing_progress']['total_batches'] = len(batches)
+            
+            # Fix the function call to pass correct parameters
+            perplexity_semaphore_unused = perplexity_semaphore  # Keep for consistency even though not used in function
+            result = await enrich_profile_batch(batch, ig_sessionid, apify_token, perplexity_key, semaphore)
+            
+            if isinstance(result, list) and result:
+                # Add hashtag information
+                for lead in result:
+                    lead['hashtag'] = username_to_hashtag.get(lead['username'], 'unknown')
+                    lead['is_duplicate'] = False
+                
+                # Save batch
+                saved_count = save_leads_incrementally(result, app_data.get('keyword', ''), default_product_id)
+                total_saved_leads += saved_count
+                logger.info(f"Batch {i+1}: Saved {saved_count} leads")
+                
+                app_data['processing_progress']['incremental_leads'] = total_saved_leads
+            
+            app_data['processing_progress']['completed_steps'] = i + 1
+            
+            # Anti-spam pause
+            if i < len(batches) - 1:
+                logger.info(f"Anti-spam pause: 90s before batch {i+2}")
+                for remaining in range(90, 0, -15):
+                    app_data['processing_progress']['current_step'] = f'⏸ Anti-Spam Pause: {remaining}s bis Batch {i+2}/{len(batches)}'
+                    await asyncio.sleep(15)
+                    
+        except Exception as e:
+            logger.error(f"Batch {i+1} error: {e}")
+            continue
+    
+    # Final status
+    app_data['processing_progress'] = {
+        'current_step': f'3. Fertig! {total_saved_leads} Leads erfolgreich generiert ✓',
+        'phase': 'completed',
+        'total_steps': 0,
+        'completed_steps': 0,
+        'estimated_time_remaining': 0,
+        'total_leads_generated': total_saved_leads
+    }
+    
+    logger.info(f"Enrichment complete: {total_saved_leads} leads saved")
+    
+    # Get all leads for the selected hashtags
+    with app.app_context():
+        # Extract unique hashtags from selected_profiles
+        hashtags = list(set([p['hashtag'] for p in selected_profiles]))
+        leads = Lead.query.filter(Lead.hashtag.in_(hashtags)).all()
+        return [lead.to_dict() for lead in leads]
+
+
+async def discover_hashtags_async(keyword, ig_sessionid, search_limit):
+    """Discover hashtags only - returns hashtag variants with user counts"""
+    apify_token = os.environ.get('APIFY_TOKEN')
+    
+    if not apify_token or not apify_token.strip():
+        raise ValueError("Missing or empty APIFY_TOKEN")
+    
+    # Update progress tracking
+    app_data['processing_progress'] = {
+        'current_step': f'1. Suche Instagram-Profile für Hashtag #{keyword}...',
+        'phase': 'hashtag_search',
+        'total_steps': 1,
+        'completed_steps': 0,
+        'estimated_time_remaining': 30,
+        'keyword': keyword
+    }
+    
+    # Call Apify to get hashtag data
+    hashtag_input = {
+        "search": keyword,
+        "searchType": "hashtag",
+        "searchLimit": search_limit
+    }
+    
+    try:
+        hashtag_data = call_apify_actor_sync("DrF9mzPPEuVizVF4l", hashtag_input, apify_token)
+        
+        if not hashtag_data or not hashtag_data.get('items'):
+            logger.error(f"No hashtag data returned for keyword: {keyword}")
+            return []
+            
+        hashtag_items = hashtag_data.get('items', [])
+        logger.info(f"Processing {len(hashtag_items)} hashtag items")
+        
+        # Count users per hashtag variant
+        hashtag_counts = {}
+        hashtag_usernames = {}  # Store usernames per hashtag
+        
+        for item in hashtag_items:
+            username = item.get('username')
+            hashtag = item.get('hashtag', keyword)
+            
+            if username:
+                if hashtag not in hashtag_counts:
+                    hashtag_counts[hashtag] = 0
+                    hashtag_usernames[hashtag] = []
+                
+                hashtag_counts[hashtag] += 1
+                hashtag_usernames[hashtag].append(username)
+        
+        # Create hashtag variants list with counts
+        variants = []
+        for hashtag, count in hashtag_counts.items():
+            variants.append({
+                'hashtag': hashtag,
+                'user_count': count,
+                'usernames': hashtag_usernames[hashtag]
+            })
+        
+        # Sort by user count descending
+        variants.sort(key=lambda x: x['user_count'], reverse=True)
+        
+        # Update progress
+        app_data['processing_progress']['completed_steps'] = 1
+        app_data['processing_progress']['current_step'] = f'Hashtag-Suche abgeschlossen - {len(variants)} Varianten gefunden'
+        app_data['processing_progress']['phase'] = 'hashtag_selection'
+        
+        return variants
+        
+    except Exception as e:
+        logger.error(f"Hashtag discovery failed: {e}")
+        app_data['processing_progress']['current_step'] = f'Fehler: {str(e)}'
+        return []
 
 
 async def process_keyword_async(keyword, ig_sessionid, search_limit, default_product_id=None):
