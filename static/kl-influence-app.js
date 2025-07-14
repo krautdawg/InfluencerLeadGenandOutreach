@@ -385,6 +385,7 @@ async function processKeyword() {
         
         if (response.ok) {
             const result = await response.json();
+            console.log('Process response:', result); // Debug log
             if (result.success && result.phase === 'hashtag_selection') {
                 // Handle hashtag selection phase
                 clearInterval(progressInterval);

@@ -45,7 +45,7 @@
                 </div>
                 <div class="form-group">
                     <label for="searchLimitInput">Anzahl hashtag Varianten</label>
-                    <input type="number" class="form-control" id="searchLimitInput" value="25" min="1" max="50">
+                    <input type="number" class="form-control" id="searchLimitInput" value="5" min="1" max="50">
                     <small class="form-text">Max 10 (wegen Anti-Spam Filter)</small>
                 </div>
 
@@ -104,29 +104,31 @@
 
         <!-- Main Content Area -->
         <main class="main-content">
-            <!-- Results Section -->
-            <div id="resultsSection" style="display: none;">
-                <!-- Action Bar -->
-                <div class="d-flex justify-content-between align-items-center mb-4">
-                    <h2 class="mb-0">Lead Ergebnisse</h2>
-                    <div class="d-flex gap-2">
-                        <button type="button" class="btn btn-secondary btn-sm" onclick="clearFilters()">
-                            <i class="fas fa-filter"></i> Filter löschen
-                        </button>
-                        <button type="button" class="btn btn-secondary btn-sm" onclick="exportData('csv')">
-                            <i class="fas fa-file-csv"></i> CSV Export
-                        </button>
-                        <button type="button" class="btn btn-secondary btn-sm" onclick="exportData('json')">
-                            <i class="fas fa-file-code"></i> JSON Export
-                        </button>
-                        <button type="button" class="btn btn-tertiary btn-sm" onclick="clearData()">
-                            <i class="fas fa-trash"></i> Alle löschen
-                        </button>
+            <!-- Results Container for dynamic content -->
+            <div id="resultsContainer">
+                <!-- Results Section -->
+                <div id="resultsSection" style="display: none;">
+                    <!-- Action Bar -->
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h2 class="mb-0">Lead Ergebnisse</h2>
+                        <div class="d-flex gap-2">
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="clearFilters()">
+                                <i class="fas fa-filter"></i> Filter löschen
+                            </button>
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="exportData('csv')">
+                                <i class="fas fa-file-csv"></i> CSV Export
+                            </button>
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="exportData('json')">
+                                <i class="fas fa-file-code"></i> JSON Export
+                            </button>
+                            <button type="button" class="btn btn-tertiary btn-sm" onclick="clearData()">
+                                <i class="fas fa-trash"></i> Alle löschen
+                            </button>
+                        </div>
                     </div>
-                </div>
 
-                <!-- Table Container -->
-                <div class="table-container">
+                    <!-- Table Container -->
+                    <div class="table-container">
                     <div class="table-wrapper">
                         <table class="data-table" id="resultsTable">
                             <thead>
@@ -187,13 +189,14 @@
                         </table>
                     </div>
                 </div>
-            </div>
+                </div>
 
-            <!-- Empty State -->
-            <div id="emptyState" class="text-center" style="padding: var(--space-3xl) 0;">
-                <i class="fas fa-inbox" style="font-size: 48px; color: var(--color-light-gray); margin-bottom: var(--space-lg);"></i>
-                <h3 style="color: var(--color-medium-gray);">Noch keine Leads generiert</h3>
-                <p style="color: var(--color-medium-gray);">Gib ein hashtag ein und klicke auf "Leads generieren", um zu beginnen</p>
+                <!-- Empty State -->
+                <div id="emptyState" class="text-center" style="padding: var(--space-3xl) 0;">
+                    <i class="fas fa-inbox" style="font-size: 48px; color: var(--color-light-gray); margin-bottom: var(--space-lg);"></i>
+                    <h3 style="color: var(--color-medium-gray);">Noch keine Leads generiert</h3>
+                    <p style="color: var(--color-medium-gray);">Gib ein hashtag ein und klicke auf "Leads generieren", um zu beginnen</p>
+                </div>
             </div>
         </main>
     </div>

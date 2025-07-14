@@ -189,6 +189,9 @@ def call_apify_actor_sync(actor_id, input_data, token):
 
     start_time = time.time()
     client = ApifyClient(token)
+    
+    # Extract keyword from input_data for fallback hashtag
+    keyword = input_data.get('search', 'unknown')
 
     # Add random delay before Apify call to avoid anti-spam measures
     delay = random.uniform(1, 10)
