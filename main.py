@@ -29,6 +29,12 @@ app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL")
 app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
     "pool_recycle": 300,
     "pool_pre_ping": True,
+    "pool_reset_on_return": "commit",
+    "connect_args": {
+        "sslmode": "prefer",
+        "connect_timeout": 30,
+        "application_name": "KL_Influence"
+    }
 }
 
 # Initialize database
@@ -47,22 +53,27 @@ with app.app_context():
     # Initialize default email templates if they don't exist
     def initialize_default_templates():
         """Initialize default email templates if they don't exist"""
-        default_subject_template = 'Schreibe in DU-Form eine persönliche Betreffzeile mit freundlichen Hook für eine Influencer Kooperation mit Kasimir + Liselotte. Nutze persönliche Infos (z.B. Username, BIO, Interessen), sprich sie direkt in DU-Form. Falls ein Produkt ausgewählt ist, erwähne es subtil in der Betreffzeile. Antworte im JSON-Format: {"subject": "betreff text"}'
-        default_body_template = 'Erstelle eine personalisierte, professionelle deutsche E-Mail, ohne die Betreffzeile, für potenzielle Instagram Influencer Kooperationen. Die E-Mail kommt von Kasimir vom Store KasimirLieselotte. Verwende einen höflichen, professionellen Ton auf Deutsch aber in DU-Form um es casual im Instagram feel zu bleiben. WICHTIG: Falls ein Produkt ausgewählt ist, integriere unbedingt folgende Elemente in die E-Mail: 1) Erwähne das Produkt namentlich, 2) Füge den direkten Link zum Produkt ein (Produkt-URL), 3) Erkläre kurz die Produkteigenschaften basierend auf der Beschreibung, 4) Beziehe das Produkt auf die Bio/Interessen des Influencers. Die E-Mail sollte den Produktlink natürlich in den Text einbetten. Füge am Ende die Signatur mit der Website https://www.kasimirlieselotte.de/ hinzu. Antworte im JSON-Format: {"body": "email inhalt"}'
+        try:
+            default_subject_template = 'Schreibe in DU-Form eine persönliche Betreffzeile mit freundlichen Hook für eine Influencer Kooperation mit Kasimir + Liselotte. Nutze persönliche Infos (z.B. Username, BIO, Interessen), sprich sie direkt in DU-Form. Falls ein Produkt ausgewählt ist, erwähne es subtil in der Betreffzeile. Antworte im JSON-Format: {"subject": "betreff text"}'
+            default_body_template = 'Erstelle eine personalisierte, professionelle deutsche E-Mail, ohne die Betreffzeile, für potenzielle Instagram Influencer Kooperationen. Die E-Mail kommt von Kasimir vom Store KasimirLieselotte. Verwende einen höflichen, professionellen Ton auf Deutsch aber in DU-Form um es casual im Instagram feel zu bleiben. WICHTIG: Falls ein Produkt ausgewählt ist, integriere unbedingt folgende Elemente in die E-Mail: 1) Erwähne das Produkt namentlich, 2) Füge den direkten Link zum Produkt ein (Produkt-URL), 3) Erkläre kurz die Produkteigenschaften basierend auf der Beschreibung, 4) Beziehe das Produkt auf die Bio/Interessen des Influencers. Die E-Mail sollte den Produktlink natürlich in den Text einbetten. Füge am Ende die Signatur mit der Website https://www.kasimirlieselotte.de/ hinzu. Antworte im JSON-Format: {"body": "email inhalt"}'
 
-        # Check if subject template exists
-        subject_template = EmailTemplate.query.filter_by(name='subject').first()
-        if not subject_template:
-            subject_template = EmailTemplate(name='subject', template=default_subject_template)
-            db.session.add(subject_template)
+            # Check if subject template exists
+            subject_template = EmailTemplate.query.filter_by(name='subject').first()
+            if not subject_template:
+                subject_template = EmailTemplate(name='subject', template=default_subject_template)
+                db.session.add(subject_template)
 
-        # Check if body template exists
-        body_template = EmailTemplate.query.filter_by(name='body').first()
-        if not body_template:
-            body_template = EmailTemplate(name='body', template=default_body_template)
-            db.session.add(body_template)
+            # Check if body template exists
+            body_template = EmailTemplate.query.filter_by(name='body').first()
+            if not body_template:
+                body_template = EmailTemplate(name='body', template=default_body_template)
+                db.session.add(body_template)
 
-        db.session.commit()
+            db.session.commit()
+            logger.info("Email templates initialized successfully")
+        except Exception as e:
+            logger.error(f"Failed to initialize email templates: {e}")
+            db.session.rollback()
 
     initialize_default_templates()
 
@@ -760,22 +771,48 @@ def index():
     ig_sessionid = session.get('ig_sessionid') or os.environ.get(
         'IG_SESSIONID')
 
-    # Get leads from database
-    leads = Lead.query.order_by(Lead.created_at.desc()).all()
-    leads_dict = [lead.to_dict() for lead in leads]
+    try:
+        # Get leads from database
+        leads = Lead.query.order_by(Lead.created_at.desc()).all()
+        leads_dict = [lead.to_dict() for lead in leads]
 
-    # Get email templates
-    subject_template = EmailTemplate.query.filter_by(name='subject').first()
-    body_template = EmailTemplate.query.filter_by(name='body').first()
+        # Get email templates
+        subject_template = EmailTemplate.query.filter_by(name='subject').first()
+        body_template = EmailTemplate.query.filter_by(name='body').first()
 
-    templates = {
-        'subject': subject_template.template if subject_template else '',
-        'body': body_template.template if body_template else ''
-    }
+        templates = {
+            'subject': subject_template.template if subject_template else '',
+            'body': body_template.template if body_template else ''
+        }
 
-    # Get products
-    products = Product.query.all()
-    products_dict = [product.to_dict() for product in products]
+        # Get products
+        products = Product.query.all()
+        products_dict = [product.to_dict() for product in products]
+
+        # Validate default_product_id if set
+        default_product_id = session.get('default_product_id')
+        if default_product_id:
+            try:
+                product = Product.query.get(default_product_id)
+                if not product:
+                    # Clear invalid default_product_id
+                    session.pop('default_product_id', None)
+                    default_product_id = None
+                    logger.warning(f"Invalid default_product_id {default_product_id} removed from session")
+            except Exception as e:
+                logger.error(f"Error validating default_product_id: {e}")
+                session.pop('default_product_id', None)
+                default_product_id = None
+
+    except Exception as db_error:
+        logger.error(f"Database connection error in index route: {db_error}")
+        # Provide fallback empty data
+        leads_dict = []
+        templates = {'subject': '', 'body': ''}
+        products_dict = []
+        default_product_id = None
+        # Clear potentially problematic session data
+        session.pop('default_product_id', None)
 
     return render_template('index.html',
                            ig_sessionid=ig_sessionid,
@@ -783,7 +820,7 @@ def index():
                            processing_status=app_data['processing_status'],
                            email_templates=templates,
                            products=products_dict,
-                           default_product_id=session.get('default_product_id'))
+                           default_product_id=default_product_id)
 
 
 @app.route('/ping')
@@ -812,10 +849,13 @@ def get_leads_by_keyword():
         else:
             # Return all leads if no keyword specified
             leads = Lead.query.order_by(Lead.created_at.desc()).all()
-        return {"leads": [lead.to_dict() for lead in leads]}
-    except Exception as e:
-        logger.error(f"Failed to query leads: {e}")
-        return {"error": "Failed to retrieve leads"}, 500
+            
+        leads_dict = [lead.to_dict() for lead in leads]
+        return jsonify({"leads": leads_dict, "success": True})
+        
+    except Exception as db_error:
+        logger.error(f"Database error in get_leads_by_keyword: {db_error}")
+        return jsonify({"leads": [], "success": False, "error": "Database connection error"}), 500
 
 
 @app.route('/api-metrics')
@@ -2127,11 +2167,17 @@ def set_default_product():
         product_id = data.get('product_id')
 
         if product_id:
-            # Validate product exists
-            product = Product.query.get(product_id)
-            if not product:
-                return {"error": "Product not found"}, 404
-            session['default_product_id'] = int(product_id)
+            try:
+                # Validate product exists
+                product = Product.query.get(product_id)
+                if not product:
+                    return {"error": "Product not found"}, 404
+                session['default_product_id'] = int(product_id)
+            except Exception as db_error:
+                logger.error(f"Database error when querying product {product_id}: {db_error}")
+                # Clear the problematic product_id from session to prevent future errors
+                session.pop('default_product_id', None)
+                return {"error": "Database connection error"}, 500
         else:
             # Clear default product
             session.pop('default_product_id', None)
