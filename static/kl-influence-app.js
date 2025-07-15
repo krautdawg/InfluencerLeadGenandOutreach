@@ -455,11 +455,22 @@ async function fetchAndDisplayAllLeadsOnStartup() {
         const response = await fetch('/api/leads');
         if (response.ok) {
             const result = await response.json();
-            if (result.leads && result.leads.length > 0) {
-                console.log(`Loading ${result.leads.length} leads on startup`);
-                displayResults(result.leads);
+            
+            // Handle new response format with success flag
+            if (result.success !== false && result.leads && Array.isArray(result.leads)) {
+                if (result.leads.length > 0) {
+                    console.log(`Loading ${result.leads.length} leads on startup`);
+                    displayResults(result.leads);
+                } else {
+                    // Show empty state if no leads found
+                    const emptyState = document.getElementById('emptyState');
+                    if (emptyState) {
+                        emptyState.style.display = 'block';
+                    }
+                }
             } else {
-                // Show empty state if no leads found
+                console.error('API returned error or invalid format on startup:', result);
+                // Show empty state on error
                 const emptyState = document.getElementById('emptyState');
                 if (emptyState) {
                     emptyState.style.display = 'block';
@@ -605,15 +616,28 @@ function showHashtagSelection(hashtag_variants) {
             const response = await fetch('/api/leads');
             if (response.ok) {
                 const result = await response.json();
-                if (result.leads && result.leads.length > 0) {
-                    displayResults(result.leads);
+                
+                // Handle new response format with success flag
+                if (result.success !== false && result.leads && Array.isArray(result.leads)) {
+                    if (result.leads.length > 0) {
+                        displayResults(result.leads);
+                    } else {
+                        // Show empty state if no leads - with null check
+                        const emptyState = document.getElementById('emptyState');
+                        if (emptyState) {
+                            emptyState.style.display = 'block';
+                        }
+                    }
                 } else {
-                    // Show empty state if no leads - with null check
+                    // Handle error response or missing leads array
+                    console.error('API returned error or invalid format:', result);
                     const emptyState = document.getElementById('emptyState');
                     if (emptyState) {
                         emptyState.style.display = 'block';
                     }
                 }
+            } else {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
         } catch (error) {
             console.error('Error fetching leads:', error);
@@ -831,25 +855,35 @@ async function refreshLeadsTable(keyword) {
         const response = await fetch(`/api/leads?keyword=${encodeURIComponent(keyword)}`);
         if (response.ok) {
             const result = await response.json();
-            if (result.leads && result.leads.length > 0) {
-                console.log(`Refreshing table with ${result.leads.length} leads for keyword: ${keyword}`);
-                displayResults(result.leads);
-                
-                // Flash effect to show update
-                if (tbody) {
-                    tbody.style.opacity = '1';
-                    tbody.style.transition = 'opacity 0.3s ease-in-out';
+            
+            // Handle new response format with success flag
+            if (result.success !== false && result.leads && Array.isArray(result.leads)) {
+                if (result.leads.length > 0) {
+                    console.log(`Refreshing table with ${result.leads.length} leads for keyword: ${keyword}`);
+                    displayResults(result.leads);
                     
-                    // Add a subtle highlight effect
-                    setTimeout(() => {
-                        tbody.style.backgroundColor = '#e8f5e9';
+                    // Flash effect to show update
+                    if (tbody) {
+                        tbody.style.opacity = '1';
+                        tbody.style.transition = 'opacity 0.3s ease-in-out';
+                        
+                        // Add a subtle highlight effect
                         setTimeout(() => {
-                            tbody.style.backgroundColor = '';
-                            tbody.style.transition = 'background-color 0.5s ease-in-out';
-                        }, 500);
-                    }, 100);
+                            tbody.style.backgroundColor = '#e8f5e9';
+                            setTimeout(() => {
+                                tbody.style.backgroundColor = '';
+                                tbody.style.transition = 'background-color 0.5s ease-in-out';
+                            }, 500);
+                        }, 100);
+                    }
+                } else {
+                    console.log(`No leads found for keyword: ${keyword}`);
                 }
+            } else {
+                console.error('API returned error or invalid format:', result);
             }
+        } else {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
     } catch (error) {
         console.error('Error refreshing leads table:', error);
