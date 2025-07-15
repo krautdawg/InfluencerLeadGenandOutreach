@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - K+L Influence</title>
+    <title>K+L Influence - Login</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
@@ -11,130 +11,138 @@
             --natural-green: #2D5B2D;
             --deep-forest-green: #1B3F1B;
             --pale-green: #F0F5F0;
-            --sage-green: #87A587;
-            --mint-green: #B8D4B8;
+            --sage-green: #8FAD8F;
+            --bright-green: #4CAF50;
         }
-        
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
+
         body {
             font-family: 'Inter', sans-serif;
-            background: linear-gradient(135deg, var(--pale-green) 0%, var(--mint-green) 100%);
+            background: linear-gradient(135deg, var(--pale-green) 0%, var(--sage-green) 100%);
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
         }
-        
+
         .login-container {
             background: white;
             border-radius: 16px;
-            box-shadow: 0 20px 40px rgba(29, 63, 27, 0.1);
+            box-shadow: 0 20px 40px rgba(45, 91, 45, 0.1);
             padding: 3rem;
-            max-width: 400px;
             width: 100%;
-            margin: 2rem;
+            max-width: 420px;
+            position: relative;
+            overflow: hidden;
         }
-        
+
+        .login-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--natural-green), var(--bright-green));
+        }
+
         .logo-section {
             text-align: center;
             margin-bottom: 2rem;
         }
-        
+
         .logo {
-            display: flex;
+            display: inline-flex;
+            align-items: center;
             justify-content: center;
-            margin-bottom: 1rem;
-        }
-        
-        .leaf-icon {
-            width: 48px;
-            height: 48px;
-            object-fit: contain;
-        }
-        
-        .logo-text {
-            font-size: 24px;
-            font-weight: 600;
+            font-size: 1.8rem;
+            font-weight: 700;
             color: var(--natural-green);
-            text-align: center;
+            text-decoration: none;
             margin-bottom: 0.5rem;
         }
-        
-        .subtitle {
+
+        .logo::before {
+            content: '🌿';
+            margin-right: 0.5rem;
+            font-size: 1.5rem;
+        }
+
+        .tagline {
             color: var(--sage-green);
-            font-size: 14px;
+            font-size: 0.9rem;
             font-weight: 400;
         }
-        
-        .form-group {
-            margin-bottom: 1.5rem;
-        }
-        
+
         .form-label {
-            display: block;
-            margin-bottom: 0.5rem;
-            font-weight: 500;
+            font-weight: 600;
             color: var(--deep-forest-green);
+            margin-bottom: 0.5rem;
         }
-        
+
         .form-control {
-            width: 100%;
-            padding: 0.875rem 1rem;
-            border: 2px solid #E5E7EB;
+            border: 2px solid #e9ecef;
             border-radius: 8px;
-            font-size: 14px;
-            transition: all 0.2s ease;
-            background: white;
+            padding: 0.75rem 1rem;
+            font-size: 1rem;
+            transition: all 0.3s ease;
         }
-        
+
         .form-control:focus {
-            outline: none;
             border-color: var(--natural-green);
-            box-shadow: 0 0 0 3px rgba(45, 91, 45, 0.1);
+            box-shadow: 0 0 0 0.2rem rgba(45, 91, 45, 0.1);
         }
-        
+
         .btn-login {
-            width: 100%;
-            padding: 0.875rem;
             background: var(--natural-green);
-            color: white;
             border: none;
+            color: white;
+            font-weight: 600;
+            padding: 0.75rem 2rem;
             border-radius: 8px;
-            font-weight: 500;
-            font-size: 14px;
-            transition: all 0.2s ease;
-            cursor: pointer;
+            width: 100%;
+            transition: all 0.3s ease;
+            margin-top: 1rem;
         }
-        
+
         .btn-login:hover {
             background: var(--deep-forest-green);
+            color: white;
             transform: translateY(-1px);
         }
-        
-        .btn-login:active {
-            transform: translateY(0);
+
+        .alert {
+            border: none;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
         }
-        
-        .error-message {
-            color: #dc3545;
-            font-size: 13px;
+
+        .alert-danger {
+            background-color: #fdf2f2;
+            color: #991b1b;
+        }
+
+        .alert-success {
+            background-color: #f0fdf4;
+            color: #166534;
+        }
+
+        .alert-info {
+            background-color: #f0f9ff;
+            color: #1e40af;
+        }
+
+        .password-help {
+            font-size: 0.85rem;
+            color: var(--sage-green);
             margin-top: 0.5rem;
-            display: none;
+            text-align: center;
         }
-        
-        .error-message.show {
-            display: block;
-        }
-        
-        @media (max-width: 480px) {
+
+        @media (max-width: 576px) {
             .login-container {
-                padding: 2rem;
                 margin: 1rem;
+                padding: 2rem;
             }
         }
     </style>
@@ -142,56 +150,41 @@
 <body>
     <div class="login-container">
         <div class="logo-section">
-            <div class="logo">
-                <img src="{{ url_for('static', filename='favicon.png') }}" alt="K+L Influence" class="leaf-icon">
-            </div>
-            <div class="logo-text">K+L Influence</div>
-            <div class="subtitle">Instagram Lead Generation</div>
+            <div class="logo">K+L Influence</div>
+            <div class="tagline">Instagram Lead Generation Platform</div>
         </div>
-        
-        <form method="post" action="/login" id="loginForm">
-            <div class="form-group">
-                <label for="password" class="form-label">Password</label>
-                <input 
-                    type="password" 
-                    id="password" 
-                    name="password" 
-                    class="form-control" 
-                    required 
-                    autocomplete="current-password"
-                    placeholder="Enter your password"
-                >
-                <div class="error-message" id="errorMessage">
-                    {% if error %}{{ error }}{% endif %}
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ 'danger' if category == 'error' else category }}" role="alert">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <form method="POST">
+            <div class="mb-3">
+                <label for="password" class="form-label">Passwort eingeben</label>
+                <input type="password" 
+                       class="form-control" 
+                       id="password" 
+                       name="password" 
+                       placeholder="App-Passwort eingeben"
+                       required
+                       autocomplete="current-password">
+                <div class="password-help">
+                    Bitte geben Sie das App-Passwort ein, um fortzufahren
                 </div>
             </div>
             
-            <button type="submit" class="btn-login">
-                Sign In
+            <button type="submit" class="btn btn-login">
+                Anmelden
             </button>
         </form>
     </div>
-    
-    <script>
-        // Show error message if exists
-        const errorMessage = document.getElementById('errorMessage');
-        if (errorMessage.textContent.trim()) {
-            errorMessage.classList.add('show');
-        }
-        
-        // Focus password field on load
-        document.getElementById('password').focus();
-        
-        // Handle form submission
-        document.getElementById('loginForm').addEventListener('submit', function(e) {
-            const password = document.getElementById('password').value;
-            if (!password.trim()) {
-                e.preventDefault();
-                errorMessage.textContent = 'Please enter your password';
-                errorMessage.classList.add('show');
-                return;
-            }
-        });
-    </script>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
