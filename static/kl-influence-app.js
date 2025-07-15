@@ -1140,33 +1140,62 @@ async function exportData(format) {
         console.log('Response status:', response.status);
         console.log('Response headers:', Object.fromEntries(response.headers.entries()));
         
-        const result = await response.json();
-        console.log('Response result keys:', Object.keys(result));
-        console.log('Data length:', result.data ? result.data.length : 'no data');
-        
         if (response.ok) {
-            // Create blob with proper encoding for CSV
-            const mimeType = format === 'csv' ? 'text/csv;charset=utf-8' : 'application/json';
-            console.log('Creating blob with type:', mimeType);
-            const blob = new Blob([result.data], { type: mimeType });
-            console.log('Blob size:', blob.size);
-            
-            const url = window.URL.createObjectURL(blob);
-            console.log('Created URL:', url);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = result.filename;
-            console.log('Download filename:', result.filename);
-            document.body.appendChild(a);
-            a.click();
-            console.log('Download link clicked');
-            window.URL.revokeObjectURL(url);
-            document.body.removeChild(a);
-            
-            showToast(`Google Sheets kompatible ${format.toUpperCase()} Datei exportiert`, 'success');
+            if (format === 'csv') {
+                // For CSV, handle as direct file download
+                const blob = await response.blob();
+                console.log('CSV Blob size:', blob.size);
+                
+                // Extract filename from Content-Disposition header
+                const contentDisposition = response.headers.get('Content-Disposition');
+                let filename = `instagram_leads_${new Date().toISOString().slice(0,19).replace(/:/g, '')}.csv`;
+                if (contentDisposition) {
+                    const filenameMatch = contentDisposition.match(/filename="([^"]+)"/);
+                    if (filenameMatch) {
+                        filename = filenameMatch[1];
+                    }
+                }
+                console.log('Download filename:', filename);
+                
+                const url = window.URL.createObjectURL(blob);
+                console.log('Created URL:', url);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                a.style.display = 'none';
+                document.body.appendChild(a);
+                a.click();
+                console.log('Download link clicked');
+                
+                // Clean up
+                setTimeout(() => {
+                    window.URL.revokeObjectURL(url);
+                    document.body.removeChild(a);
+                }, 100);
+                
+                showToast(`Google Sheets kompatible CSV Datei exportiert`, 'success');
+            } else {
+                // For JSON, handle as before
+                const result = await response.json();
+                console.log('Response result keys:', Object.keys(result));
+                
+                const blob = new Blob([result.data], { type: 'application/json' });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = result.filename;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+                
+                showToast(`${format.toUpperCase()} Datei exportiert`, 'success');
+            }
         } else {
             console.error('Export failed with status:', response.status);
-            showToast(result.error || 'Datenexport fehlgeschlagen', 'error');
+            const errorText = await response.text();
+            console.error('Error response:', errorText);
+            showToast('Datenexport fehlgeschlagen', 'error');
         }
     } catch (error) {
         console.error('Export error:', error);

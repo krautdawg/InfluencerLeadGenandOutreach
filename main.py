@@ -8,7 +8,7 @@ import time
 from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor
 import httpx
-from flask import Flask, render_template, request, jsonify, session, redirect, url_for
+from flask import Flask, render_template, request, jsonify, session, redirect, url_for, make_response
 from openai import OpenAI
 from apify_client import ApifyClient
 import csv
@@ -1930,10 +1930,12 @@ def export_data(format):
             utf8_bom = '\ufeff'
             final_content = utf8_bom + csv_content
 
-            return {
-                "data": final_content,
-                "filename": f"instagram_leads_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
-            }
+            # Create response with proper headers for direct download
+            response = make_response(final_content)
+            response.headers['Content-Type'] = 'text/csv; charset=utf-8'
+            response.headers['Content-Disposition'] = f'attachment; filename="instagram_leads_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv"'
+            response.headers['Cache-Control'] = 'no-cache'
+            return response
 
         elif format == 'json':
             leads_data = [lead.to_dict() for lead in leads]

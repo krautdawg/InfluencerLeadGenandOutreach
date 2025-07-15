@@ -519,24 +519,55 @@ function updateSortIndicators(activeColumn, direction) {
 async function exportData(format) {
     try {
         const response = await fetch(`/export/${format}`);
-        const result = await response.json();
         
         if (response.ok) {
-            // Create and trigger download with proper encoding for CSV
-            const mimeType = format === 'csv' ? 'text/csv;charset=utf-8' : 'application/json';
-            const blob = new Blob([result.data], { type: mimeType });
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = result.filename;
-            document.body.appendChild(a);
-            a.click();
-            window.URL.revokeObjectURL(url);
-            document.body.removeChild(a);
-            
-            showToast(`Google Sheets kompatible ${format.toUpperCase()} Datei exportiert`, 'success');
+            if (format === 'csv') {
+                // For CSV, handle as direct file download
+                const blob = await response.blob();
+                
+                // Extract filename from Content-Disposition header
+                const contentDisposition = response.headers.get('Content-Disposition');
+                let filename = `instagram_leads_${new Date().toISOString().slice(0,19).replace(/:/g, '')}.csv`;
+                if (contentDisposition) {
+                    const filenameMatch = contentDisposition.match(/filename="([^"]+)"/);
+                    if (filenameMatch) {
+                        filename = filenameMatch[1];
+                    }
+                }
+                
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                a.style.display = 'none';
+                document.body.appendChild(a);
+                a.click();
+                
+                // Clean up
+                setTimeout(() => {
+                    window.URL.revokeObjectURL(url);
+                    document.body.removeChild(a);
+                }, 100);
+                
+                showToast(`Google Sheets kompatible CSV Datei exportiert`, 'success');
+            } else {
+                // For JSON, handle as before
+                const result = await response.json();
+                const blob = new Blob([result.data], { type: 'application/json' });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = result.filename;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+                
+                showToast(`${format.toUpperCase()} Datei exportiert`, 'success');
+            }
         } else {
-            showToast(result.error || 'Export fehlgeschlagen', 'error');
+            const errorText = await response.text();
+            showToast('Export fehlgeschlagen', 'error');
         }
     } catch (error) {
         console.error('Error exporting data:', error);
