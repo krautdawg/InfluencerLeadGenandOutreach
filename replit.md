@@ -6,6 +6,58 @@ K+L Influence is a Flask-based Instagram lead generation and outreach automation
 
 ## Recent Changes
 
+### 2025-07-15: Predefined Follower Count Filters (COMPLETED)
+- **Update**: Added predefined filter buttons for common influencer follower count ranges
+- **Features Implemented**:
+  - **Quick Filter Buttons**: Added preset buttons above the results table for easy follower filtering
+  - **Influencer Categories**: 
+    - Alle (All) - Clears follower filter
+    - Nano (1k-10k) - Filters for 1,000 to 10,000 followers
+    - Mikro (10k-50k) - Filters for 10,000 to 50,000 followers
+    - Mittel (50k-100k) - Filters for 50,000 to 100,000 followers
+    - Makro (100k+) - Filters for 100,000+ followers
+  - **Visual Feedback**: Active filter button highlights in brand green color
+  - **Range Filtering**: Implemented dual-filter logic to handle ranges (min and max)
+  - **Integration**: Works seamlessly with existing filter system and clear filters button
+- **Technical Implementation**:
+  - Added `applyFollowerPreset()` function to handle preset selections
+  - Created `applyFollowerRangeFilter()` for applying min/max range constraints
+  - Updated `clearFilters()` to reset preset button states
+  - Added CSS styling for preset buttons with hover and active states
+- **UI/UX Improvements**:
+  - Quick one-click filtering for common influencer segments
+  - Clear visual indication of active filter preset
+  - Maintains consistency with existing filter interface
+  - German language labels for better user experience
+- **Benefits**:
+  - Faster lead segmentation by influencer size
+  - Industry-standard categorization (nano, micro, mid, macro)
+  - Improved workflow efficiency for targeting specific influencer tiers
+  - No need to manually type comparison operators
+- **Status**: Predefined follower filters fully implemented and operational
+
+### 2025-07-15: Fixed Application Startup and Lead Loading (COMPLETED)
+- **Update**: Fixed JavaScript syntax errors and improved lead loading on application startup
+- **Issues Resolved**:
+  - Fixed syntax error in `fetchAndDisplayAllLeads()` function that was preventing JavaScript execution
+  - Modified `/api/leads` endpoint to handle requests without keyword parameter
+  - Added `fetchAndDisplayAllLeadsOnStartup()` function for fallback lead loading
+- **Fixes Implemented**:
+  - **Backend API Enhancement**: Updated `/api/leads` endpoint to return all leads when no keyword is provided
+  - **JavaScript Error Fix**: Corrected syntax in `fetchAndDisplayAllLeads()` function
+  - **Startup Load Function**: Created dedicated startup function to fetch leads if window.leadsData is empty
+  - **Error Handling**: Added proper error handling with empty state display on fetch failures
+- **Technical Details**:
+  - API endpoint now supports both filtered (with keyword) and unfiltered (all leads) requests
+  - JavaScript initialization properly checks for window.leadsData and falls back to API fetch
+  - Console logging added for debugging lead loading process
+- **Benefits**:
+  - Application now reliably loads all existing leads on startup
+  - No more blank table on page refresh or initial load
+  - Better error handling and user feedback
+  - Consistent lead display regardless of how the page is accessed
+- **Status**: Lead loading functionality fully operational
+
 ### 2025-07-15: Auto-Revert Hashtag Selection to Leads Table (COMPLETED)
 - **Update**: Modified hashtag selection interface to automatically revert to leads table on any interaction
 - **Features Implemented**:

@@ -129,6 +129,26 @@
                         </div>
                     </div>
 
+                    <!-- Predefined Follower Filters -->
+                    <div class="predefined-filters" id="followerPresets">
+                        <label>Schnellfilter Follower:</label>
+                        <button type="button" class="filter-preset" onclick="applyFollowerPreset('')">
+                            Alle
+                        </button>
+                        <button type="button" class="filter-preset" onclick="applyFollowerPreset('1000-10000')">
+                            Nano (1k-10k)
+                        </button>
+                        <button type="button" class="filter-preset" onclick="applyFollowerPreset('10000-50000')">
+                            Mikro (10k-50k)
+                        </button>
+                        <button type="button" class="filter-preset" onclick="applyFollowerPreset('50000-100000')">
+                            Mittel (50k-100k)
+                        </button>
+                        <button type="button" class="filter-preset" onclick="applyFollowerPreset('100000')">
+                            Makro (100k+)
+                        </button>
+                    </div>
+
                     <!-- Table Container -->
                     <div class="table-container">
                     <div class="table-wrapper">

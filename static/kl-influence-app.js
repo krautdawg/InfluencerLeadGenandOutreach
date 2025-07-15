@@ -249,7 +249,82 @@ function clearFilters() {
     document.querySelectorAll('.filter-input').forEach(input => {
         input.value = '';
     });
+    
+    // Remove active class from all preset buttons
+    document.querySelectorAll('.filter-preset').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    
     applyFilters();
+}
+
+// Function to apply predefined follower filter
+function applyFollowerPreset(preset) {
+    const filterInput = document.getElementById('filterFollowers');
+    if (!filterInput) return;
+    
+    // Remove active class from all preset buttons
+    document.querySelectorAll('.filter-preset').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    
+    // Add active class to clicked button
+    const event = window.event || arguments.callee.caller.arguments[0];
+    if (event && event.target) {
+        event.target.classList.add('active');
+    }
+    
+    // Set the filter value based on preset
+    switch(preset) {
+        case '':
+            filterInput.value = '';
+            break;
+        case '1000-10000':
+            filterInput.value = '>=1000';
+            // We'll need to apply a second filter after this one
+            setTimeout(() => {
+                applyFollowerRangeFilter(1000, 10000);
+            }, 100);
+            return;
+        case '10000-50000':
+            filterInput.value = '>=10000';
+            setTimeout(() => {
+                applyFollowerRangeFilter(10000, 50000);
+            }, 100);
+            return;
+        case '50000-100000':
+            filterInput.value = '>=50000';
+            setTimeout(() => {
+                applyFollowerRangeFilter(50000, 100000);
+            }, 100);
+            return;
+        case '100000':
+            filterInput.value = '>=100000';
+            break;
+    }
+    
+    // Apply filters
+    applyFilters();
+}
+
+// Function to apply range filters for followers
+function applyFollowerRangeFilter(min, max) {
+    const tbody = document.getElementById('resultsBody');
+    const rows = tbody.querySelectorAll('tr');
+    
+    rows.forEach(row => {
+        if (row.style.display === 'none') return; // Skip already hidden rows
+        
+        const cells = row.querySelectorAll('td');
+        if (cells.length === 0) return;
+        
+        const followers = parseInt(cells[4]?.textContent.replace(/[^\d]/g, '')) || 0;
+        
+        // Hide if outside the range
+        if (followers < min || followers > max) {
+            row.style.display = 'none';
+        }
+    });
 }
 
 // Check session ID

@@ -983,3 +983,39 @@ select:focus {
   outline: 2px solid var(--color-natural-green);
   outline-offset: 2px;
 }
+
+/* Predefined Filter Buttons */
+.predefined-filters {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+}
+
+.predefined-filters label {
+    font-weight: 600;
+    color: var(--color-dark-gray);
+    margin-right: 8px;
+}
+
+.filter-preset {
+    padding: 6px 12px;
+    background-color: var(--color-off-white);
+    border: 1px solid var(--color-light-gray);
+    border-radius: 6px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.filter-preset:hover {
+    background-color: var(--color-pale-green);
+    border-color: var(--color-natural-green);
+}
+
+.filter-preset.active {
+    background-color: var(--color-natural-green);
+    color: white;
+    border-color: var(--color-natural-green);
+}
