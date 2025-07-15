@@ -214,29 +214,27 @@ function applyFilters() {
         if (filters.subject && !subject.includes(filters.subject)) show = false;
         if (filters.emailBody && !emailBody.includes(filters.emailBody)) show = false;
         
-        // Numeric filter for followers
+        // Range filter for followers
         if (filters.followers) {
-            const match = filters.followers.match(/([<>=]+)?\s*(\d+)/);
-            if (match) {
-                const operator = match[1] || '=';
-                const value = parseInt(match[2]);
-                
-                switch(operator) {
-                    case '>':
-                        if (followers <= value) show = false;
-                        break;
-                    case '<':
-                        if (followers >= value) show = false;
-                        break;
-                    case '>=':
-                        if (followers < value) show = false;
-                        break;
-                    case '<=':
-                        if (followers > value) show = false;
-                        break;
-                    default:
-                        if (followers !== value) show = false;
-                }
+            switch(filters.followers) {
+                case '1-100':
+                    if (followers < 1 || followers > 100) show = false;
+                    break;
+                case '100-999':
+                    if (followers < 100 || followers > 999) show = false;
+                    break;
+                case '1k-10k':
+                    if (followers < 1000 || followers > 10000) show = false;
+                    break;
+                case '10k-50k':
+                    if (followers < 10000 || followers > 50000) show = false;
+                    break;
+                case '50k-100k':
+                    if (followers < 50000 || followers > 100000) show = false;
+                    break;
+                case '100k+':
+                    if (followers < 100000) show = false;
+                    break;
             }
         }
         
