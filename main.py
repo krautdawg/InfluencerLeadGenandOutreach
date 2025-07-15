@@ -8,7 +8,8 @@ import time
 from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor
 import httpx
-from flask import Flask, render_template, request, jsonify, session, redirect, url_for, make_response
+from flask import Flask, render_template, request, jsonify, session, redirect, url_for, make_response, flash
+from functools import wraps
 from openai import OpenAI
 from apify_client import ApifyClient
 import csv
@@ -21,6 +22,7 @@ logger = logging.getLogger(__name__)
 app = Flask(__name__)
 app.secret_key = os.environ.get("SESSION_SECRET",
                                 "dev-secret-key-change-in-production")
+app.permanent_session_lifetime = 86400  # 24 hours
 
 # Database configuration
 app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL")
@@ -112,6 +114,19 @@ app_data = {
     'start_time': time.time(),  # Track application startup time
     'stop_requested': False  # Flag to request processing stop
 }
+
+# Authentication decorator
+def login_required(f):
+    """Decorator to require login for protected routes"""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not session.get('logged_in'):
+            return redirect(url_for('login'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+# Get password from environment
+APP_PASSWORD = os.environ.get('APP_PASSWORD')
 
 
 def deduplicate_profiles(profiles):
@@ -720,7 +735,27 @@ async def enrich_profile_batch(usernames, ig_sessionid, apify_token,
             return []
 
 
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    """Login page"""
+    if request.method == 'POST':
+        password = request.form.get('password')
+        if password == APP_PASSWORD:
+            session['logged_in'] = True
+            session.permanent = True
+            return redirect(url_for('index'))
+        else:
+            return render_template('login.html', error='Invalid password')
+    return render_template('login.html')
+
+@app.route('/logout')
+def logout():
+    """Logout user"""
+    session.pop('logged_in', None)
+    return redirect(url_for('login'))
+
 @app.route('/')
+@login_required
 def index():
     """Main page"""
     ig_sessionid = session.get('ig_sessionid') or os.environ.get(
@@ -759,12 +794,14 @@ def ping():
 
 
 @app.route('/progress')
+@login_required
 def get_progress():
     """Get current processing progress"""
     return jsonify(app_data['processing_progress'])
 
 
 @app.route('/api/leads')
+@login_required
 def get_leads_by_keyword():
     """Get leads filtered by keyword for real-time table updates"""
     keyword = request.args.get('keyword', '').strip()
@@ -781,6 +818,7 @@ def get_leads_by_keyword():
 
 
 @app.route('/api-metrics')
+@login_required
 def get_api_metrics():
     """Get comprehensive API call metrics and performance data"""
     time_window = request.args.get('time_window', 60, type=int)  # Default 60 minutes
@@ -803,6 +841,7 @@ def get_api_metrics():
 
 
 @app.route('/api-health')
+@login_required
 def get_api_health():
     """Get API health status and recent error trends"""
     try:
@@ -850,6 +889,7 @@ def get_api_health():
 
 
 @app.route('/debug-logs')
+@login_required
 def get_debug_logs():
     """Get recent debug logs from the log file"""
     try:
@@ -886,12 +926,14 @@ def get_debug_logs():
 
 
 @app.route('/debug')
+@login_required
 def debug_dashboard():
     """Render the debug dashboard for API monitoring"""
     return render_template('debug_dashboard.html')
 
 
 @app.route('/set-session', methods=['POST'])
+@login_required
 def set_session():
     """Set Instagram session ID"""
     data = request.get_json()
@@ -903,6 +945,7 @@ def set_session():
 
 
 @app.route('/process', methods=['POST'])
+@login_required
 def process_keyword():
     """Process keyword and generate leads"""
     data = request.get_json()
@@ -978,6 +1021,7 @@ def process_keyword():
 
 
 @app.route('/stop-processing', methods=['POST'])
+@login_required
 def stop_processing():
     """Stop current processing"""
     try:
@@ -996,6 +1040,7 @@ def stop_processing():
 
 
 @app.route('/api/hashtag-variants', methods=['GET'])
+@login_required
 def get_hashtag_variants():
     """Get discovered hashtag variants"""
     try:
@@ -1022,6 +1067,7 @@ def get_hashtag_variants():
 
 
 @app.route('/continue-enrichment', methods=['POST'])
+@login_required
 def continue_enrichment():
     """Continue with enrichment for selected hashtags"""
     try:
@@ -1652,6 +1698,7 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit, default_pro
 
 
 @app.route('/draft-email/<username>', methods=['GET'])
+@login_required
 def draft_email(username):
     """Generate email draft using OpenAI"""
     # Get templates from database
@@ -1737,6 +1784,7 @@ def draft_email(username):
 
 
 @app.route('/get-email/<username>')
+@login_required
 def get_email(username):
     """Get email address for a lead"""
     # Find the lead in database
@@ -1751,6 +1799,7 @@ def get_email(username):
 
 
 @app.route('/update-lead/<username>', methods=['POST'])
+@login_required
 def update_lead(username):
     """Update lead information"""
     data = request.get_json()
@@ -1786,6 +1835,7 @@ def update_lead(username):
 
 
 @app.route('/send-email/<username>', methods=['POST'])
+@login_required
 def send_email(username):
     """Mark email as sent (used with Gmail integration)"""
     # Find the lead in database
@@ -1815,6 +1865,7 @@ def send_email(username):
 
 
 @app.route('/mark-sent/<username>', methods=['POST'])
+@login_required
 def mark_sent(username):
     """Mark email as sent and update database"""
     data = request.get_json()
@@ -1844,6 +1895,7 @@ def mark_sent(username):
 
 
 @app.route('/export/<format>')
+@login_required
 def export_data(format):
     """Export data in different formats"""
     # Get leads from database
@@ -1952,6 +2004,7 @@ def export_data(format):
 
 
 @app.route('/clear')
+@login_required
 def clear_data():
     """Clear all stored data"""
     try:
@@ -1970,6 +2023,7 @@ def clear_data():
 
 
 @app.route('/api/email-templates', methods=['GET'])
+@login_required
 def get_email_templates():
     """Get current email templates"""
     try:
@@ -1986,6 +2040,7 @@ def get_email_templates():
 
 
 @app.route('/api/email-templates', methods=['POST'])
+@login_required
 def save_email_templates():
     """Save email templates"""
     try:
@@ -2019,6 +2074,7 @@ def save_email_templates():
 
 
 @app.route('/api/products', methods=['GET'])
+@login_required
 def get_products():
     """Get all available products for email generation"""
     try:
@@ -2032,6 +2088,7 @@ def get_products():
 
 
 @app.route('/api/leads/<username>/product', methods=['POST'])
+@login_required
 def update_lead_product(username):
     """Update the selected product for a lead"""
     try:
@@ -2061,6 +2118,7 @@ def update_lead_product(username):
 
 
 @app.route('/api/set-default-product', methods=['POST'])
+@login_required
 def set_default_product():
     """Set the default product in session"""
     try:
