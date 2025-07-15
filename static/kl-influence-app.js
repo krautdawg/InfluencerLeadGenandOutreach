@@ -56,6 +56,9 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log('Existing leads found:', existingLeads.length);
     if (existingLeads.length > 0) {
         displayResults(existingLeads);
+    } else {
+        // If no leads data in window, fetch from API
+        fetchAndDisplayAllLeadsOnStartup();
     }
     
     // Initialize UI state for resource protection
@@ -446,6 +449,35 @@ let previousLeadCount = 0;
 let isLeadGenerationInProgress = false;
 let isEmailDraftGenerationInProgress = false;
 
+// Function to fetch and display all leads on startup
+async function fetchAndDisplayAllLeadsOnStartup() {
+    try {
+        const response = await fetch('/api/leads');
+        if (response.ok) {
+            const result = await response.json();
+            if (result.leads && result.leads.length > 0) {
+                console.log(`Loading ${result.leads.length} leads on startup`);
+                displayResults(result.leads);
+            } else {
+                // Show empty state if no leads found
+                const emptyState = document.getElementById('emptyState');
+                if (emptyState) {
+                    emptyState.style.display = 'block';
+                }
+            }
+        } else {
+            console.error('Failed to fetch leads on startup:', response.status);
+        }
+    } catch (error) {
+        console.error('Error fetching leads on startup:', error);
+        // Show empty state on error
+        const emptyState = document.getElementById('emptyState');
+        if (emptyState) {
+            emptyState.style.display = 'block';
+        }
+    }
+}
+
 // Function to update UI based on current processing states
 function updateUIState() {
     // Lead Generation UI elements
@@ -622,9 +654,6 @@ function showHashtagSelection(hashtag_variants) {
         document.querySelectorAll('.hashtag-checkbox').forEach(checkbox => {
             checkbox.addEventListener('change', () => {
                 setTimeout(revertToLeadsTable, 300); // Small delay to show the check/uncheck
-            });
-        });
-    }, 100); // Small delay to ensure checkboxes are rendered
             });
         });
     }, 100); // Small delay to ensure checkboxes are rendered
