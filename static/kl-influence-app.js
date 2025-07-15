@@ -569,6 +569,15 @@ function showHashtagSelection(hashtag_variants) {
         resultsContainer.innerHTML = '';
         setLeadGenerationState(false);
         resetProcessingUI();
+        
+        // Show existing leads table if we have leads data
+        if (leads && leads.length > 0) {
+            displayResults(leads);
+        } else {
+            // Show empty state if no leads
+            document.getElementById('emptyState').style.display = 'block';
+        }
+        
         showToast('Verarbeitung abgebrochen', 'info');
     });
 }
@@ -611,10 +620,22 @@ async function continueWithEnrichment() {
                 displayResults(result.leads);
                 showToast(`Successfully generated ${result.leads.length} leads`, 'success');
             } else {
+                // Even if no new leads, show existing data table
+                if (leads && leads.length > 0) {
+                    displayResults(leads);
+                } else {
+                    document.getElementById('emptyState').style.display = 'block';
+                }
                 showToast(result.message || 'No leads found', 'warning');
             }
         } else {
             const error = await response.json();
+            // Show existing data table on error too
+            if (leads && leads.length > 0) {
+                displayResults(leads);
+            } else {
+                document.getElementById('emptyState').style.display = 'block';
+            }
             showToast(error.error || 'Failed to enrich profiles', 'error');
         }
     } catch (error) {
