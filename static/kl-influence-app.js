@@ -608,14 +608,20 @@ function showHashtagSelection(hashtag_variants) {
                 if (result.leads && result.leads.length > 0) {
                     displayResults(result.leads);
                 } else {
-                    // Show empty state if no leads
-                    document.getElementById('emptyState').style.display = 'block';
+                    // Show empty state if no leads - with null check
+                    const emptyState = document.getElementById('emptyState');
+                    if (emptyState) {
+                        emptyState.style.display = 'block';
+                    }
                 }
             }
         } catch (error) {
             console.error('Error fetching leads:', error);
-            // Show empty state on error
-            document.getElementById('emptyState').style.display = 'block';
+            // Show empty state on error - with null check
+            const emptyState = document.getElementById('emptyState');
+            if (emptyState) {
+                emptyState.style.display = 'block';
+            }
         }
     }
     
