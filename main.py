@@ -520,8 +520,7 @@ def save_leads_incrementally(enriched_leads, keyword, default_product_id=None):
                             zip=lead_data.get('zip', ''),
                             latitude=lead_data.get('latitude'),
                             longitude=lead_data.get('longitude'),
-                            is_duplicate=lead_data.get('is_duplicate', False),
-                            selected_product_id=default_product_id  # Apply default product from session
+                            is_duplicate=lead_data.get('is_duplicate', False)
                         )
                         db.session.add(new_lead)
                         current_lead = new_lead
