@@ -905,7 +905,7 @@ function createLeadRow(lead, index) {
             ${lead.subject || '<span style="color: var(--color-light-gray);">Klicken zum Hinzufügen</span>'}
         </td>
         <td data-label="Email Body" class="editable-cell" data-username="${lead.username}" data-field="email_body" onclick="editField(this)">
-            ${lead.email_body ? renderHTMLPreview(lead.email_body, 100) : '<span style="color: var(--color-light-gray);">Klicken zum Hinzufügen</span>'}
+            ${(lead.email_body || '').substring(0, 50)}${(lead.email_body || '').length > 50 ? '...' : ''}${!lead.email_body ? '<span style="color: var(--color-light-gray);">Klicken zum Hinzufügen</span>' : ''}
         </td>
         <td data-label="Status">
             ${lead.sent ? `<span style="color: var(--color-natural-green); font-weight: 500;"><i class="fas fa-check-circle"></i> Gesendet<br><small style="color: var(--color-medium-gray); font-weight: normal;">${formatDateTime(lead.sentAt)}</small></span>` : '<span style="color: var(--color-medium-gray);">Entwurf</span>'}
@@ -1109,14 +1109,7 @@ async function generateEmailContent(username) {
 function showEditModal(title, label, content, field) {
     editingField = field;
     document.getElementById('editModalTitle').textContent = title;
-    
-    // For email body fields, show a note about HTML formatting
-    if (field === 'email_body') {
-        document.getElementById('editModalLabel').innerHTML = label + ' <small style="color: var(--color-medium-gray);">(HTML-Format unterstützt - Links werden automatisch als anklickbar dargestellt)</small>';
-    } else {
-        document.getElementById('editModalLabel').textContent = label;
-    }
-    
+    document.getElementById('editModalLabel').textContent = label;
     document.getElementById('editModalContent').value = content || '';
     document.getElementById('editModal').classList.add('show');
     
@@ -1191,148 +1184,11 @@ async function sendEmail(username) {
     
     if (confirm(`Send email to ${lead.email}?`)) {
         try {
-            // Create a proper HTML email composition for Gmail
-            // Gmail requires a special format for HTML emails
-            const htmlEmailBody = `
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <style>
-        body { font-family: Arial, sans-serif; line-height: 1.6; }
-        a { color: #2D5B2D; text-decoration: underline; }
-    </style>
-</head>
-<body>
-    ${lead.email_body}
-</body>
-</html>`;
-            
-            // Create a data URL for the HTML content
-            const htmlDataUrl = 'data:text/html;charset=utf-8,' + encodeURIComponent(htmlEmailBody);
-            
-            // Convert HTML to formatted plain text for Gmail URL with proper line breaks
-            const tempDiv = document.createElement('div');
-            tempDiv.innerHTML = lead.email_body;
-            
-            // Extract text content and preserve basic formatting
-            let plainTextBody = tempDiv.textContent || tempDiv.innerText || lead.email_body;
-            
-            // Add proper line breaks for better Gmail formatting
-            plainTextBody = plainTextBody
-                .replace(/\n\s*\n/g, '\n\n')  // Preserve paragraph breaks
-                .replace(/\s+/g, ' ')         // Clean up extra spaces
-                .trim();
-            
-            // Create Gmail compose URL with formatted plain text
-            const gmailUrl = `https://mail.google.com/mail/u/0/?to=${encodeURIComponent(lead.email)}&su=${encodeURIComponent(lead.subject)}&body=${encodeURIComponent(plainTextBody)}&tf=cm`;
+            // Create Gmail compose URL
+            const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(lead.email)}&su=${encodeURIComponent(lead.subject)}&body=${encodeURIComponent(lead.email_body)}`;
             
             // Open Gmail compose in new tab
             window.open(gmailUrl, '_blank');
-            
-            // Create a comprehensive HTML email preview with proper Gmail integration instructions
-            const previewWindow = window.open('', '_blank', 'width=800,height=600');
-            previewWindow.document.write(`
-                <html>
-                <head>
-                    <title>📧 HTML Email Assistant - ${lead.subject}</title>
-                    <style>
-                        body { font-family: Arial, sans-serif; padding: 20px; background: #f9f9f9; margin: 0; }
-                        .header { background: #2D5B2D; color: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
-                        .content { background: white; border: 1px solid #ddd; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
-                        .html-source { background: #f0f5f0; padding: 15px; border-radius: 5px; margin-bottom: 20px; font-family: 'Courier New', monospace; font-size: 11px; max-height: 200px; overflow-y: auto; }
-                        .method { background: #e8f5e8; padding: 20px; border-radius: 8px; margin-bottom: 15px; border-left: 4px solid #2D5B2D; }
-                        .copy-btn { background: #2D5B2D; color: white; padding: 12px 24px; border: none; border-radius: 5px; cursor: pointer; margin: 10px 5px; font-size: 14px; }
-                        .copy-btn:hover { background: #1B3F1B; }
-                        .copy-btn.secondary { background: #6c757d; }
-                        .copy-btn.secondary:hover { background: #545b62; }
-                        a { color: #2D5B2D; text-decoration: underline; }
-                        .step { margin: 10px 0; padding: 10px; background: #f8f9fa; border-radius: 4px; }
-                        .warning { background: #fff3cd; padding: 15px; border-radius: 5px; border-left: 4px solid #ffc107; margin-bottom: 20px; }
-                        .preview { border: 2px solid #2D5B2D; padding: 20px; border-radius: 8px; background: white; }
-                    </style>
-                </head>
-                <body>
-                    <div class="header">
-                        <h2>📧 HTML Email Assistant</h2>
-                        <p><strong>Recipient:</strong> ${lead.email}</p>
-                        <p><strong>Subject:</strong> ${lead.subject}</p>
-                    </div>
-                    
-                    <div class="warning">
-                        <strong>⚠️ Important:</strong> Gmail URL parameters cannot display HTML content as formatted email. Gmail opened with plain text only. Use the methods below to send properly formatted HTML emails.
-                    </div>
-                    
-                    <div class="method">
-                        <h3>🎯 Method 1: Developer Tools (Recommended)</h3>
-                        <div class="step">
-                            <strong>Step 1:</strong> In the Gmail compose window, <strong>right-click</strong> in the message area
-                        </div>
-                        <div class="step">
-                            <strong>Step 2:</strong> Select <strong>"Inspect"</strong> from the menu
-                        </div>
-                        <div class="step">
-                            <strong>Step 3:</strong> In Developer Tools, find <code>&lt;div contenteditable="true"&gt;</code>
-                        </div>
-                        <div class="step">
-                            <strong>Step 4:</strong> Right-click the div and select <strong>"Edit as HTML"</strong>
-                        </div>
-                        <div class="step">
-                            <strong>Step 5:</strong> Replace content with HTML code below, then close Developer Tools
-                        </div>
-                        <button class="copy-btn" onclick="copyHtmlContent()">📋 Copy HTML Code</button>
-                    </div>
-                    
-                    <div class="method">
-                        <h3>✨ Method 2: Copy Rendered Content</h3>
-                        <div class="step">
-                            <strong>Step 1:</strong> Select all content in the preview below
-                        </div>
-                        <div class="step">
-                            <strong>Step 2:</strong> Copy (Ctrl+C / Cmd+C)
-                        </div>
-                        <div class="step">
-                            <strong>Step 3:</strong> Paste directly into Gmail compose window
-                        </div>
-                        <button class="copy-btn secondary" onclick="selectPreviewContent()">📋 Select Preview Content</button>
-                    </div>
-                    
-                    <div class="content">
-                        <h4>📧 Email Preview (How it will look to recipient):</h4>
-                        <div class="preview" id="emailPreview">
-                            ${lead.email_body}
-                        </div>
-                    </div>
-                    
-                    <div class="html-source">
-                        <h4>💻 HTML Source Code:</h4>
-                        <pre id="htmlSource">${lead.email_body.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</pre>
-                    </div>
-                    
-                    <script>
-                        function copyHtmlContent() {
-                            const htmlContent = \`${lead.email_body.replace(/`/g, '\\`')}\`;
-                            navigator.clipboard.writeText(htmlContent).then(() => {
-                                alert('✅ HTML code copied to clipboard! Now paste it into Gmail using Developer Tools method.');
-                            }).catch(err => {
-                                console.error('Failed to copy: ', err);
-                                // Fallback: select the text
-                                const sourceElement = document.getElementById('htmlSource');
-                                window.getSelection().selectAllChildren(sourceElement);
-                                alert('⚠️ Please manually copy the selected HTML code.');
-                            });
-                        }
-                        
-                        function selectPreviewContent() {
-                            const previewElement = document.getElementById('emailPreview');
-                            window.getSelection().selectAllChildren(previewElement);
-                            alert('✅ Content selected! Now copy (Ctrl+C) and paste into Gmail.');
-                        }
-                    </script>
-                </body>
-                </html>
-            `);
-            previewWindow.document.close();
             
             // Mark as sent in database
             const response = await fetch(`/send-email/${username}`, {
@@ -1657,39 +1513,6 @@ function parseNumber(str) {
         return parseFloat(num) * 1000;
     }
     return parseFloat(num) || 0;
-}
-
-function renderHTMLPreview(htmlContent, maxLength = 100) {
-    if (!htmlContent) return '';
-    
-    // Create a temporary div to safely parse HTML
-    const tempDiv = document.createElement('div');
-    tempDiv.innerHTML = htmlContent;
-    
-    // Get text content for length checking
-    const textContent = tempDiv.textContent || tempDiv.innerText || '';
-    
-    // Create a clean, readable preview
-    const htmlIndicator = '<small style="color: var(--color-medium-gray); font-style: italic; margin-left: 5px;">[HTML]</small>';
-    
-    // If content is too long, show truncated rendered HTML
-    if (textContent.length > maxLength) {
-        // Create a truncated version of the HTML
-        const truncatedText = textContent.substring(0, maxLength) + '...';
-        // Try to preserve some HTML structure for short previews
-        const shortHtml = htmlContent.length > 300 ? 
-            htmlContent.substring(0, 300) + '...' : 
-            htmlContent;
-        
-        return `<div title="Klicken um vollständige HTML-E-Mail zu bearbeiten" style="max-height: 60px; overflow: hidden; line-height: 1.4;">
-            ${shortHtml}${htmlIndicator}
-        </div>`;
-    }
-    
-    // For shorter content, render the actual HTML with proper styling
-    return `<div style="line-height: 1.4; word-wrap: break-word;">
-        ${htmlContent}${htmlIndicator}
-    </div>`;
 }
 
 function debounce(func, wait) {

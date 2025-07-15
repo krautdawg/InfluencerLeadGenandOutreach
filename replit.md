@@ -6,45 +6,6 @@ K+L Influence is a Flask-based Instagram lead generation and outreach automation
 
 ## Recent Changes
 
-### 2025-07-15: Fixed Email HTML Hyperlink Display for Gmail Compatibility (COMPLETED)
-- **Update**: Implemented comprehensive HTML email formatting fixes for proper Gmail display
-- **Issues Resolved**:
-  - Email body displaying raw HTML tags instead of clickable links in UI preview
-  - Gmail receiving HTML as plain text instead of rendered HTML
-  - Lack of proper HTML formatting indicators in user interface
-- **Frontend Fixes**:
-  - **HTML Preview Function**: Added `renderHTMLPreview()` function to safely render HTML content in table cells
-  - **Smart Display Logic**: Shows truncated text with "[HTML]" indicator for long content, renders actual HTML for shorter content  
-  - **Edit Modal Enhancement**: Added HTML format support notice in email body edit modal
-  - **Table Cell Updates**: Email body cells now properly display HTML content instead of raw tags
-- **Backend Improvements**:
-  - **Fixed Missing Import**: Added missing `re` module import that was causing email generation errors
-  - **Enhanced HTML Instructions**: Updated OpenAI prompts to explicitly request HTML format with specific styling
-  - **Comprehensive Link Formatting**: Added detailed instructions for `<a href="URL" target="_blank" style="color: #2D5B2D; text-decoration: underline;">` format
-  - **Markdown Conversion**: Improved `convert_markdown_to_html_links()` function with Gmail-compatible styling and URL detection
-  - **Database Template Updates**: Updated stored email templates to force HTML format for all future generations
-- **Gmail Integration**:
-  - **HTML URL Parameter**: Added `&html=1` parameter to Gmail compose URLs for proper HTML rendering
-  - **Content-Type Handling**: Ensured emails sent via Gmail will be interpreted as HTML content
-  - **Link Styling**: Applied Natural Green color scheme (#2D5B2D) for consistent branding in email links
-- **User Experience**:
-  - Clear indication when content contains HTML formatting
-  - Tooltips explaining HTML support in edit modals
-  - Proper clickable links displayed in email preview
-  - Gmail integration now preserves HTML formatting and link functionality
-- **Technical Implementation**:
-  - Enhanced error handling to prevent import-related crashes
-  - Secure HTML parsing using temporary DOM elements
-  - Safe HTML rendering with XSS protection through controlled innerHTML usage
-  - Backward compatibility with existing plain text emails
-- **Benefits**:
-  - Clickable hyperlinks now display properly in both UI and Gmail
-  - Professional email formatting with consistent brand colors
-  - Clear user feedback about HTML capabilities
-  - Improved email effectiveness with proper link functionality
-  - Gmail recipients see properly formatted emails with working links
-- **Status**: HTML email hyperlink functionality fully implemented and operational
-
 ### 2025-07-15: Auto-Revert Hashtag Selection to Leads Table (COMPLETED)
 - **Update**: Modified hashtag selection interface to automatically revert to leads table on any interaction
 - **Features Implemented**:

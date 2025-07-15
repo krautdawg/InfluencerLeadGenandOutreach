@@ -430,52 +430,11 @@ async function sendEmail(username, index) {
             return;
         }
         
-        // Convert HTML to formatted plain text for Gmail URL with proper line breaks
-        const tempDiv = document.createElement('div');
-        tempDiv.innerHTML = body;
-        
-        // Extract text content and preserve basic formatting
-        let plainTextBody = tempDiv.textContent || tempDiv.innerText || body;
-        
-        // Add proper line breaks for better Gmail formatting
-        plainTextBody = plainTextBody
-            .replace(/\n\s*\n/g, '\n\n')  // Preserve paragraph breaks
-            .replace(/\s+/g, ' ')         // Clean up extra spaces
-            .trim();
-        
-        // Create Gmail compose URL with formatted plain text
-        const gmailUrl = `https://mail.google.com/mail/u/0/?to=${encodeURIComponent(result.email)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(plainTextBody)}&tf=cm`;
+        // Create Gmail compose URL
+        const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(result.email)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
         
         // Open Gmail compose in new tab
         window.open(gmailUrl, '_blank');
-        
-        // Also create a popup window with the HTML preview for better visualization
-        const previewWindow = window.open('', '_blank', 'width=600,height=400');
-        previewWindow.document.write(`
-            <html>
-            <head>
-                <title>Email Preview - ${subject}</title>
-                <style>
-                    body { font-family: Arial, sans-serif; padding: 20px; }
-                    .header { background: #f0f5f0; padding: 15px; border-radius: 5px; margin-bottom: 20px; }
-                    .content { border: 1px solid #ddd; padding: 15px; border-radius: 5px; }
-                    a { color: #2D5B2D; text-decoration: underline; }
-                </style>
-            </head>
-            <body>
-                <div class="header">
-                    <h3>Email Preview</h3>
-                    <p><strong>To:</strong> ${result.email}</p>
-                    <p><strong>Subject:</strong> ${subject}</p>
-                </div>
-                <div class="content">
-                    ${body}
-                </div>
-                <p><small>Note: This is a preview. The actual email has been opened in Gmail.</small></p>
-            </body>
-            </html>
-        `);
-        previewWindow.document.close();
         
         // Mark as sent in database
         const updateResponse = await fetch(`/mark-sent/${username}`, {
