@@ -554,32 +554,80 @@ function showHashtagSelection(hashtag_variants) {
         hashtagList.appendChild(hashtagItem);
     });
     
-    // Add event listeners
-    document.getElementById('selectAllHashtags').addEventListener('click', () => {
-        document.querySelectorAll('.hashtag-checkbox').forEach(cb => cb.checked = true);
-    });
-    
-    document.getElementById('deselectAllHashtags').addEventListener('click', () => {
-        document.querySelectorAll('.hashtag-checkbox').forEach(cb => cb.checked = false);
-    });
-    
-    document.getElementById('continueEnrichment').addEventListener('click', continueWithEnrichment);
-    
-    document.getElementById('cancelSelection').addEventListener('click', () => {
+    // Function to revert to leads table
+    function revertToLeadsTable() {
         resultsContainer.innerHTML = '';
         setLeadGenerationState(false);
         resetProcessingUI();
         
-        // Show existing leads table if we have leads data
-        if (leads && leads.length > 0) {
-            displayResults(leads);
-        } else {
-            // Show empty state if no leads
+        // Refresh and show current leads table (fetch all leads)
+        fetchAndDisplayAllLeads();
+        
+        // Show a message about reverting
+        showToast('Zurück zur Leads-Tabelle', 'info');
+    }
+    
+    // Helper function to fetch and display all current leads
+    async function fetchAndDisplayAllLeads() {
+        try {
+            const response = await fetch('/api/leads');
+            if (response.ok) {
+                const result = await response.json();
+                if (result.leads && result.leads.length > 0) {
+                    displayResults(result.leads);
+                } else {
+                    // Show empty state if no leads
+                    document.getElementById('emptyState').style.display = 'block';
+                }
+            }
+        } catch (error) {
+            console.error('Error fetching leads:', error);
+            // Show empty state on error
             document.getElementById('emptyState').style.display = 'block';
         }
-        
+    }
+    
+    // Add global click listener to revert on any interaction with hashtag selection container
+    selectionContainer.addEventListener('click', () => {
+        setTimeout(revertToLeadsTable, 100);
+    });
+    
+    // Add event listeners
+    document.getElementById('selectAllHashtags').addEventListener('click', (e) => {
+        e.stopPropagation(); // Prevent immediate container click
+        document.querySelectorAll('.hashtag-checkbox').forEach(cb => cb.checked = true);
+        setTimeout(revertToLeadsTable, 500); // Small delay to show the action
+    });
+    
+    document.getElementById('deselectAllHashtags').addEventListener('click', (e) => {
+        e.stopPropagation(); // Prevent immediate container click
+        document.querySelectorAll('.hashtag-checkbox').forEach(cb => cb.checked = false);
+        setTimeout(revertToLeadsTable, 500); // Small delay to show the action
+    });
+    
+    document.getElementById('continueEnrichment').addEventListener('click', (e) => {
+        e.stopPropagation(); // Prevent immediate container click
+        continueWithEnrichment();
+        setTimeout(revertToLeadsTable, 100); // Quick revert since enrichment handles its own UI
+    });
+    
+    document.getElementById('cancelSelection').addEventListener('click', (e) => {
+        e.stopPropagation(); // Prevent immediate container click
+        revertToLeadsTable();
         showToast('Verarbeitung abgebrochen', 'info');
     });
+    
+    // Add event listeners to checkboxes to trigger revert on change
+    setTimeout(() => {
+        document.querySelectorAll('.hashtag-checkbox').forEach(checkbox => {
+            checkbox.addEventListener('change', () => {
+                setTimeout(revertToLeadsTable, 300); // Small delay to show the check/uncheck
+            });
+        });
+    }, 100); // Small delay to ensure checkboxes are rendered
+            });
+        });
+    }, 100); // Small delay to ensure checkboxes are rendered
 }
 
 // Continue with enrichment for selected hashtags

@@ -6,6 +6,31 @@ K+L Influence is a Flask-based Instagram lead generation and outreach automation
 
 ## Recent Changes
 
+### 2025-07-15: Auto-Revert Hashtag Selection to Leads Table (COMPLETED)
+- **Update**: Modified hashtag selection interface to automatically revert to leads table on any interaction
+- **Features Implemented**:
+  - **Global Click Listener**: Added click event listener to entire hashtag selection container
+  - **Automatic Revert Function**: Created `revertToLeadsTable()` function that clears selection UI and shows leads table
+  - **Smart Event Handling**: 
+    - All buttons use `stopPropagation()` to prevent immediate container click
+    - Checkbox changes trigger revert after small delay to show user feedback
+    - Button clicks execute their function then revert with appropriate timing
+  - **Fetch All Leads Function**: Added `fetchAndDisplayAllLeads()` helper function to retrieve and display current leads
+  - **User Feedback**: Shows "Zurück zur Leads-Tabelle" toast message when reverting
+  - **State Management**: Properly resets lead generation state and processing UI
+- **Interaction Triggers**:
+  - Clicking anywhere on hashtag selection container
+  - Selecting/deselecting individual hashtags
+  - Clicking "Alle auswählen" or "Alle abwählen" buttons
+  - Clicking "Mit Anreicherung fortfahren" button
+  - Clicking "Abbrechen" button
+- **Benefits**:
+  - Prevents users from getting stuck in hashtag selection interface
+  - Always returns to functional leads table view
+  - Maintains smooth user workflow and prevents UI confusion
+  - Automatic fallback ensures users can always access their data
+- **Status**: Auto-revert functionality fully implemented and operational
+
 ### 2025-07-15: Resource Protection with UI State Management (COMPLETED)
 - **Update**: Implemented mutual exclusion between lead generation and email draft creation to prevent resource strain
 - **Features Implemented**:
