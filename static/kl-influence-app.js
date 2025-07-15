@@ -57,6 +57,9 @@ document.addEventListener('DOMContentLoaded', function() {
     if (existingLeads.length > 0) {
         displayResults(existingLeads);
     }
+    
+    // Initialize UI state for resource protection
+    updateUIState();
 });
 
 // Initialize all event listeners
@@ -347,8 +350,17 @@ async function processKeyword() {
         return;
     }
     
+    // Check if email generation is in progress
+    if (isEmailDraftGenerationInProgress) {
+        showToast('Email-Generierung läuft bereits. Bitte warten bis diese abgeschlossen ist.', 'warning');
+        return;
+    }
+    
     const runButton = document.getElementById('runButton');
     const stopButton = document.getElementById('stopButton');
+    
+    // Set lead generation state
+    setLeadGenerationState(true);
     
     // Update UI for processing state
     runButton.disabled = true;
@@ -421,13 +433,76 @@ async function processKeyword() {
             showToast(`Verarbeitungsfehler: ${error.message || 'Unbekannter Fehler'}`, 'error');
         }
     } finally {
-        // Reset button states
+        // Reset lead generation state and button states
+        setLeadGenerationState(false);
         resetProcessingUI();
     }
 }
 
 // Track previous lead count to detect new leads
 let previousLeadCount = 0;
+
+// Global state management for resource protection
+let isLeadGenerationInProgress = false;
+let isEmailDraftGenerationInProgress = false;
+
+// Function to update UI based on current processing states
+function updateUIState() {
+    // Lead Generation UI elements
+    const runButton = document.getElementById('runButton');
+    const stopButton = document.getElementById('stopButton');
+    const keywordInput = document.getElementById('keywordInput');
+    const searchLimitInput = document.getElementById('searchLimitInput');
+    
+    // Email Generation buttons in table (will be updated when table is rendered)
+    const emailButtons = document.querySelectorAll('button[onclick*="generateEmailContent"]');
+    
+    // Update Lead Generation UI
+    if (isEmailDraftGenerationInProgress) {
+        runButton.disabled = true;
+        runButton.style.opacity = '0.5';
+        runButton.title = 'Email-Generierung läuft - bitte warten';
+        keywordInput.disabled = true;
+        searchLimitInput.disabled = true;
+    } else {
+        if (!isLeadGenerationInProgress) {
+            runButton.disabled = false;
+            runButton.style.opacity = '1';
+            runButton.title = '';
+            keywordInput.disabled = false;
+            searchLimitInput.disabled = false;
+        }
+    }
+    
+    // Update Email Generation buttons
+    emailButtons.forEach(button => {
+        if (isLeadGenerationInProgress) {
+            button.disabled = true;
+            button.style.opacity = '0.5';
+            button.title = 'Lead-Generierung läuft - bitte warten';
+        } else if (isEmailDraftGenerationInProgress) {
+            button.disabled = true;
+            button.style.opacity = '0.5';
+            button.title = 'Email-Generierung bereits in Bearbeitung';
+        } else {
+            button.disabled = false;
+            button.style.opacity = '1';
+            button.title = 'Email generieren';
+        }
+    });
+}
+
+// Function to set lead generation state
+function setLeadGenerationState(inProgress) {
+    isLeadGenerationInProgress = inProgress;
+    updateUIState();
+}
+
+// Function to set email draft generation state
+function setEmailDraftGenerationState(inProgress) {
+    isEmailDraftGenerationInProgress = inProgress;
+    updateUIState();
+}
 
 // Show hashtag selection UI
 function showHashtagSelection(hashtag_variants) {
@@ -492,6 +567,7 @@ function showHashtagSelection(hashtag_variants) {
     
     document.getElementById('cancelSelection').addEventListener('click', () => {
         resultsContainer.innerHTML = '';
+        setLeadGenerationState(false);
         resetProcessingUI();
         showToast('Verarbeitung abgebrochen', 'info');
     });
@@ -546,6 +622,7 @@ async function continueWithEnrichment() {
         console.error('Enrichment error:', error);
         showToast(`Enrichment error: ${error.message || 'Unknown error'}`, 'error');
     } finally {
+        setLeadGenerationState(false);
         resetProcessingUI();
     }
 }
@@ -694,6 +771,9 @@ function displayResults(leadsData) {
     
     // Apply any existing filters
     applyFilters();
+    
+    // Update UI state to ensure buttons have correct disabled/enabled states
+    updateUIState();
 }
 
 // Create lead row
@@ -834,6 +914,21 @@ async function generateEmailContent(username) {
     const lead = leads.find(l => l.username === username);
     if (!lead) return;
     
+    // Check if lead generation is in progress
+    if (isLeadGenerationInProgress) {
+        showToast('Lead-Generierung läuft bereits. Bitte warten bis diese abgeschlossen ist.', 'warning');
+        return;
+    }
+    
+    // Check if another email is being generated
+    if (isEmailDraftGenerationInProgress) {
+        showToast('Email-Generierung bereits in Bearbeitung. Bitte warten bis diese abgeschlossen ist.', 'warning');
+        return;
+    }
+    
+    // Set email draft generation state
+    setEmailDraftGenerationState(true);
+    
     // Show loading state
     const button = event.target.closest('button');
     const originalText = button.innerHTML;
@@ -901,6 +996,9 @@ async function generateEmailContent(username) {
         console.error('Email generation error:', error);
         showToast('An error occurred while generating email content', 'error');
     } finally {
+        // Reset email draft generation state
+        setEmailDraftGenerationState(false);
+        
         // Restore button state
         if (button) {
             button.innerHTML = originalText;

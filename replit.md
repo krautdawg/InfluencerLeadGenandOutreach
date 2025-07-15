@@ -6,6 +6,43 @@ K+L Influence is a Flask-based Instagram lead generation and outreach automation
 
 ## Recent Changes
 
+### 2025-07-15: Resource Protection with UI State Management (COMPLETED)
+- **Update**: Implemented mutual exclusion between lead generation and email draft creation to prevent resource strain
+- **Features Implemented**:
+  - **Global State Management**: Added `isLeadGenerationInProgress` and `isEmailDraftGenerationInProgress` state variables
+  - **UI Protection System**: Automatically disables/greys out conflicting UI elements based on processing states
+  - **Lead Generation Protection**: 
+    - Disables "Leads generieren" button when email drafts are being created
+    - Greys out keyword input and search limit fields during email generation
+    - Shows informative tooltips explaining why buttons are disabled
+  - **Email Draft Protection**:
+    - Disables all "Email" buttons in results table when lead generation is running
+    - Prevents multiple simultaneous email generations
+    - Shows warning messages when attempting conflicting operations
+  - **Smart State Updates**: `updateUIState()` function manages all UI elements based on current processing states
+  - **Comprehensive Integration**: State management integrated into all relevant functions:
+    - `processKeyword()` - Lead generation initiation
+    - `continueWithEnrichment()` - Profile enrichment phase
+    - `generateEmailContent()` - Individual email draft creation
+    - `displayResults()` - Table rendering with proper button states
+- **User Experience Improvements**:
+  - Clear visual feedback with opacity changes and informative tooltips
+  - Prevents accidental resource conflicts that could crash the system
+  - User-friendly warning messages in German explaining why actions are blocked
+  - Automatic state cleanup when processes complete or are cancelled
+- **Technical Implementation**:
+  - State variables track processing status globally
+  - `setLeadGenerationState()` and `setEmailDraftGenerationState()` manage state transitions
+  - `updateUIState()` applies visual changes to all affected UI elements
+  - Integration with existing `finally` blocks ensures proper cleanup
+  - Initialization in `DOMContentLoaded` ensures correct initial state
+- **Benefits**:
+  - Prevents system overload from simultaneous heavy API operations
+  - Reduces risk of memory issues and crashes during processing
+  - Clearer user workflow with obvious next steps
+  - Professional UX with proper loading states and user guidance
+- **Status**: Resource protection system fully implemented and operational
+
 ### 2025-07-15: Basic Login Authentication System (COMPLETED)
 - **Update**: Added comprehensive login system with password protection using Replit secrets
 - **Security Implementation**:
