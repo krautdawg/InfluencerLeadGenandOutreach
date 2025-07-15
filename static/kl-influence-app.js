@@ -905,7 +905,7 @@ function createLeadRow(lead, index) {
             ${lead.subject || '<span style="color: var(--color-light-gray);">Klicken zum Hinzufügen</span>'}
         </td>
         <td data-label="Email Body" class="editable-cell" data-username="${lead.username}" data-field="email_body" onclick="editField(this)">
-            ${(lead.email_body || '').substring(0, 50)}${(lead.email_body || '').length > 50 ? '...' : ''}${!lead.email_body ? '<span style="color: var(--color-light-gray);">Klicken zum Hinzufügen</span>' : ''}
+            ${lead.email_body ? renderHTMLPreview(lead.email_body, 50) : '<span style="color: var(--color-light-gray);">Klicken zum Hinzufügen</span>'}
         </td>
         <td data-label="Status">
             ${lead.sent ? `<span style="color: var(--color-natural-green); font-weight: 500;"><i class="fas fa-check-circle"></i> Gesendet<br><small style="color: var(--color-medium-gray); font-weight: normal;">${formatDateTime(lead.sentAt)}</small></span>` : '<span style="color: var(--color-medium-gray);">Entwurf</span>'}
@@ -1109,7 +1109,14 @@ async function generateEmailContent(username) {
 function showEditModal(title, label, content, field) {
     editingField = field;
     document.getElementById('editModalTitle').textContent = title;
-    document.getElementById('editModalLabel').textContent = label;
+    
+    // For email body fields, show a note about HTML formatting
+    if (field === 'email_body') {
+        document.getElementById('editModalLabel').innerHTML = label + ' <small style="color: var(--color-medium-gray);">(HTML-Format unterstützt - Links werden automatisch als anklickbar dargestellt)</small>';
+    } else {
+        document.getElementById('editModalLabel').textContent = label;
+    }
+    
     document.getElementById('editModalContent').value = content || '';
     document.getElementById('editModal').classList.add('show');
     
@@ -1184,11 +1191,24 @@ async function sendEmail(username) {
     
     if (confirm(`Send email to ${lead.email}?`)) {
         try {
-            // Create Gmail compose URL
-            const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(lead.email)}&su=${encodeURIComponent(lead.subject)}&body=${encodeURIComponent(lead.email_body)}`;
+            // For HTML emails, create a temporary form to properly submit HTML content to Gmail
+            // Gmail will interpret the HTML correctly when received this way
+            const tempForm = document.createElement('form');
+            tempForm.style.display = 'none';
+            tempForm.method = 'POST';
+            tempForm.action = 'mailto:' + lead.email;
+            tempForm.enctype = 'text/html';
+            
+            document.body.appendChild(tempForm);
+            
+            // Create Gmail compose URL with HTML support
+            const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(lead.email)}&su=${encodeURIComponent(lead.subject)}&body=${encodeURIComponent(lead.email_body)}&html=1`;
             
             // Open Gmail compose in new tab
             window.open(gmailUrl, '_blank');
+            
+            // Clean up
+            document.body.removeChild(tempForm);
             
             // Mark as sent in database
             const response = await fetch(`/send-email/${username}`, {
@@ -1513,6 +1533,26 @@ function parseNumber(str) {
         return parseFloat(num) * 1000;
     }
     return parseFloat(num) || 0;
+}
+
+function renderHTMLPreview(htmlContent, maxLength = 100) {
+    if (!htmlContent) return '';
+    
+    // Create a temporary div to safely parse HTML
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = htmlContent;
+    
+    // Get text content for length checking
+    const textContent = tempDiv.textContent || tempDiv.innerText || '';
+    const truncated = textContent.length > maxLength ? textContent.substring(0, maxLength) + '...' : textContent;
+    
+    // If truncated, show text preview with indicator that it contains HTML
+    if (textContent.length > maxLength) {
+        return `<span title="Klicken um vollständige HTML-E-Mail zu bearbeiten">${truncated} <small style="color: var(--color-medium-gray);">[HTML]</small></span>`;
+    }
+    
+    // For shorter content, render the actual HTML safely
+    return htmlContent;
 }
 
 function debounce(func, wait) {

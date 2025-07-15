@@ -430,8 +430,8 @@ async function sendEmail(username, index) {
             return;
         }
         
-        // Create Gmail compose URL
-        const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(result.email)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+        // Create Gmail compose URL with HTML support
+        const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(result.email)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}&html=1`;
         
         // Open Gmail compose in new tab
         window.open(gmailUrl, '_blank');
