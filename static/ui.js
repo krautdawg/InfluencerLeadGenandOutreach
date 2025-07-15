@@ -430,13 +430,21 @@ async function sendEmail(username, index) {
             return;
         }
         
-        // Convert HTML to plaintext for Gmail URL (Gmail doesn't support HTML in URL parameters)
+        // Convert HTML to formatted plain text for Gmail URL with proper line breaks
         const tempDiv = document.createElement('div');
         tempDiv.innerHTML = body;
-        const plainTextBody = tempDiv.textContent || tempDiv.innerText || body;
         
-        // Create Gmail compose URL with plain text (Gmail limitation)
-        const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(result.email)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(plainTextBody)}`;
+        // Extract text content and preserve basic formatting
+        let plainTextBody = tempDiv.textContent || tempDiv.innerText || body;
+        
+        // Add proper line breaks for better Gmail formatting
+        plainTextBody = plainTextBody
+            .replace(/\n\s*\n/g, '\n\n')  // Preserve paragraph breaks
+            .replace(/\s+/g, ' ')         // Clean up extra spaces
+            .trim();
+        
+        // Create Gmail compose URL with formatted plain text
+        const gmailUrl = `https://mail.google.com/mail/u/0/?to=${encodeURIComponent(result.email)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(plainTextBody)}&tf=cm`;
         
         // Open Gmail compose in new tab
         window.open(gmailUrl, '_blank');

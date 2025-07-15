@@ -1211,77 +1211,122 @@ async function sendEmail(username) {
             // Create a data URL for the HTML content
             const htmlDataUrl = 'data:text/html;charset=utf-8,' + encodeURIComponent(htmlEmailBody);
             
-            // Convert HTML to plaintext for Gmail URL (Gmail doesn't support HTML in URL parameters)
+            // Convert HTML to formatted plain text for Gmail URL with proper line breaks
             const tempDiv = document.createElement('div');
             tempDiv.innerHTML = lead.email_body;
-            const plainTextBody = tempDiv.textContent || tempDiv.innerText || lead.email_body;
             
-            // Create Gmail compose URL with plain text (Gmail limitation)
-            const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(lead.email)}&su=${encodeURIComponent(lead.subject)}&body=${encodeURIComponent(plainTextBody)}`;
+            // Extract text content and preserve basic formatting
+            let plainTextBody = tempDiv.textContent || tempDiv.innerText || lead.email_body;
+            
+            // Add proper line breaks for better Gmail formatting
+            plainTextBody = plainTextBody
+                .replace(/\n\s*\n/g, '\n\n')  // Preserve paragraph breaks
+                .replace(/\s+/g, ' ')         // Clean up extra spaces
+                .trim();
+            
+            // Create Gmail compose URL with formatted plain text
+            const gmailUrl = `https://mail.google.com/mail/u/0/?to=${encodeURIComponent(lead.email)}&su=${encodeURIComponent(lead.subject)}&body=${encodeURIComponent(plainTextBody)}&tf=cm`;
             
             // Open Gmail compose in new tab
             window.open(gmailUrl, '_blank');
             
-            // Create a comprehensive HTML email preview with copy instructions
-            const previewWindow = window.open('', '_blank', 'width=700,height=500');
+            // Create a comprehensive HTML email preview with proper Gmail integration instructions
+            const previewWindow = window.open('', '_blank', 'width=800,height=600');
             previewWindow.document.write(`
                 <html>
                 <head>
-                    <title>HTML Email Preview - ${lead.subject}</title>
+                    <title>📧 HTML Email Assistant - ${lead.subject}</title>
                     <style>
-                        body { font-family: Arial, sans-serif; padding: 20px; background: #f9f9f9; }
-                        .header { background: #2D5B2D; color: white; padding: 15px; border-radius: 5px; margin-bottom: 20px; }
-                        .content { background: white; border: 1px solid #ddd; padding: 20px; border-radius: 5px; margin-bottom: 20px; }
-                        .html-content { background: #f0f5f0; padding: 15px; border-radius: 5px; margin-bottom: 20px; font-family: monospace; font-size: 12px; }
-                        .instructions { background: #fff3cd; padding: 15px; border-radius: 5px; border-left: 4px solid #ffc107; }
-                        a { color: #2D5B2D; text-decoration: underline; }
-                        .copy-btn { background: #2D5B2D; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; margin: 10px 0; }
+                        body { font-family: Arial, sans-serif; padding: 20px; background: #f9f9f9; margin: 0; }
+                        .header { background: #2D5B2D; color: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
+                        .content { background: white; border: 1px solid #ddd; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
+                        .html-source { background: #f0f5f0; padding: 15px; border-radius: 5px; margin-bottom: 20px; font-family: 'Courier New', monospace; font-size: 11px; max-height: 200px; overflow-y: auto; }
+                        .method { background: #e8f5e8; padding: 20px; border-radius: 8px; margin-bottom: 15px; border-left: 4px solid #2D5B2D; }
+                        .copy-btn { background: #2D5B2D; color: white; padding: 12px 24px; border: none; border-radius: 5px; cursor: pointer; margin: 10px 5px; font-size: 14px; }
                         .copy-btn:hover { background: #1B3F1B; }
+                        .copy-btn.secondary { background: #6c757d; }
+                        .copy-btn.secondary:hover { background: #545b62; }
+                        a { color: #2D5B2D; text-decoration: underline; }
+                        .step { margin: 10px 0; padding: 10px; background: #f8f9fa; border-radius: 4px; }
+                        .warning { background: #fff3cd; padding: 15px; border-radius: 5px; border-left: 4px solid #ffc107; margin-bottom: 20px; }
+                        .preview { border: 2px solid #2D5B2D; padding: 20px; border-radius: 8px; background: white; }
                     </style>
                 </head>
                 <body>
                     <div class="header">
-                        <h3>📧 HTML Email Preview</h3>
-                        <p><strong>To:</strong> ${lead.email}</p>
+                        <h2>📧 HTML Email Assistant</h2>
+                        <p><strong>Recipient:</strong> ${lead.email}</p>
                         <p><strong>Subject:</strong> ${lead.subject}</p>
                     </div>
                     
+                    <div class="warning">
+                        <strong>⚠️ Important:</strong> Gmail URL parameters cannot display HTML content as formatted email. Gmail opened with plain text only. Use the methods below to send properly formatted HTML emails.
+                    </div>
+                    
+                    <div class="method">
+                        <h3>🎯 Method 1: Developer Tools (Recommended)</h3>
+                        <div class="step">
+                            <strong>Step 1:</strong> In the Gmail compose window, <strong>right-click</strong> in the message area
+                        </div>
+                        <div class="step">
+                            <strong>Step 2:</strong> Select <strong>"Inspect"</strong> from the menu
+                        </div>
+                        <div class="step">
+                            <strong>Step 3:</strong> In Developer Tools, find <code>&lt;div contenteditable="true"&gt;</code>
+                        </div>
+                        <div class="step">
+                            <strong>Step 4:</strong> Right-click the div and select <strong>"Edit as HTML"</strong>
+                        </div>
+                        <div class="step">
+                            <strong>Step 5:</strong> Replace content with HTML code below, then close Developer Tools
+                        </div>
+                        <button class="copy-btn" onclick="copyHtmlContent()">📋 Copy HTML Code</button>
+                    </div>
+                    
+                    <div class="method">
+                        <h3>✨ Method 2: Copy Rendered Content</h3>
+                        <div class="step">
+                            <strong>Step 1:</strong> Select all content in the preview below
+                        </div>
+                        <div class="step">
+                            <strong>Step 2:</strong> Copy (Ctrl+C / Cmd+C)
+                        </div>
+                        <div class="step">
+                            <strong>Step 3:</strong> Paste directly into Gmail compose window
+                        </div>
+                        <button class="copy-btn secondary" onclick="selectPreviewContent()">📋 Select Preview Content</button>
+                    </div>
+                    
                     <div class="content">
-                        <h4>Email Content (as it will appear to recipient):</h4>
-                        ${lead.email_body}
+                        <h4>📧 Email Preview (How it will look to recipient):</h4>
+                        <div class="preview" id="emailPreview">
+                            ${lead.email_body}
+                        </div>
                     </div>
                     
-                    <div class="html-content">
-                        <h4>HTML Source Code:</h4>
-                        <button class="copy-btn" onclick="copyHtmlContent()">Copy HTML to Clipboard</button>
+                    <div class="html-source">
+                        <h4>💻 HTML Source Code:</h4>
                         <pre id="htmlSource">${lead.email_body.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</pre>
-                    </div>
-                    
-                    <div class="instructions">
-                        <h4>📋 Instructions for Gmail HTML Email:</h4>
-                        <p><strong>Method 1 - Copy HTML Source:</strong></p>
-                        <ol>
-                            <li>Click "Copy HTML to Clipboard" button above</li>
-                            <li>Go to Gmail and switch to HTML compose mode</li>
-                            <li>Paste the HTML content directly</li>
-                        </ol>
-                        <p><strong>Method 2 - Use Gmail Rich Text:</strong></p>
-                        <ol>
-                            <li>Gmail has opened with plain text version</li>
-                            <li>In Gmail, select the text and manually format links using Gmail's link button</li>
-                            <li>Gmail will convert it to HTML automatically</li>
-                        </ol>
-                        <p><strong>Note:</strong> Gmail's URL parameters don't support HTML format directly, so manual formatting is required for clickable links.</p>
                     </div>
                     
                     <script>
                         function copyHtmlContent() {
-                            const htmlContent = \`${lead.email_body}\`;
+                            const htmlContent = \`${lead.email_body.replace(/`/g, '\\`')}\`;
                             navigator.clipboard.writeText(htmlContent).then(() => {
-                                alert('HTML content copied to clipboard!');
+                                alert('✅ HTML code copied to clipboard! Now paste it into Gmail using Developer Tools method.');
                             }).catch(err => {
                                 console.error('Failed to copy: ', err);
+                                // Fallback: select the text
+                                const sourceElement = document.getElementById('htmlSource');
+                                window.getSelection().selectAllChildren(sourceElement);
+                                alert('⚠️ Please manually copy the selected HTML code.');
                             });
+                        }
+                        
+                        function selectPreviewContent() {
+                            const previewElement = document.getElementById('emailPreview');
+                            window.getSelection().selectAllChildren(previewElement);
+                            alert('✅ Content selected! Now copy (Ctrl+C) and paste into Gmail.');
                         }
                     </script>
                 </body>
@@ -1624,18 +1669,27 @@ function renderHTMLPreview(htmlContent, maxLength = 100) {
     // Get text content for length checking
     const textContent = tempDiv.textContent || tempDiv.innerText || '';
     
-    // Always render the HTML directly with proper styling
-    // Add a small HTML indicator to show it's formatted content
-    const htmlIndicator = '<small style="color: var(--color-medium-gray); font-style: italic;"> [HTML]</small>';
+    // Create a clean, readable preview
+    const htmlIndicator = '<small style="color: var(--color-medium-gray); font-style: italic; margin-left: 5px;">[HTML]</small>';
     
-    // If content is too long, truncate but still show HTML
+    // If content is too long, show truncated rendered HTML
     if (textContent.length > maxLength) {
-        const truncated = textContent.substring(0, maxLength) + '...';
-        return `<div title="Klicken um vollständige HTML-E-Mail zu bearbeiten">${htmlContent.substring(0, 200)}...${htmlIndicator}</div>`;
+        // Create a truncated version of the HTML
+        const truncatedText = textContent.substring(0, maxLength) + '...';
+        // Try to preserve some HTML structure for short previews
+        const shortHtml = htmlContent.length > 300 ? 
+            htmlContent.substring(0, 300) + '...' : 
+            htmlContent;
+        
+        return `<div title="Klicken um vollständige HTML-E-Mail zu bearbeiten" style="max-height: 60px; overflow: hidden; line-height: 1.4;">
+            ${shortHtml}${htmlIndicator}
+        </div>`;
     }
     
-    // For shorter content, render the actual HTML with indicator
-    return `<div>${htmlContent}${htmlIndicator}</div>`;
+    // For shorter content, render the actual HTML with proper styling
+    return `<div style="line-height: 1.4; word-wrap: break-word;">
+        ${htmlContent}${htmlIndicator}
+    </div>`;
 }
 
 function debounce(func, wait) {
