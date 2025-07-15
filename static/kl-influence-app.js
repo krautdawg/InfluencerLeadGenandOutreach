@@ -578,6 +578,42 @@ function showHashtagSelection(hashtag_variants) {
     });
 }
 
+// Load existing table overview with all leads
+async function loadExistingTable() {
+    try {
+        // Hide hashtag selection UI
+        document.getElementById('resultsContainer').innerHTML = '';
+        
+        // Show loading state
+        showToast('Lade vorhandene Leads...', 'info');
+        
+        // Fetch all existing leads from database
+        const response = await fetch('/api/leads');
+        if (response.ok) {
+            const result = await response.json();
+            if (result.leads && result.leads.length > 0) {
+                displayResults(result.leads);
+                showToast(`${result.leads.length} vorhandene Leads geladen`, 'success');
+            } else {
+                // Show empty state if no leads found
+                document.getElementById('resultsSection').style.display = 'none';
+                document.getElementById('emptyState').style.display = 'block';
+                showToast('Keine vorhandenen Leads gefunden', 'info');
+            }
+        } else {
+            const error = await response.json();
+            showToast(error.error || 'Fehler beim Laden der Leads', 'error');
+        }
+    } catch (error) {
+        console.error('Error loading existing table:', error);
+        showToast(`Fehler beim Laden: ${error.message || 'Unbekannter Fehler'}`, 'error');
+    } finally {
+        // Reset processing state
+        setLeadGenerationState(false);
+        resetProcessingUI();
+    }
+}
+
 // Continue with enrichment for selected hashtags
 async function continueWithEnrichment() {
     const selectedHashtags = [];

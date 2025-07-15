@@ -803,17 +803,20 @@ def get_progress():
 @app.route('/api/leads')
 @login_required
 def get_leads_by_keyword():
-    """Get leads filtered by keyword for real-time table updates"""
+    """Get leads filtered by keyword for real-time table updates, or all leads if no keyword provided"""
     keyword = request.args.get('keyword', '').strip()
 
-    if not keyword:
-        return {"error": "Keyword parameter is required"}, 400
-
     try:
-        leads = Lead.query.filter_by(hashtag=keyword).order_by(Lead.created_at.desc()).all()
+        if keyword:
+            # Filter by specific hashtag/keyword
+            leads = Lead.query.filter_by(hashtag=keyword).order_by(Lead.created_at.desc()).all()
+        else:
+            # Return all leads when no keyword is provided
+            leads = Lead.query.order_by(Lead.created_at.desc()).all()
+        
         return {"leads": [lead.to_dict() for lead in leads]}
     except Exception as e:
-        logger.error(f"Failed to query leads by keyword: {e}")
+        logger.error(f"Failed to query leads: {e}")
         return {"error": "Failed to retrieve leads"}, 500
 
 
