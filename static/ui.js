@@ -430,11 +430,44 @@ async function sendEmail(username, index) {
             return;
         }
         
-        // Create Gmail compose URL with HTML support
-        const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(result.email)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}&html=1`;
+        // Convert HTML to plaintext for Gmail URL (Gmail doesn't support HTML in URL parameters)
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = body;
+        const plainTextBody = tempDiv.textContent || tempDiv.innerText || body;
+        
+        // Create Gmail compose URL with plain text (Gmail limitation)
+        const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(result.email)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(plainTextBody)}`;
         
         // Open Gmail compose in new tab
         window.open(gmailUrl, '_blank');
+        
+        // Also create a popup window with the HTML preview for better visualization
+        const previewWindow = window.open('', '_blank', 'width=600,height=400');
+        previewWindow.document.write(`
+            <html>
+            <head>
+                <title>Email Preview - ${subject}</title>
+                <style>
+                    body { font-family: Arial, sans-serif; padding: 20px; }
+                    .header { background: #f0f5f0; padding: 15px; border-radius: 5px; margin-bottom: 20px; }
+                    .content { border: 1px solid #ddd; padding: 15px; border-radius: 5px; }
+                    a { color: #2D5B2D; text-decoration: underline; }
+                </style>
+            </head>
+            <body>
+                <div class="header">
+                    <h3>Email Preview</h3>
+                    <p><strong>To:</strong> ${result.email}</p>
+                    <p><strong>Subject:</strong> ${subject}</p>
+                </div>
+                <div class="content">
+                    ${body}
+                </div>
+                <p><small>Note: This is a preview. The actual email has been opened in Gmail.</small></p>
+            </body>
+            </html>
+        `);
+        previewWindow.document.close();
         
         // Mark as sent in database
         const updateResponse = await fetch(`/mark-sent/${username}`, {
