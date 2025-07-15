@@ -47,15 +47,13 @@
         
         .logo {
             display: flex;
-            align-items: center;
             justify-content: center;
-            gap: 8px;
             margin-bottom: 1rem;
         }
         
         .leaf-icon {
-            width: 32px;
-            height: 32px;
+            width: 48px;
+            height: 48px;
             object-fit: contain;
         }
         
@@ -63,6 +61,8 @@
             font-size: 24px;
             font-weight: 600;
             color: var(--natural-green);
+            text-align: center;
+            margin-bottom: 0.5rem;
         }
         
         .subtitle {
@@ -144,8 +144,8 @@
         <div class="logo-section">
             <div class="logo">
                 <img src="{{ url_for('static', filename='favicon.png') }}" alt="K+L Influence" class="leaf-icon">
-                <span class="logo-text">K+L Influence</span>
             </div>
+            <div class="logo-text">K+L Influence</div>
             <div class="subtitle">Instagram Lead Generation</div>
         </div>
         
