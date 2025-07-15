@@ -1133,26 +1133,39 @@ function selectCell(cell) {
 
 // Export data
 async function exportData(format) {
+    console.log('Export function called with format:', format);
     try {
+        console.log('Making fetch request to:', `/export/${format}`);
         const response = await fetch(`/export/${format}`);
+        console.log('Response status:', response.status);
+        console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+        
         const result = await response.json();
+        console.log('Response result keys:', Object.keys(result));
+        console.log('Data length:', result.data ? result.data.length : 'no data');
         
         if (response.ok) {
             // Create blob with proper encoding for CSV
             const mimeType = format === 'csv' ? 'text/csv;charset=utf-8' : 'application/json';
+            console.log('Creating blob with type:', mimeType);
             const blob = new Blob([result.data], { type: mimeType });
+            console.log('Blob size:', blob.size);
             
             const url = window.URL.createObjectURL(blob);
+            console.log('Created URL:', url);
             const a = document.createElement('a');
             a.href = url;
             a.download = result.filename;
+            console.log('Download filename:', result.filename);
             document.body.appendChild(a);
             a.click();
+            console.log('Download link clicked');
             window.URL.revokeObjectURL(url);
             document.body.removeChild(a);
             
             showToast(`Google Sheets kompatible ${format.toUpperCase()} Datei exportiert`, 'success');
         } else {
+            console.error('Export failed with status:', response.status);
             showToast(result.error || 'Datenexport fehlgeschlagen', 'error');
         }
     } catch (error) {
