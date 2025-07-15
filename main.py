@@ -1853,26 +1853,86 @@ def export_data(format):
 
     try:
         if format == 'csv':
+            # Create Google Sheets compatible CSV with UTF-8 BOM
             output = io.StringIO()
-            writer = csv.DictWriter(output,
-                                    fieldnames=[
-                                        'username', 'fullName', 'bio', 'email',
-                                        'phone', 'website', 'followersCount',
-                                        'followingCount', 'postsCount',
-                                        'isVerified'
-                                    ])
+            
+            # Google Sheets compatible field names and comprehensive field selection
+            fieldnames = [
+                'Username',
+                'Instagram Profile',
+                'Full Name', 
+                'Hashtag',
+                'Email',
+                'Phone',
+                'Website',
+                'Bio',
+                'Followers',
+                'Following',
+                'Posts',
+                'Verified',
+                'Address',
+                'City',
+                'ZIP Code',
+                'Email Subject',
+                'Email Body',
+                'Email Sent',
+                'Send Date',
+                'Selected Product',
+                'Created Date',
+                'Profile Picture URL'
+            ]
+            
+            # Create CSV writer with proper quoting for Google Sheets
+            writer = csv.DictWriter(
+                output,
+                fieldnames=fieldnames,
+                quoting=csv.QUOTE_ALL,  # Quote all fields for Google Sheets compatibility
+                lineterminator='\n'     # Use standard line terminator
+            )
+            
             writer.writeheader()
+            
             for lead in leads:
                 lead_dict = lead.to_dict()
-                writer.writerow(
-                    {k: lead_dict.get(k, '')
-                     for k in writer.fieldnames})
+                
+                # Create Google Sheets friendly row data
+                row_data = {
+                    'Username': lead.username or '',
+                    'Instagram Profile': f"https://www.instagram.com/{lead.username}" if lead.username else '',
+                    'Full Name': lead.full_name or '',
+                    'Hashtag': lead.hashtag or '',
+                    'Email': lead.email or '',
+                    'Phone': lead.phone or '',
+                    'Website': lead.website or '',
+                    'Bio': (lead.bio or '').replace('\n', ' ').replace('\r', ' '),  # Clean line breaks
+                    'Followers': lead.followers_count if lead.followers_count is not None else '',
+                    'Following': lead.following_count if lead.following_count is not None else '',
+                    'Posts': lead.posts_count if lead.posts_count is not None else '',
+                    'Verified': 'Yes' if lead.is_verified else 'No',
+                    'Address': lead.address_street or '',
+                    'City': lead.city_name or '',
+                    'ZIP Code': lead.zip or '',
+                    'Email Subject': lead.subject or '',
+                    'Email Body': (lead.email_body or '').replace('\n', ' ').replace('\r', ' '),  # Clean line breaks
+                    'Email Sent': 'Yes' if lead.sent else 'No',
+                    'Send Date': lead.sent_at.strftime('%Y-%m-%d %H:%M:%S') if lead.sent_at else '',
+                    'Selected Product': lead.selected_product.name if lead.selected_product else '',
+                    'Created Date': lead.created_at.strftime('%Y-%m-%d %H:%M:%S') if lead.created_at else '',
+                    'Profile Picture URL': lead.profile_pic_url or ''
+                }
+                
+                writer.writerow(row_data)
+
+            # Get CSV content and add UTF-8 BOM for Google Sheets
+            csv_content = output.getvalue()
+            
+            # Add UTF-8 BOM for proper encoding in Google Sheets
+            utf8_bom = '\ufeff'
+            final_content = utf8_bom + csv_content
 
             return {
-                "data":
-                output.getvalue(),
-                "filename":
-                f"leads_export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
+                "data": final_content,
+                "filename": f"instagram_leads_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
             }
 
         elif format == 'json':

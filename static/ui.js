@@ -522,10 +522,9 @@ async function exportData(format) {
         const result = await response.json();
         
         if (response.ok) {
-            // Create and trigger download
-            const blob = new Blob([result.data], { 
-                type: format === 'csv' ? 'text/csv' : 'application/json' 
-            });
+            // Create and trigger download with proper encoding for CSV
+            const mimeType = format === 'csv' ? 'text/csv;charset=utf-8' : 'application/json';
+            const blob = new Blob([result.data], { type: mimeType });
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
@@ -535,7 +534,7 @@ async function exportData(format) {
             window.URL.revokeObjectURL(url);
             document.body.removeChild(a);
             
-            showToast(`Daten als ${format.toUpperCase()} exportiert`, 'success');
+            showToast(`Google Sheets kompatible ${format.toUpperCase()} Datei exportiert`, 'success');
         } else {
             showToast(result.error || 'Export fehlgeschlagen', 'error');
         }

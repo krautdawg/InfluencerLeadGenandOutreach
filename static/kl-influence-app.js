@@ -1135,19 +1135,25 @@ function selectCell(cell) {
 async function exportData(format) {
     try {
         const response = await fetch(`/export/${format}`);
+        const result = await response.json();
+        
         if (response.ok) {
-            const blob = await response.blob();
+            // Create blob with proper encoding for CSV
+            const mimeType = format === 'csv' ? 'text/csv;charset=utf-8' : 'application/json';
+            const blob = new Blob([result.data], { type: mimeType });
+            
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `leads_export.${format}`;
+            a.download = result.filename;
             document.body.appendChild(a);
             a.click();
             window.URL.revokeObjectURL(url);
             document.body.removeChild(a);
-            showToast(`Daten als ${format.toUpperCase()} exportiert`, 'success');
+            
+            showToast(`Google Sheets kompatible ${format.toUpperCase()} Datei exportiert`, 'success');
         } else {
-            showToast('Datenexport fehlgeschlagen', 'error');
+            showToast(result.error || 'Datenexport fehlgeschlagen', 'error');
         }
     } catch (error) {
         console.error('Export error:', error);
