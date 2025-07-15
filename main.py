@@ -5,7 +5,6 @@ import json
 import hashlib
 import random
 import time
-import re
 from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor
 import httpx
@@ -49,7 +48,7 @@ with app.app_context():
     def initialize_default_templates():
         """Initialize default email templates if they don't exist"""
         default_subject_template = 'Schreibe in DU-Form eine persönliche Betreffzeile mit freundlichen Hook für eine Influencer Kooperation mit Kasimir + Liselotte. Nutze persönliche Infos (z.B. Username, BIO, Interessen), sprich sie direkt in DU-Form. Falls ein Produkt ausgewählt ist, erwähne es subtil in der Betreffzeile. Antworte im JSON-Format: {"subject": "betreff text"}'
-        default_body_template = 'Erstelle eine personalisierte, professionelle deutsche E-Mail im HTML-Format, ohne die Betreffzeile, für potenzielle Instagram Influencer Kooperationen. Die E-Mail kommt von Kasimir vom Store KasimirLieselotte. Verwende einen höflichen, professionellen Ton auf Deutsch aber in DU-Form um es casual im Instagram feel zu bleiben. WICHTIG: Falls ein Produkt ausgewählt ist, integriere unbedingt folgende Elemente in die E-Mail: 1) Erwähne das Produkt namentlich, 2) Füge den direkten Link zum Produkt ein (Produkt-URL), 3) Erkläre kurz die Produkteigenschaften basierend auf der Beschreibung, 4) Beziehe das Produkt auf die Bio/Interessen des Influencers. FORMATIERUNG: Die E-Mail muss im HTML-Format sein. Verwende <p> für Absätze, <br> für Zeilenumbrüche und <a href="URL" target="_blank" style="color: #2D5B2D; text-decoration: underline;">Link-Text</a> für alle Links. Beispiel: <a href="https://www.kasimirlieselotte.de/shop/produkt" target="_blank" style="color: #2D5B2D; text-decoration: underline;">Produkt Name</a>. Füge am Ende die Signatur als HTML hinzu: <p>Liebe Grüße,<br>Kasimir<br><a href="https://www.kasimirlieselotte.de/" target="_blank" style="color: #2D5B2D; text-decoration: underline;">www.kasimirlieselotte.de</a></p>. Antworte im JSON-Format: {"body": "html email inhalt"}'
+        default_body_template = 'Erstelle eine personalisierte, professionelle deutsche E-Mail, ohne die Betreffzeile, für potenzielle Instagram Influencer Kooperationen. Die E-Mail kommt von Kasimir vom Store KasimirLieselotte. Verwende einen höflichen, professionellen Ton auf Deutsch aber in DU-Form um es casual im Instagram feel zu bleiben. WICHTIG: Falls ein Produkt ausgewählt ist, integriere unbedingt folgende Elemente in die E-Mail: 1) Erwähne das Produkt namentlich, 2) Füge den direkten Link zum Produkt ein (Produkt-URL), 3) Erkläre kurz die Produkteigenschaften basierend auf der Beschreibung, 4) Beziehe das Produkt auf die Bio/Interessen des Influencers. Die E-Mail sollte den Produktlink natürlich in den Text einbetten. Füge am Ende die Signatur mit der Website https://www.kasimirlieselotte.de/ hinzu. Antworte im JSON-Format: {"body": "email inhalt"}'
 
         # Check if subject template exists
         subject_template = EmailTemplate.query.filter_by(name='subject').first()
@@ -1700,24 +1699,6 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit, default_pro
         return []
 
 
-def convert_markdown_to_html_links(text):
-    """Convert Markdown links to HTML links and ensure proper Gmail formatting"""
-    if not text:
-        return text
-    
-    # Pattern to match Markdown links [text](url)
-    markdown_link_pattern = r'\[([^\]]+)\]\(([^\)]+)\)'
-    
-    # Replace all Markdown links with properly formatted HTML links for Gmail
-    html_text = re.sub(markdown_link_pattern, r'<a href="\2" target="_blank" style="color: #2D5B2D; text-decoration: underline;">\1</a>', text)
-    
-    # Also convert plain URLs to HTML links if they're not already wrapped
-    url_pattern = r'(?<!href=")(?<!href=\")(?<!>)(https?://[^\s<>"]+)(?!</a>)'
-    html_text = re.sub(url_pattern, r'<a href="\1" target="_blank" style="color: #2D5B2D; text-decoration: underline;">\1</a>', html_text)
-    
-    return html_text
-
-
 @app.route('/draft-email/<username>', methods=['GET'])
 @login_required
 def draft_email(username):
@@ -1728,7 +1709,7 @@ def draft_email(username):
 
     # Use stored templates or fallback to defaults
     subject_prompt = subject_template.template if subject_template else 'Schreibe in DU-Form eine persönliche Betreffzeile mit freundlichen Hook für eine Influencer Kooperation mit Kasimir + Liselotte. Nutze persönliche Infos (z.B. Username, BIO, Interessen), sprich sie direkt in DU-Form. Falls ein Produkt ausgewählt ist, erwähne es subtil in der Betreffzeile. Antworte im JSON-Format: {"subject": "betreff text"}'
-    body_prompt = body_template.template if body_template else 'Erstelle eine personalisierte, professionelle deutsche E-Mail im HTML-Format, ohne die Betreffzeile, für potenzielle Instagram Influencer Kooperationen. Die E-Mail kommt von Kasimir vom Store KasimirLieselotte. Verwende einen höflichen, professionellen Ton auf Deutsch aber in DU-Form um es casual im Instagram feel zu bleiben. WICHTIG: Falls ein Produkt ausgewählt ist, integriere unbedingt folgende Elemente in die E-Mail: 1) Erwähne das Produkt namentlich, 2) Füge den direkten Link zum Produkt ein (Produkt-URL), 3) Erkläre kurz die Produkteigenschaften basierend auf der Beschreibung, 4) Beziehe das Produkt auf die Bio/Interessen des Influencers. FORMATIERUNG: Die E-Mail muss im HTML-Format sein. Verwende <p> für Absätze, <br> für Zeilenumbrüche und <a href="URL" target="_blank" style="color: #2D5B2D; text-decoration: underline;">Link-Text</a> für alle Links. Beispiel: <a href="https://www.kasimirlieselotte.de/shop/produkt" target="_blank" style="color: #2D5B2D; text-decoration: underline;">Produkt Name</a>. Füge am Ende die Signatur als HTML hinzu: <p>Liebe Grüße,<br>Kasimir<br><a href="https://www.kasimirlieselotte.de/" target="_blank" style="color: #2D5B2D; text-decoration: underline;">www.kasimirlieselotte.de</a></p>. Antworte im JSON-Format: {"body": "html email inhalt"}'
+    body_prompt = body_template.template if body_template else 'Erstelle eine personalisierte, professionelle deutsche E-Mail, ohne die Betreffzeile, für potenzielle Instagram Influencer Kooperationen. Die E-Mail kommt von Kasimir vom Store KasimirLieselotte. Verwende einen höflichen, professionellen Ton auf Deutsch aber in DU-Form um es casual im Instagram feel zu bleiben. WICHTIG: Falls ein Produkt ausgewählt ist, integriere unbedingt folgende Elemente in die E-Mail: 1) Erwähne das Produkt namentlich, 2) Füge den direkten Link zum Produkt ein (Produkt-URL), 3) Erkläre kurz die Produkteigenschaften basierend auf der Beschreibung, 4) Beziehe das Produkt auf die Bio/Interessen des Influencers. Die E-Mail sollte den Produktlink natürlich in den Text einbetten. Füge am Ende die Signatur mit der Website https://www.kasimirlieselotte.de/ hinzu. Antworte im JSON-Format: {"body": "email inhalt"}'
 
     # Find the lead in database
     lead = Lead.query.filter_by(username=username).first()
@@ -1756,7 +1737,7 @@ def draft_email(username):
             # Create clean alternative prompts without any product mentions
             final_subject_prompt = 'Schreibe in DU-Form eine persönliche Betreffzeile mit freundlichen Hook für eine Influencer Kooperation mit Kasimir + Liselotte. Nutze persönliche Infos (z.B. Username, BIO, Interessen), sprich sie direkt in DU-Form. Fokussiere dich auf die Interessen und den Content des Influencers. Antworte im JSON-Format: {"subject": "betreff text"}'
 
-            final_body_prompt = 'Erstelle eine personalisierte, professionelle deutsche E-Mail im HTML-Format, ohne die Betreffzeile, für potenzielle Instagram Influencer Kooperationen. Die E-Mail kommt von Kasimir vom Store KasimirLieselotte. Verwende einen höflichen, professionellen Ton auf Deutsch aber in DU-Form um es casual im Instagram feel zu bleiben. Fokussiere dich auf eine allgemeine Kooperationsanfrage, die auf die Interessen und den Content des Influencers eingeht. Erwähne deine Begeisterung für ihren Content und schlage eine mögliche Zusammenarbeit vor, ohne spezifische Produkte zu erwähnen. FORMATIERUNG: Die E-Mail muss im HTML-Format sein. Verwende <p> für Absätze, <br> für Zeilenumbrüche und <a href="URL" target="_blank" style="color: #2D5B2D; text-decoration: underline;">Link-Text</a> für alle Links. Füge am Ende die Signatur als HTML hinzu: <p>Liebe Grüße,<br>Kasimir<br><a href="https://www.kasimirlieselotte.de/" target="_blank" style="color: #2D5B2D; text-decoration: underline;">www.kasimirlieselotte.de</a></p>. Antworte im JSON-Format: {"body": "html email inhalt"}'
+            final_body_prompt = 'Erstelle eine personalisierte, professionelle deutsche E-Mail, ohne die Betreffzeile, für potenzielle Instagram Influencer Kooperationen. Die E-Mail kommt von Kasimir vom Store KasimirLieselotte. Verwende einen höflichen, professionellen Ton auf Deutsch aber in DU-Form um es casual im Instagram feel zu bleiben. Fokussiere dich auf eine allgemeine Kooperationsanfrage, die auf die Interessen und den Content des Influencers eingeht. Erwähne deine Begeisterung für ihren Content und schlage eine mögliche Zusammenarbeit vor, ohne spezifische Produkte zu erwähnen. Füge am Ende die Signatur mit der Website https://www.kasimirlieselotte.de/ hinzu. Antworte im JSON-Format: {"body": "email inhalt"}'
 
         # Generate subject using appropriate prompt
         subject_response = openai_client.chat.completions.create(
@@ -1790,12 +1771,9 @@ def draft_email(username):
         # Update lead with generated content
         lead.subject = subject_data.get('subject',
                                        'Collaboration Opportunity')
-        
-        # Get the email body and convert any Markdown links to HTML
-        email_body = body_data.get(
+        lead.email_body = body_data.get(
             'body',
             'Hello, I would like to discuss a collaboration opportunity.')
-        lead.email_body = convert_markdown_to_html_links(email_body)
 
         # Save to database
         db.session.commit()
@@ -1840,7 +1818,7 @@ def update_lead(username):
         if 'subject' in data:
             lead.subject = data['subject']
         if 'email_body' in data:
-            lead.email_body = convert_markdown_to_html_links(data['email_body'])
+            lead.email_body = data['email_body']
         if 'phone' in data:
             lead.phone = data['phone']
         if 'website' in data:
