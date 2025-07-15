@@ -531,6 +531,9 @@ function showHashtagSelection(hashtag_variants) {
             <button id="continueEnrichment" class="btn btn-primary">
                 <i class="fas fa-arrow-right"></i> Mit Anreicherung fortfahren
             </button>
+            <button id="loadExistingTable" class="btn btn-success">
+                <i class="fas fa-table"></i> Tabelle übersicht laden
+            </button>
             <button id="cancelSelection" class="btn btn-secondary">
                 <i class="fas fa-times"></i> Abbrechen
             </button>
@@ -564,6 +567,8 @@ function showHashtagSelection(hashtag_variants) {
     });
     
     document.getElementById('continueEnrichment').addEventListener('click', continueWithEnrichment);
+    
+    document.getElementById('loadExistingTable').addEventListener('click', loadExistingTable);
     
     document.getElementById('cancelSelection').addEventListener('click', () => {
         resultsContainer.innerHTML = '';
