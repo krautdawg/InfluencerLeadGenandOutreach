@@ -2071,13 +2071,22 @@ def get_email_templates():
         subject_template = EmailTemplate.query.filter_by(name='subject').first()
         body_template = EmailTemplate.query.filter_by(name='body').first()
 
-        return jsonify({
+        result = {
             'subject': subject_template.template if subject_template else '',
-            'body': body_template.template if body_template else ''
-        })
+            'body': body_template.template if body_template else '',
+            'success': True
+        }
+        
+        # Add last updated timestamps if available
+        if subject_template:
+            result['subject_updated'] = subject_template.updated_at.isoformat() if subject_template.updated_at else None
+        if body_template:
+            result['body_updated'] = body_template.updated_at.isoformat() if body_template.updated_at else None
+        
+        return jsonify(result)
     except Exception as e:
         logger.error(f"Failed to get email templates: {e}")
-        return {"error": "Failed to get email templates"}, 500
+        return jsonify({"error": "Failed to get email templates", "success": False}), 500
 
 
 @app.route('/api/email-templates', methods=['POST'])
@@ -2086,32 +2095,49 @@ def save_email_templates():
     """Save email templates"""
     try:
         data = request.get_json()
+        
+        if not data:
+            return jsonify({"error": "No data provided", "success": False}), 400
+        
+        updated_fields = []
+        current_time = datetime.utcnow()
 
         if 'subject' in data:
             subject_template = EmailTemplate.query.filter_by(name='subject').first()
             if subject_template:
                 subject_template.template = data['subject']
-                subject_template.updated_at = datetime.utcnow()
+                subject_template.updated_at = current_time
             else:
                 subject_template = EmailTemplate(name='subject', template=data['subject'])
                 db.session.add(subject_template)
+            updated_fields.append('subject')
 
         if 'body' in data:
             body_template = EmailTemplate.query.filter_by(name='body').first()
             if body_template:
                 body_template.template = data['body']
-                body_template.updated_at = datetime.utcnow()
+                body_template.updated_at = current_time
             else:
                 body_template = EmailTemplate(name='body', template=data['body'])
                 db.session.add(body_template)
+            updated_fields.append('body')
+
+        if not updated_fields:
+            return jsonify({"error": "No valid fields to update", "success": False}), 400
 
         db.session.commit()
-
-        return jsonify({"success": True, "message": "Email templates saved successfully"})
+        
+        logger.info(f"Email templates saved successfully: {', '.join(updated_fields)}")
+        return jsonify({
+            "success": True, 
+            "message": "Email templates saved successfully",
+            "updated_fields": updated_fields,
+            "timestamp": current_time.isoformat()
+        })
     except Exception as e:
         logger.error(f"Failed to save email templates: {e}")
         db.session.rollback()
-        return {"error": "Failed to save email templates"}, 500
+        return jsonify({"error": "Failed to save email templates", "success": False}), 500
 
 
 @app.route('/api/products', methods=['GET'])

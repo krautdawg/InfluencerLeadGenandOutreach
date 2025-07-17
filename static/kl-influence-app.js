@@ -1581,20 +1581,160 @@ function initializeEmailTemplateAutoSave() {
     
     if (!subjectPrompt || !bodyPrompt) return;
     
+    // Create save status indicators
+    addSaveStatusIndicators();
+    
+    // Add manual save button
+    addManualSaveButton();
+    
     // Debounced save function (wait 2 seconds after user stops typing)
     const debouncedSave = debounce(saveEmailTemplates, 2000);
     
     // Add event listeners for textarea changes
-    subjectPrompt.addEventListener('input', debouncedSave);
-    bodyPrompt.addEventListener('input', debouncedSave);
+    subjectPrompt.addEventListener('input', () => {
+        showSaveStatus('typing');
+        debouncedSave();
+    });
+    
+    bodyPrompt.addEventListener('input', () => {
+        showSaveStatus('typing');
+        debouncedSave();
+    });
     
     // Also save on blur (when user clicks away)
     subjectPrompt.addEventListener('blur', () => {
+        showSaveStatus('saving');
         setTimeout(saveEmailTemplates, 100); // Small delay to ensure value is updated
     });
     bodyPrompt.addEventListener('blur', () => {
+        showSaveStatus('saving');
         setTimeout(saveEmailTemplates, 100);
     });
+    
+    // Add keyboard shortcuts for manual save (Ctrl+S)
+    subjectPrompt.addEventListener('keydown', (e) => {
+        if (e.ctrlKey && e.key === 's') {
+            e.preventDefault();
+            showSaveStatus('saving');
+            saveEmailTemplates();
+        }
+    });
+    
+    bodyPrompt.addEventListener('keydown', (e) => {
+        if (e.ctrlKey && e.key === 's') {
+            e.preventDefault();
+            showSaveStatus('saving');
+            saveEmailTemplates();
+        }
+    });
+}
+
+// Add save status indicators to the UI
+function addSaveStatusIndicators() {
+    const subjectLabel = document.querySelector('label[for="subjectPrompt"]');
+    const bodyLabel = document.querySelector('label[for="bodyPrompt"]');
+    
+    if (subjectLabel && !subjectLabel.querySelector('.save-status')) {
+        const statusSpan = document.createElement('span');
+        statusSpan.className = 'save-status';
+        statusSpan.id = 'subjectSaveStatus';
+        statusSpan.style.cssText = 'margin-left: 10px; font-size: 0.85em; color: #666;';
+        subjectLabel.appendChild(statusSpan);
+    }
+    
+    if (bodyLabel && !bodyLabel.querySelector('.save-status')) {
+        const statusSpan = document.createElement('span');
+        statusSpan.className = 'save-status';
+        statusSpan.id = 'bodySaveStatus';
+        statusSpan.style.cssText = 'margin-left: 10px; font-size: 0.85em; color: #666;';
+        bodyLabel.appendChild(statusSpan);
+    }
+}
+
+// Show save status indicator
+function showSaveStatus(status) {
+    const subjectStatus = document.getElementById('subjectSaveStatus');
+    const bodyStatus = document.getElementById('bodySaveStatus');
+    
+    let statusText = '';
+    let statusColor = '#666';
+    
+    switch(status) {
+        case 'typing':
+            statusText = '• Änderungen erkannt...';
+            statusColor = '#f39c12';
+            break;
+        case 'saving':
+            statusText = '• Speichert...';
+            statusColor = '#3498db';
+            break;
+        case 'saved':
+            statusText = '• Gespeichert ✓';
+            statusColor = '#27ae60';
+            // Clear status after 2 seconds
+            setTimeout(() => {
+                if (subjectStatus) subjectStatus.textContent = '';
+                if (bodyStatus) bodyStatus.textContent = '';
+            }, 2000);
+            break;
+        case 'error':
+            statusText = '• Fehler beim Speichern ✗';
+            statusColor = '#e74c3c';
+            break;
+    }
+    
+    if (subjectStatus) {
+        subjectStatus.textContent = statusText;
+        subjectStatus.style.color = statusColor;
+    }
+    if (bodyStatus) {
+        bodyStatus.textContent = statusText;
+        bodyStatus.style.color = statusColor;
+    }
+}
+
+// Function to load email templates from backend
+async function loadEmailTemplates() {
+    try {
+        const response = await fetch('/api/email-templates');
+        if (response.ok) {
+            const templates = await response.json();
+            const subjectPrompt = document.getElementById('subjectPrompt');
+            const bodyPrompt = document.getElementById('bodyPrompt');
+            
+            if (subjectPrompt && templates.subject) {
+                subjectPrompt.value = templates.subject;
+            }
+            if (bodyPrompt && templates.body) {
+                bodyPrompt.value = templates.body;
+            }
+            
+            console.log('Email templates loaded successfully from backend');
+        } else {
+            console.error('Failed to load email templates from backend');
+        }
+    } catch (error) {
+        console.error('Error loading email templates:', error);
+    }
+}
+
+// Add manual save button to the settings panel
+function addManualSaveButton() {
+    const settingsPanel = document.getElementById('settingsPanel');
+    if (!settingsPanel || settingsPanel.querySelector('.manual-save-btn')) return;
+    
+    const saveButton = document.createElement('button');
+    saveButton.className = 'btn btn-secondary btn-sm manual-save-btn';
+    saveButton.innerHTML = '<i class="fas fa-save"></i> Manuell speichern';
+    saveButton.style.cssText = 'margin-top: 10px; width: 100%;';
+    saveButton.type = 'button';
+    
+    saveButton.addEventListener('click', () => {
+        showSaveStatus('saving');
+        saveEmailTemplates();
+    });
+    
+    settingsPanel.appendChild(saveButton);
 }
 
 // Update template prompts based on selected product
@@ -1652,6 +1792,8 @@ async function saveEmailTemplates() {
     };
     
     try {
+        showSaveStatus('saving');
+        
         const response = await fetch('/api/email-templates', {
             method: 'POST',
             headers: {
@@ -1662,15 +1804,18 @@ async function saveEmailTemplates() {
         
         if (response.ok) {
             const result = await response.json();
-            // Show subtle success feedback
-            showToast('Email-Vorlagen automatisch gespeichert', 'success');
+            showSaveStatus('saved');
+            // Show subtle success feedback with reduced frequency
+            console.log('Email templates saved successfully');
         } else {
             const error = await response.json();
             console.error('Failed to save email templates:', error);
+            showSaveStatus('error');
             showToast('Speichern der Email-Vorlagen fehlgeschlagen', 'error');
         }
     } catch (error) {
         console.error('Error saving email templates:', error);
+        showSaveStatus('error');
         showToast('Speichern der Email-Vorlagen fehlgeschlagen', 'error');
     }
 }
