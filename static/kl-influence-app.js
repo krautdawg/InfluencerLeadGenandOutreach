@@ -28,6 +28,7 @@ document.addEventListener('DOMContentLoaded', function() {
     initializeEventListeners();
     checkSessionId();
     initializeTableFilters();
+    initializeColumnResizing();
     
     // Load products data from the server or fetch from API
     if (window.productsData) {
@@ -909,6 +910,12 @@ function displayResults(leadsData) {
     
     // Apply any existing filters
     applyFilters();
+    
+    // Initialize column resizing for the table (if not already done)
+    initializeColumnResizing();
+    
+    // Add reset button to action bar
+    addColumnWidthResetButton();
     
     // Update UI state to ensure buttons have correct disabled/enabled states
     updateUIState();
@@ -1809,4 +1816,204 @@ function editProductSelection(username) {
 function finishProductEdit(cell, originalProductId) {
     cell.classList.remove('editing');
     cell.innerHTML = getProductNameById(originalProductId) || '<span style="color: var(--color-light-gray);">Kein Produkt</span>';
+}
+
+// ===============================
+// COLUMN RESIZING FUNCTIONALITY
+// ===============================
+
+let isResizing = false;
+let currentResizeColumn = null;
+let startX = 0;
+let startWidth = 0;
+let previewLine = null;
+
+// Initialize column resizing functionality
+function initializeColumnResizing() {
+    const table = document.querySelector('.data-table');
+    if (!table) return;
+
+    // Create preview line only if it doesn't exist
+    if (!previewLine) {
+        previewLine = document.createElement('div');
+        previewLine.className = 'resize-preview-line';
+        document.body.appendChild(previewLine);
+    }
+
+    // Add event listeners to resize handles (only new ones)
+    const resizeHandles = table.querySelectorAll('.resize-handle:not(.initialized)');
+    resizeHandles.forEach(handle => {
+        handle.addEventListener('mousedown', startResize);
+        handle.classList.add('initialized'); // Mark as initialized
+    });
+
+    // Global mouse events (only add once)
+    if (!window.columnResizeInitialized) {
+        document.addEventListener('mousemove', doResize);
+        document.addEventListener('mouseup', endResize);
+        window.columnResizeInitialized = true;
+    }
+
+    // Load saved column widths
+    loadColumnWidths();
+}
+
+// Start resizing a column
+function startResize(e) {
+    e.preventDefault();
+    e.stopPropagation();
+
+    isResizing = true;
+    currentResizeColumn = parseInt(e.target.dataset.column);
+    startX = e.clientX;
+    
+    // Get current width of the column
+    const columnWidth = getComputedStyle(document.documentElement).getPropertyValue(`--col-width-${currentResizeColumn}`);
+    startWidth = parseInt(columnWidth);
+
+    // Add resizing class to handle
+    e.target.classList.add('resizing');
+    
+    // Disable text selection during resize
+    document.body.style.userSelect = 'none';
+    document.body.style.cursor = 'col-resize';
+
+    // Show preview line
+    updatePreviewLine(e.clientX);
+    previewLine.style.display = 'block';
+}
+
+// Handle resizing
+function doResize(e) {
+    if (!isResizing || !currentResizeColumn) return;
+
+    e.preventDefault();
+    
+    // Update preview line position
+    updatePreviewLine(e.clientX);
+}
+
+// Update preview line position
+function updatePreviewLine(clientX) {
+    if (!previewLine) return;
+    
+    const tableWrapper = document.querySelector('.table-wrapper');
+    if (!tableWrapper) return;
+    
+    const rect = tableWrapper.getBoundingClientRect();
+    const relativeX = clientX - rect.left + tableWrapper.scrollLeft;
+    
+    previewLine.style.left = `${rect.left + relativeX}px`;
+    previewLine.style.top = `${rect.top}px`;
+    previewLine.style.height = `${rect.height}px`;
+}
+
+// End resizing
+function endResize(e) {
+    if (!isResizing || !currentResizeColumn) return;
+
+    const deltaX = e.clientX - startX;
+    const newWidth = Math.max(50, startWidth + deltaX); // Minimum width of 50px
+
+    // Update CSS variable
+    document.documentElement.style.setProperty(`--col-width-${currentResizeColumn}`, `${newWidth}px`);
+
+    // Save to localStorage
+    saveColumnWidths();
+
+    // Clean up
+    const resizeHandle = document.querySelector(`.resize-handle[data-column="${currentResizeColumn}"]`);
+    if (resizeHandle) {
+        resizeHandle.classList.remove('resizing');
+    }
+
+    isResizing = false;
+    currentResizeColumn = null;
+    document.body.style.userSelect = '';
+    document.body.style.cursor = '';
+    
+    // Hide preview line
+    if (previewLine) {
+        previewLine.style.display = 'none';
+    }
+}
+
+// Save column widths to localStorage
+function saveColumnWidths() {
+    const columnWidths = {};
+    
+    for (let i = 1; i <= 12; i++) {
+        const width = getComputedStyle(document.documentElement).getPropertyValue(`--col-width-${i}`);
+        if (width) {
+            columnWidths[i] = width.trim();
+        }
+    }
+    
+    localStorage.setItem('klinfluence-column-widths', JSON.stringify(columnWidths));
+}
+
+// Load column widths from localStorage
+function loadColumnWidths() {
+    try {
+        const saved = localStorage.getItem('klinfluence-column-widths');
+        if (saved) {
+            const columnWidths = JSON.parse(saved);
+            
+            Object.entries(columnWidths).forEach(([column, width]) => {
+                document.documentElement.style.setProperty(`--col-width-${column}`, width);
+            });
+        }
+    } catch (error) {
+        console.warn('Error loading column widths:', error);
+    }
+}
+
+// Reset column widths to defaults
+function resetColumnWidths() {
+    // Reset CSS variables to default values
+    const defaultWidths = {
+        1: '60px',
+        2: '150px',
+        3: '120px',
+        4: '180px',
+        5: '100px',
+        6: '200px',
+        7: '180px',
+        8: '150px',
+        9: '250px',
+        10: '300px',
+        11: '120px',
+        12: '120px'
+    };
+    
+    Object.entries(defaultWidths).forEach(([column, width]) => {
+        document.documentElement.style.setProperty(`--col-width-${column}`, width);
+    });
+    
+    // Save to localStorage
+    saveColumnWidths();
+    
+    showToast('Spaltenbreiten zurückgesetzt', 'success');
+}
+
+// Add reset button to the action bar (call this when the table is displayed)
+function addColumnWidthResetButton() {
+    const actionBar = document.querySelector('.d-flex.justify-content-between.align-items-center.mb-4');
+    if (!actionBar) return;
+    
+    const rightButtonGroup = actionBar.querySelector('.d-flex.gap-2');
+    if (!rightButtonGroup) return;
+    
+    // Check if button already exists
+    if (rightButtonGroup.querySelector('#resetColumnsBtn')) return;
+    
+    const resetButton = document.createElement('button');
+    resetButton.type = 'button';
+    resetButton.className = 'btn btn-tertiary btn-sm';
+    resetButton.id = 'resetColumnsBtn';
+    resetButton.onclick = resetColumnWidths;
+    resetButton.innerHTML = '<i class="fas fa-columns"></i> Spalten zurücksetzen';
+    resetButton.title = 'Spaltenbreiten auf Standardwerte zurücksetzen';
+    
+    rightButtonGroup.appendChild(resetButton);
 }

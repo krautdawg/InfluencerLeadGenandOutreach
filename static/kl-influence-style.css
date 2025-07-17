@@ -418,7 +418,38 @@ select:focus {
   width: 100%;
   border-collapse: collapse;
   font-size: var(--text-body-sm);
+  table-layout: fixed; /* Enable precise column width control */
 }
+
+/* Column width CSS variables - default values */
+:root {
+  --col-width-1: 60px;   /* # column */
+  --col-width-2: 150px;  /* Username column (sticky) */
+  --col-width-3: 120px;  /* Hashtag column */
+  --col-width-4: 180px;  /* Full Name column */
+  --col-width-5: 100px;  /* Followers column */
+  --col-width-6: 200px;  /* Email column */
+  --col-width-7: 180px;  /* Website column */
+  --col-width-8: 150px;  /* Product column */
+  --col-width-9: 250px;  /* Subject column */
+  --col-width-10: 300px; /* Email Content column */
+  --col-width-11: 120px; /* Status column */
+  --col-width-12: 120px; /* Actions column */
+}
+
+/* Apply column widths to table headers and cells */
+.data-table th:nth-child(1), .data-table td:nth-child(1) { width: var(--col-width-1); min-width: var(--col-width-1); }
+.data-table th:nth-child(2), .data-table td:nth-child(2) { width: var(--col-width-2); min-width: var(--col-width-2); }
+.data-table th:nth-child(3), .data-table td:nth-child(3) { width: var(--col-width-3); min-width: var(--col-width-3); }
+.data-table th:nth-child(4), .data-table td:nth-child(4) { width: var(--col-width-4); min-width: var(--col-width-4); }
+.data-table th:nth-child(5), .data-table td:nth-child(5) { width: var(--col-width-5); min-width: var(--col-width-5); }
+.data-table th:nth-child(6), .data-table td:nth-child(6) { width: var(--col-width-6); min-width: var(--col-width-6); }
+.data-table th:nth-child(7), .data-table td:nth-child(7) { width: var(--col-width-7); min-width: var(--col-width-7); }
+.data-table th:nth-child(8), .data-table td:nth-child(8) { width: var(--col-width-8); min-width: var(--col-width-8); }
+.data-table th:nth-child(9), .data-table td:nth-child(9) { width: var(--col-width-9); min-width: var(--col-width-9); }
+.data-table th:nth-child(10), .data-table td:nth-child(10) { width: var(--col-width-10); min-width: var(--col-width-10); }
+.data-table th:nth-child(11), .data-table td:nth-child(11) { width: var(--col-width-11); min-width: var(--col-width-11); }
+.data-table th:nth-child(12), .data-table td:nth-child(12) { width: var(--col-width-12); min-width: var(--col-width-12); }
 
 .data-table thead {
   position: sticky;
@@ -436,6 +467,45 @@ select:focus {
   position: relative;
   cursor: pointer;
   user-select: none;
+  overflow: hidden;
+}
+
+/* Column Resize Handle */
+.data-table thead th .resize-handle {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 8px;
+  cursor: col-resize;
+  background: transparent;
+  z-index: 20;
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+}
+
+.data-table thead th:hover .resize-handle,
+.data-table thead th .resize-handle:hover,
+.data-table thead th .resize-handle.resizing {
+  opacity: 1;
+  background: linear-gradient(to right, transparent 2px, var(--color-natural-green) 2px, var(--color-natural-green) 6px, transparent 6px);
+}
+
+.data-table thead th .resize-handle.resizing {
+  background: linear-gradient(to right, transparent 2px, var(--color-earth-brown) 2px, var(--color-earth-brown) 6px, transparent 6px);
+}
+
+/* Resize preview line */
+.resize-preview-line {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background-color: var(--color-natural-green);
+  z-index: 1000;
+  pointer-events: none;
+  opacity: 0.8;
+  display: none;
 }
 
 .data-table thead th:hover {
