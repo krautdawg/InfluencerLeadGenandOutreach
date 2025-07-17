@@ -229,7 +229,8 @@ function applyFilters() {
         const username = cells[1]?.textContent.toLowerCase() || '';
         const hashtag = cells[2]?.textContent.toLowerCase() || '';
         const fullName = cells[3]?.textContent.toLowerCase() || '';
-        const followers = parseInt(cells[4]?.textContent.replace(/[^\d]/g, '')) || 0;
+        const followersText = cells[4]?.textContent || '0';
+        const followers = parseFollowerCount(followersText);
         const email = cells[5]?.textContent.toLowerCase() || '';
         const website = cells[6]?.textContent.toLowerCase() || '';
         const product = cells[7]?.textContent.toLowerCase() || '';
@@ -250,11 +251,16 @@ function applyFilters() {
         
         // Numeric filter for followers
         if (filters.followers) {
+            console.log('Filtering followers:', followersText, 'parsed to:', followers, 'filter:', filters.followers);
+            
             // Check if it's a range filter (e.g., "1000-10000")
             if (filters.followers.includes('-') && !filters.followers.startsWith('-')) {
                 const [minStr, maxStr] = filters.followers.split('-');
                 const minValue = parseInt(minStr);
                 const maxValue = parseInt(maxStr);
+                
+                console.log('Range filter:', minValue, '<=', followers, '<=', maxValue);
+                
                 if (followers < minValue || followers > maxValue) {
                     show = false;
                 }
@@ -1615,6 +1621,11 @@ function parseNumber(str) {
         return parseFloat(num) * 1000;
     }
     return parseFloat(num) || 0;
+}
+
+function parseFollowerCount(str) {
+    if (!str) return 0;
+    return parseNumber(str);
 }
 
 function debounce(func, wait) {
