@@ -40,7 +40,7 @@ function initializeEventListeners() {
 }
 
 function initializeTableFilters() {
-    // Set up filter event listeners
+    // Set up filter event listeners for regular text inputs
     const filterInputs = document.querySelectorAll('.filter-input');
     filterInputs.forEach(input => {
         input.addEventListener('input', function() {
@@ -49,6 +49,37 @@ function initializeTableFilters() {
             applyFilters();
         });
     });
+    
+    // Set up follower range filter
+    const followerRangeSelect = document.getElementById('filterFollowersRange');
+    const followerCustomInput = document.getElementById('filterFollowers');
+    
+    if (followerRangeSelect) {
+        followerRangeSelect.addEventListener('change', function() {
+            const selectedValue = this.value;
+            
+            if (selectedValue === 'custom') {
+                // Show custom input for advanced users
+                followerCustomInput.style.display = 'block';
+                followerCustomInput.focus();
+                // Clear range filter, use custom input
+                delete filterValues[4];
+            } else {
+                // Hide custom input
+                followerCustomInput.style.display = 'none';
+                followerCustomInput.value = '';
+                
+                if (selectedValue === '') {
+                    // Clear filter
+                    delete filterValues[4];
+                } else {
+                    // Set range filter
+                    filterValues[4] = selectedValue;
+                }
+            }
+            applyFilters();
+        });
+    }
 }
 
 function applyFilters() {
@@ -66,25 +97,35 @@ function applyFilters() {
                 // Special handling for numeric columns (followers)
                 if (column == 4) { // Followers column
                     const numericValue = parseNumber(cellText);
-                    const filterNum = parseNumber(filterValue);
                     
-                    // Support comparison operators: >, <, >=, <=, =
-                    if (filterValue.startsWith('>=')) {
-                        shouldShow = numericValue >= parseNumber(filterValue.substring(2));
-                    } else if (filterValue.startsWith('<=')) {
-                        shouldShow = numericValue <= parseNumber(filterValue.substring(2));
-                    } else if (filterValue.startsWith('>')) {
-                        shouldShow = numericValue > parseNumber(filterValue.substring(1));
-                    } else if (filterValue.startsWith('<')) {
-                        shouldShow = numericValue < parseNumber(filterValue.substring(1));
-                    } else if (filterValue.startsWith('=')) {
-                        shouldShow = numericValue === parseNumber(filterValue.substring(1));
-                    } else if (!isNaN(filterNum)) {
-                        // If just a number, do exact match
-                        shouldShow = numericValue === filterNum;
+                    // Check if it's a range filter (e.g., "1000-10000")
+                    if (filterValue.includes('-') && !filterValue.startsWith('-')) {
+                        const [minStr, maxStr] = filterValue.split('-');
+                        const minValue = parseInt(minStr);
+                        const maxValue = parseInt(maxStr);
+                        shouldShow = numericValue >= minValue && numericValue <= maxValue;
                     } else {
-                        // Fallback to text search
-                        shouldShow = cellText.includes(filterValue);
+                        // Original comparison operators for custom input
+                        const filterNum = parseNumber(filterValue);
+                        
+                        // Support comparison operators: >, <, >=, <=, =
+                        if (filterValue.startsWith('>=')) {
+                            shouldShow = numericValue >= parseNumber(filterValue.substring(2));
+                        } else if (filterValue.startsWith('<=')) {
+                            shouldShow = numericValue <= parseNumber(filterValue.substring(2));
+                        } else if (filterValue.startsWith('>')) {
+                            shouldShow = numericValue > parseNumber(filterValue.substring(1));
+                        } else if (filterValue.startsWith('<')) {
+                            shouldShow = numericValue < parseNumber(filterValue.substring(1));
+                        } else if (filterValue.startsWith('=')) {
+                            shouldShow = numericValue === parseNumber(filterValue.substring(1));
+                        } else if (!isNaN(filterNum)) {
+                            // If just a number, do exact match
+                            shouldShow = numericValue === filterNum;
+                        } else {
+                            // Fallback to text search
+                            shouldShow = cellText.includes(filterValue);
+                        }
                     }
                 } else {
                     // Text columns - case insensitive partial match
@@ -111,6 +152,17 @@ function clearFilters() {
     filterInputs.forEach(input => {
         input.value = '';
     });
+    
+    // Reset follower range filter
+    const followerRangeSelect = document.getElementById('filterFollowersRange');
+    const followerCustomInput = document.getElementById('filterFollowers');
+    if (followerRangeSelect) {
+        followerRangeSelect.value = '';
+    }
+    if (followerCustomInput) {
+        followerCustomInput.style.display = 'none';
+        followerCustomInput.value = '';
+    }
     
     // Show all rows
     const tbody = document.querySelector('#resultsTable tbody');
@@ -334,6 +386,7 @@ function createLeadRow(lead, index) {
     }
     
     row.innerHTML = `
+        <td>${index + 1}</td>
         <td>
             <a href="https://www.instagram.com/${lead.username}" target="_blank" rel="noopener noreferrer">
                 <strong>@${lead.username}</strong>
@@ -342,14 +395,17 @@ function createLeadRow(lead, index) {
         </td>
         <td>${lead.hashtag || '-'}</td>
         <td>${lead.full_name || lead.fullName || '-'}</td>
-        <td>${lead.email || '-'}</td>
         <td>${formatNumber(lead.followers_count || lead.followersCount || 0)}</td>
+        <td>${lead.email || '-'}</td>
+        <td>${lead.website || lead.external_url || '-'}</td>
+        <td>${lead.product || '-'}</td>
         <td>
             <textarea class="table-input table-textarea" id="subject_${index}" placeholder="Email-Betreff...">${lead.subject || ''}</textarea>
         </td>
         <td>
             <textarea class="table-input table-textarea" id="body_${index}" placeholder="Email-Inhalt..." rows="4">${lead.email_body || lead.emailBody || ''}</textarea>
         </td>
+        <td>${lead.status || '-'}</td>
         <td>
             <div class="btn-group-vertical btn-group-sm">
                 ${lead.sent ? 

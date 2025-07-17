@@ -6,6 +6,49 @@ K+L Influence is a Flask-based Instagram lead generation and outreach automation
 
 ## Recent Changes
 
+### 2025-07-17: Pre-set Follower Range Filters Implementation (COMPLETED)
+- **Update**: Implemented intuitive dropdown-based follower filtering with pre-set ranges instead of manual comparison operators
+- **Features Implemented**:
+  - **Dropdown Filter Interface**: Replaced text input with professional dropdown selection for follower ranges
+  - **Pre-set Range Options**: Added industry-standard influencer tiers:
+    - Micro-influencers: 1-100, 100-1K, 1K-10K, 10K-50K, 50K-100K
+    - Macro-influencers: 100K-500K, 500K-1M, 1M+ followers
+  - **Custom Filter Fallback**: "Benutzerdefiniert..." option reveals text input for advanced users
+  - **Range Filtering Logic**: Enhanced `applyFilters()` to handle range-based filtering (e.g., "1000-10000")
+  - **Backward Compatibility**: Maintained existing comparison operators (>, <, >=, <=, =) for custom input
+  - **UI Consistency**: Added matching CSS styling with K+L branding colors and hover effects
+  - **Smart State Management**: Proper show/hide logic for custom input based on dropdown selection
+- **User Experience Improvements**:
+  - **One-Click Filtering**: Users can filter by follower ranges with single dropdown selection
+  - **Professional Appearance**: Dropdown looks more polished than text input with comparison operators
+  - **Error Reduction**: No need to remember comparison syntax - intuitive range selection
+  - **Accessibility**: Better for users unfamiliar with mathematical comparison operators
+  - **Clear Categories**: Pre-defined ranges match common influencer marketing industry standards
+- **Technical Implementation**:
+  - **HTML Structure**: Dropdown with hidden custom input that shows on "custom" selection
+  - **JavaScript Logic**: Enhanced `initializeTableFilters()` with separate event handlers for dropdown and custom input
+  - **Range Parsing**: Modified filtering logic to handle "min-max" format in `applyFilters()`
+  - **CSS Styling**: Added `.filter-select` class with consistent K+L branding and custom dropdown arrow
+  - **Filter Reset**: Updated `clearFilters()` to properly reset both dropdown and custom input
+- **Filter Options**:
+  - "Alle Follower" (no filter)
+  - "1 - 100" (1-100 followers)
+  - "100 - 1K" (100-1000 followers)
+  - "1K - 10K" (1000-10000 followers)
+  - "10K - 50K" (10000-50000 followers)
+  - "50K - 100K" (50000-100000 followers)
+  - "100K - 500K" (100000-500000 followers)
+  - "500K - 1M" (500000-1000000 followers)
+  - "1M+" (1000000+ followers)
+  - "Benutzerdefiniert..." (reveals custom text input)
+- **Benefits**:
+  - Faster lead filtering with industry-standard follower ranges
+  - More intuitive user interface matching professional data management tools
+  - Reduced learning curve for new users
+  - Maintained advanced functionality for power users
+  - Enhanced visual consistency with existing K+L design system
+- **Status**: Pre-set follower range filters fully implemented and ready for testing
+
 ### 2025-07-15: Auto-Revert Hashtag Selection to Leads Table (COMPLETED)
 - **Update**: Modified hashtag selection interface to automatically revert to leads table on any interaction
 - **Features Implemented**:

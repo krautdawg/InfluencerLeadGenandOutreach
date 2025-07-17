@@ -186,7 +186,21 @@
                                     <th><input type="text" class="filter-input" id="filterUsername" placeholder="Filtern..."></th>
                                     <th><input type="text" class="filter-input" id="filterHashtag" placeholder="Filtern..."></th>
                                     <th><input type="text" class="filter-input" id="filterFullName" placeholder="Filtern..."></th>
-                                    <th><input type="text" class="filter-input" id="filterFollowers" placeholder="> < = 1000"></th>
+                                    <th>
+                                        <select class="form-control filter-select" id="filterFollowersRange">
+                                            <option value="">Alle Follower</option>
+                                            <option value="1-100">1 - 100</option>
+                                            <option value="100-1000">100 - 1K</option>
+                                            <option value="1000-10000">1K - 10K</option>
+                                            <option value="10000-50000">10K - 50K</option>
+                                            <option value="50000-100000">50K - 100K</option>
+                                            <option value="100000-500000">100K - 500K</option>
+                                            <option value="500000-1000000">500K - 1M</option>
+                                            <option value="1000000-999999999">1M+</option>
+                                            <option value="custom">Benutzerdefiniert...</option>
+                                        </select>
+                                        <input type="text" class="filter-input" id="filterFollowers" placeholder="> < = 1000" style="display: none; margin-top: 5px;">
+                                    </th>
                                     <th><input type="text" class="filter-input" id="filterEmail" placeholder="Filtern..."></th>
                                     <th><input type="text" class="filter-input" id="filterWebsite" placeholder="Filtern..."></th>
                                     <th><input type="text" class="filter-input" id="filterProduct" placeholder="Filtern..."></th>
