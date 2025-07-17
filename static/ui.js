@@ -8,6 +8,12 @@ document.addEventListener('DOMContentLoaded', function() {
     initializeEventListeners();
     checkSessionId();
     initializeTableFilters();
+    
+    // Load existing leads data if available
+    if (window.leadsData && window.leadsData.length > 0) {
+        console.log('Loading existing leads data:', window.leadsData.length, 'leads');
+        displayResults(window.leadsData);
+    }
 });
 
 // Global error handler for unhandled promise rejections
@@ -57,6 +63,7 @@ function initializeTableFilters() {
     if (followerRangeSelect) {
         followerRangeSelect.addEventListener('change', function() {
             const selectedValue = this.value;
+            console.log('Follower range selected:', selectedValue);
             
             if (selectedValue === 'custom') {
                 // Show custom input for advanced users
@@ -77,6 +84,7 @@ function initializeTableFilters() {
                     filterValues[4] = selectedValue;
                 }
             }
+            console.log('Filter values after change:', filterValues);
             applyFilters();
         });
     }
@@ -84,7 +92,14 @@ function initializeTableFilters() {
 
 function applyFilters() {
     const tbody = document.querySelector('#resultsTable tbody');
+    if (!tbody) {
+        console.log('No table body found');
+        return;
+    }
+    
     const rows = tbody.querySelectorAll('tr');
+    console.log('Applying filters to', rows.length, 'rows');
+    console.log('Current filter values:', filterValues);
     
     rows.forEach(row => {
         let shouldShow = true;
@@ -97,6 +112,7 @@ function applyFilters() {
                 // Special handling for numeric columns (followers)
                 if (column == 4) { // Followers column
                     const numericValue = parseNumber(cellText);
+                    console.log('Filtering followers:', cellText, 'parsed to:', numericValue, 'filter:', filterValue);
                     
                     // Check if it's a range filter (e.g., "1000-10000")
                     if (filterValue.includes('-') && !filterValue.startsWith('-')) {
@@ -104,6 +120,7 @@ function applyFilters() {
                         const minValue = parseInt(minStr);
                         const maxValue = parseInt(maxStr);
                         shouldShow = numericValue >= minValue && numericValue <= maxValue;
+                        console.log('Range filter:', minValue, '<=', numericValue, '<=', maxValue, '=', shouldShow);
                     } else {
                         // Original comparison operators for custom input
                         const filterNum = parseNumber(filterValue);
@@ -360,6 +377,12 @@ function displayResults(leads) {
     filterInputs.forEach(input => {
         input.value = '';
     });
+    
+    // Clear dropdown filters
+    const followerRangeSelect = document.getElementById('filterFollowersRange');
+    if (followerRangeSelect) {
+        followerRangeSelect.value = '';
+    }
     
     // Add new results
     leads.forEach((lead, index) => {

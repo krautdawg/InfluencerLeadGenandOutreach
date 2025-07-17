@@ -136,6 +136,28 @@ function initializeTableFilters() {
     filterInputs.forEach(input => {
         input.addEventListener('input', debounce(applyFilters, 300));
     });
+    
+    // Set up follower range filter
+    const followerRangeSelect = document.getElementById('filterFollowersRange');
+    const followerCustomInput = document.getElementById('filterFollowers');
+    
+    if (followerRangeSelect) {
+        followerRangeSelect.addEventListener('change', function() {
+            const selectedValue = this.value;
+            console.log('Follower range selected:', selectedValue);
+            
+            if (selectedValue === 'custom') {
+                // Show custom input for advanced users
+                followerCustomInput.style.display = 'block';
+                followerCustomInput.focus();
+            } else {
+                // Hide custom input
+                followerCustomInput.style.display = 'none';
+                followerCustomInput.value = '';
+            }
+            applyFilters();
+        });
+    }
 }
 
 // Optimize mobile input fields
@@ -174,11 +196,22 @@ function optimizeMobileInputs() {
 
 // Apply filters to table
 function applyFilters() {
+    const followerRangeSelect = document.getElementById('filterFollowersRange');
+    const followerCustomInput = document.getElementById('filterFollowers');
+    
+    // Get follower filter value from range select or custom input
+    let followerFilter = '';
+    if (followerRangeSelect && followerRangeSelect.value !== 'custom' && followerRangeSelect.value !== '') {
+        followerFilter = followerRangeSelect.value;
+    } else if (followerCustomInput && followerCustomInput.value !== '') {
+        followerFilter = followerCustomInput.value;
+    }
+    
     const filters = {
         username: document.getElementById('filterUsername')?.value.toLowerCase() || '',
         hashtag: document.getElementById('filterHashtag')?.value.toLowerCase() || '',
         fullName: document.getElementById('filterFullName')?.value.toLowerCase() || '',
-        followers: document.getElementById('filterFollowers')?.value || '',
+        followers: followerFilter,
         email: document.getElementById('filterEmail')?.value.toLowerCase() || '',
         website: document.getElementById('filterWebsite')?.value.toLowerCase() || '',
         product: document.getElementById('filterProduct')?.value.toLowerCase() || '',
@@ -217,26 +250,37 @@ function applyFilters() {
         
         // Numeric filter for followers
         if (filters.followers) {
-            const match = filters.followers.match(/([<>=]+)?\s*(\d+)/);
-            if (match) {
-                const operator = match[1] || '=';
-                const value = parseInt(match[2]);
-                
-                switch(operator) {
-                    case '>':
-                        if (followers <= value) show = false;
-                        break;
-                    case '<':
-                        if (followers >= value) show = false;
-                        break;
-                    case '>=':
-                        if (followers < value) show = false;
-                        break;
-                    case '<=':
-                        if (followers > value) show = false;
-                        break;
-                    default:
-                        if (followers !== value) show = false;
+            // Check if it's a range filter (e.g., "1000-10000")
+            if (filters.followers.includes('-') && !filters.followers.startsWith('-')) {
+                const [minStr, maxStr] = filters.followers.split('-');
+                const minValue = parseInt(minStr);
+                const maxValue = parseInt(maxStr);
+                if (followers < minValue || followers > maxValue) {
+                    show = false;
+                }
+            } else {
+                // Original comparison operators for custom input
+                const match = filters.followers.match(/([<>=]+)?\s*(\d+)/);
+                if (match) {
+                    const operator = match[1] || '=';
+                    const value = parseInt(match[2]);
+                    
+                    switch(operator) {
+                        case '>':
+                            if (followers <= value) show = false;
+                            break;
+                        case '<':
+                            if (followers >= value) show = false;
+                            break;
+                        case '>=':
+                            if (followers < value) show = false;
+                            break;
+                        case '<=':
+                            if (followers > value) show = false;
+                            break;
+                        default:
+                            if (followers !== value) show = false;
+                    }
                 }
             }
         }
@@ -250,6 +294,17 @@ function clearFilters() {
     document.querySelectorAll('.filter-input').forEach(input => {
         input.value = '';
     });
+    
+    // Reset follower range filter
+    const followerRangeSelect = document.getElementById('filterFollowersRange');
+    const followerCustomInput = document.getElementById('filterFollowers');
+    if (followerRangeSelect) {
+        followerRangeSelect.value = '';
+    }
+    if (followerCustomInput) {
+        followerCustomInput.style.display = 'none';
+        followerCustomInput.value = '';
+    }
     applyFilters();
 }
 
