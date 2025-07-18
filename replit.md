@@ -923,7 +923,7 @@ K+L Influence is a Flask-based Instagram lead generation and outreach automation
 
 ## User Preferences
 
-Preferred communication style: Simple, everyday language.
+Preferred communication style: Simple, everyday language.  Before implementing any code changes, always lay out what code changes will be implemented and then let the user decide to approve, change, or deny the code changes. The user is happy to receive recommendations on how to improve the code. The user is happy to receive recommendations on how to improve the code.
 
 ## System Architecture
 
