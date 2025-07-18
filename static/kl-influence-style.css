@@ -451,6 +451,31 @@ select:focus {
 .data-table th:nth-child(11), .data-table td:nth-child(11) { width: var(--col-width-11); min-width: var(--col-width-11); }
 .data-table th:nth-child(12), .data-table td:nth-child(12) { width: var(--col-width-12); min-width: var(--col-width-12); }
 
+/* Special handling for longer text content columns */
+.data-table td:nth-child(9),  /* Subject column */
+.data-table td:nth-child(10), /* Email Content column */
+.data-table td:nth-child(4),  /* Full Name column */
+.data-table td:nth-child(8) { /* Product column */
+  max-width: 0; /* Force ellipsis to work properly */
+}
+
+/* Allow tooltips or expanded view on hover for long text */
+.data-table td:nth-child(9):hover,
+.data-table td:nth-child(10):hover,
+.data-table td:nth-child(4):hover,
+.data-table td:nth-child(8):hover {
+  white-space: normal;
+  word-wrap: break-word;
+  overflow: visible;
+  position: relative;
+  z-index: 100;
+  background-color: var(--color-white);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border-radius: 4px;
+  max-height: 150px;
+  overflow-y: auto;
+}
+
 .data-table thead {
   position: sticky;
   top: 0;
@@ -528,12 +553,18 @@ select:focus {
 .data-table td {
   padding: var(--space-md);
   vertical-align: middle;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* Inline Editing */
 .editable-cell {
   cursor: pointer;
   position: relative;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .editable-cell:hover {
@@ -542,6 +573,8 @@ select:focus {
 
 .editable-cell.editing {
   padding: 0;
+  white-space: normal;
+  overflow: visible;
 }
 
 .cell-editor {
@@ -551,6 +584,8 @@ select:focus {
   border-radius: 4px;
   font-family: var(--font-primary);
   font-size: var(--text-body-sm);
+  resize: none;
+  min-height: 38px;
 }
 
 /* Sort Indicators */
@@ -626,14 +661,14 @@ select:focus {
   border-right: 2px solid var(--color-light-gray);
 }
 
-/* Handle even row styling for sticky column */
+/* Handle even row styling for sticky column - inherit from parent row */
 .data-table tbody tr:nth-child(even) td:nth-child(2) {
-  background-color: var(--color-pale-green);
+  background-color: rgba(240, 245, 240, 0.5);
 }
 
-/* Handle hover styling for sticky column */
+/* Handle hover styling for sticky column - inherit from parent row */
 .data-table tbody tr:hover td:nth-child(2) {
-  background-color: var(--color-sage-green);
+  background-color: rgba(45, 91, 45, 0.04);
 }
 
 /* Ensure table header rows stick */
