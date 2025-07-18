@@ -6,6 +6,28 @@ K+L Influence is a Flask-based Instagram lead generation and outreach automation
 
 ## Recent Changes
 
+### 2025-07-18: Added Timestamp and Post URL Tracking to Hashtag Data Collection (COMPLETED)
+- **Update**: Extended first Apify API call to capture timestamp and post URL from Instagram posts
+- **New Fields Added**:
+  - **HashtagUsernamePair Table**: Added `timestamp` (DateTime) and `post_url` (String) fields
+  - **Lead Table**: Added `source_timestamp` and `source_post_url` fields to store original post data
+- **Data Flow Enhancement**:
+  - **Extraction**: Modified `call_apify_actor_sync` to extract `timestamp` and `url` from Instagram posts
+  - **Storage**: Updated `save_hashtag_username_pairs` to save timestamp and post URL data
+  - **Enrichment**: Enhanced Lead creation to include source post information from HashtagUsernamePair table
+- **Technical Implementation**:
+  - Enhanced data extraction from both `latestPosts` and `topPosts` arrays
+  - ISO timestamp parsing with proper timezone handling
+  - Preference for latest timestamp when multiple posts exist for same username
+  - Database schema updates with new columns in both tables
+  - Automatic data transfer during lead enrichment process
+- **Benefits**:
+  - Track when posts were originally created for trend analysis
+  - Direct access to original Instagram post URLs for manual review
+  - Enhanced lead qualification with post timing data
+  - Better content analysis and engagement tracking
+- **Status**: Fully implemented and integrated with existing hashtag discovery workflow
+
 ### 2025-07-18: Added Business Account Detection Field (COMPLETED)
 - **Feature**: Implemented `is_business` field to identify Instagram business accounts from Apify profile enrichment
 - **Database Changes**:

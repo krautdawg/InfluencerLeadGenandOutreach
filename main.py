@@ -167,6 +167,8 @@ def save_hashtag_username_pairs(profiles, duplicates):
             for i, profile in enumerate(profiles):
                 hashtag = profile.get('hashtag', '')
                 username = profile.get('username', '')
+                timestamp = profile.get('timestamp')
+                post_url = profile.get('post_url')
 
                 if not hashtag or not username:
                     continue
@@ -178,14 +180,20 @@ def save_hashtag_username_pairs(profiles, duplicates):
                 ).first()
 
                 if existing_pair:
-                    # Update existing pair
+                    # Update existing pair with new data if available
                     existing_pair.is_duplicate = username in duplicates
+                    if timestamp:
+                        existing_pair.timestamp = timestamp
+                    if post_url:
+                        existing_pair.post_url = post_url
                     saved_pairs.append(existing_pair)
                 else:
                     # Create new pair
                     new_pair = HashtagUsernamePair(
                         hashtag=hashtag,
                         username=username,
+                        timestamp=timestamp,
+                        post_url=post_url,
                         is_duplicate=username in duplicates
                     )
                     db.session.add(new_pair)
@@ -235,12 +243,13 @@ def call_apify_actor_sync(actor_id, input_data, token):
 
         dataset = client.dataset(run["defaultDatasetId"])
 
-        # Stream process with immediate username and hashtag extraction
-        username_hashtag_map = {}  # Map username to hashtag for deduplication
+        # Stream process with immediate username, hashtag, timestamp and post URL extraction
+        username_data_map = {}  # Map username to complete data for deduplication
         total_processed = 0
 
         # Use smaller chunks and more frequent garbage collection
         import gc
+        from datetime import datetime
 
         logger.info(f"Starting streaming extraction with max_items={max_items}")
 
@@ -265,8 +274,28 @@ def call_apify_actor_sync(actor_id, input_data, token):
                         if isinstance(post, dict) and 'ownerUsername' in post:
                             username = post['ownerUsername']
                             if username and isinstance(username, str):
-                                # Store with hashtag ID
-                                username_hashtag_map[username] = hashtag_id
+                                # Extract timestamp and URL
+                                timestamp_str = post.get('timestamp')
+                                post_url = post.get('url')
+                                
+                                # Parse timestamp if available
+                                timestamp_obj = None
+                                if timestamp_str:
+                                    try:
+                                        # Parse ISO format timestamp
+                                        timestamp_obj = datetime.fromisoformat(timestamp_str.replace('Z', '+00:00'))
+                                    except (ValueError, AttributeError):
+                                        logger.debug(f"Could not parse timestamp: {timestamp_str}")
+                                
+                                # Store with complete data (prefer latest timestamp if username exists)
+                                if username not in username_data_map or (timestamp_obj and 
+                                    (not username_data_map[username].get('timestamp') or 
+                                     timestamp_obj > username_data_map[username]['timestamp'])):
+                                    username_data_map[username] = {
+                                        'hashtag': hashtag_id,
+                                        'timestamp': timestamp_obj,
+                                        'post_url': post_url
+                                    }
 
                 # Extract from topPosts
                 if 'topPosts' in item and isinstance(item['topPosts'], list):
@@ -274,8 +303,28 @@ def call_apify_actor_sync(actor_id, input_data, token):
                         if isinstance(post, dict) and 'ownerUsername' in post:
                             username = post['ownerUsername']
                             if username and isinstance(username, str):
-                                # Store with hashtag ID
-                                username_hashtag_map[username] = hashtag_id
+                                # Extract timestamp and URL
+                                timestamp_str = post.get('timestamp')
+                                post_url = post.get('url')
+                                
+                                # Parse timestamp if available
+                                timestamp_obj = None
+                                if timestamp_str:
+                                    try:
+                                        # Parse ISO format timestamp
+                                        timestamp_obj = datetime.fromisoformat(timestamp_str.replace('Z', '+00:00'))
+                                    except (ValueError, AttributeError):
+                                        logger.debug(f"Could not parse timestamp: {timestamp_str}")
+                                
+                                # Store with complete data (prefer latest timestamp if username exists)
+                                if username not in username_data_map or (timestamp_obj and 
+                                    (not username_data_map[username].get('timestamp') or 
+                                     timestamp_obj > username_data_map[username]['timestamp'])):
+                                    username_data_map[username] = {
+                                        'hashtag': hashtag_id,
+                                        'timestamp': timestamp_obj,
+                                        'post_url': post_url
+                                    }
 
             total_processed += 1
 
@@ -283,17 +332,27 @@ def call_apify_actor_sync(actor_id, input_data, token):
             if total_processed % batch_size == 0:
                 gc.collect()  # Force garbage collection
                 time.sleep(processing_delay)
-                logger.debug(f"Processed {total_processed} items, found {len(username_hashtag_map)} unique usernames")
+                logger.debug(f"Processed {total_processed} items, found {len(username_data_map)} unique usernames")
 
-        # Convert map to list of profile objects with hashtag
-        processed_items = [{'username': username, 'hashtag': hashtag} 
-                          for username, hashtag in username_hashtag_map.items()]
+        # Convert map to list of profile objects with complete data
+        processed_items = []
+        for username, data in username_data_map.items():
+            profile_data = {
+                'username': username,
+                'hashtag': data['hashtag']
+            }
+            # Only add timestamp and post_url if they exist
+            if data.get('timestamp'):
+                profile_data['timestamp'] = data['timestamp']
+            if data.get('post_url'):
+                profile_data['post_url'] = data['post_url']
+            processed_items.append(profile_data)
 
         # Final cleanup
         gc.collect()
 
         # Log successful completion
-        logger.info(f"Streaming extraction completed: {len(username_hashtag_map)} unique usernames from {total_processed} items")
+        logger.info(f"Streaming extraction completed: {len(username_data_map)} unique usernames from {total_processed} items")
         return {"items": processed_items}
 
     except Exception as e:
@@ -488,6 +547,15 @@ def save_leads_incrementally(enriched_leads, keyword, default_product_id=None):
                         hashtag=keyword
                     ).first()
 
+                    # Lookup source post data from HashtagUsernamePair table
+                    hashtag_pair = HashtagUsernamePair.query.filter_by(
+                        username=lead_data['username'],
+                        hashtag=keyword
+                    ).first()
+                    
+                    source_timestamp = hashtag_pair.timestamp if hashtag_pair else None
+                    source_post_url = hashtag_pair.post_url if hashtag_pair else None
+
                     if existing_lead:
                         # Update existing lead
                         existing_lead.full_name = lead_data.get('full_name', '')
@@ -506,6 +574,8 @@ def save_leads_incrementally(enriched_leads, keyword, default_product_id=None):
                         existing_lead.latitude = lead_data.get('latitude')
                         existing_lead.longitude = lead_data.get('longitude')
                         existing_lead.is_duplicate = lead_data.get('is_duplicate', False)
+                        existing_lead.source_timestamp = source_timestamp
+                        existing_lead.source_post_url = source_post_url
                         existing_lead.updated_at = datetime.utcnow()
 
                         # Create backup before updating
@@ -533,7 +603,9 @@ def save_leads_incrementally(enriched_leads, keyword, default_product_id=None):
                             zip=lead_data.get('zip', ''),
                             latitude=lead_data.get('latitude'),
                             longitude=lead_data.get('longitude'),
-                            is_duplicate=lead_data.get('is_duplicate', False)
+                            is_duplicate=lead_data.get('is_duplicate', False),
+                            source_timestamp=source_timestamp,
+                            source_post_url=source_post_url
                         )
                         db.session.add(new_lead)
                         current_lead = new_lead

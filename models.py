@@ -51,6 +51,10 @@ class Lead(db.Model):
     profile_pic_url = db.Column(db.String(500))
     is_duplicate = db.Column(db.Boolean, default=False)
     
+    # Source post information from hashtag discovery
+    source_timestamp = db.Column(db.DateTime)  # Post creation timestamp from hashtag search
+    source_post_url = db.Column(db.String(500))  # Instagram post URL from hashtag search
+    
     # Location/Address fields
     address_street = db.Column(db.String(300))
     city_name = db.Column(db.String(100))
@@ -107,7 +111,9 @@ class Lead(db.Model):
             'sentAt': self.sent_at.isoformat() if self.sent_at else None,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'selectedProductId': self.selected_product_id,
-            'selectedProduct': self.selected_product.to_dict() if self.selected_product else None
+            'selectedProduct': self.selected_product.to_dict() if self.selected_product else None,
+            'sourceTimestamp': self.source_timestamp.isoformat() if self.source_timestamp else None,
+            'sourcePostUrl': self.source_post_url
         }
 
 
@@ -117,6 +123,8 @@ class HashtagUsernamePair(db.Model):
     hashtag = db.Column(db.String(100), nullable=False)
     username = db.Column(db.String(100), nullable=False)
     is_duplicate = db.Column(db.Boolean, default=False)
+    timestamp = db.Column(db.DateTime)  # Post creation timestamp
+    post_url = db.Column(db.String(500))  # Instagram post URL
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
     # Composite unique constraint to prevent duplicates
@@ -129,6 +137,8 @@ class HashtagUsernamePair(db.Model):
             'hashtag': self.hashtag,
             'username': self.username,
             'is_duplicate': self.is_duplicate,
+            'timestamp': self.timestamp.isoformat() if self.timestamp else None,
+            'post_url': self.post_url,
             'created_at': self.created_at.isoformat() if self.created_at else None
         }
 
