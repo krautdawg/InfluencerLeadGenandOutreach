@@ -158,6 +158,15 @@ function initializeTableFilters() {
             applyFilters();
         });
     }
+    
+    // Set up business account filter
+    const businessAccountSelect = document.getElementById('filterBusinessAccount');
+    if (businessAccountSelect) {
+        businessAccountSelect.addEventListener('change', function() {
+            console.log('Business account filter selected:', this.value);
+            applyFilters();
+        });
+    }
 }
 
 // Optimize mobile input fields
@@ -212,6 +221,7 @@ function applyFilters() {
         hashtag: document.getElementById('filterHashtag')?.value.toLowerCase() || '',
         fullName: document.getElementById('filterFullName')?.value.toLowerCase() || '',
         followers: followerFilter,
+        businessAccount: document.getElementById('filterBusinessAccount')?.value || '',
         email: document.getElementById('filterEmail')?.value.toLowerCase() || '',
         website: document.getElementById('filterWebsite')?.value.toLowerCase() || '',
         product: document.getElementById('filterProduct')?.value.toLowerCase() || '',
@@ -231,11 +241,13 @@ function applyFilters() {
         const fullName = cells[3]?.textContent.toLowerCase() || '';
         const followersText = cells[4]?.textContent || '0';
         const followers = parseFollowerCount(followersText);
-        const email = cells[5]?.textContent.toLowerCase() || '';
-        const website = cells[6]?.textContent.toLowerCase() || '';
-        const product = cells[7]?.textContent.toLowerCase() || '';
-        const subject = cells[8]?.textContent.toLowerCase() || '';
-        const emailBody = cells[9]?.textContent.toLowerCase() || '';
+        const businessIcon = cells[5]?.innerHTML || '';
+        const isBusiness = businessIcon.includes('fa-building');
+        const email = cells[6]?.textContent.toLowerCase() || '';
+        const website = cells[7]?.textContent.toLowerCase() || '';
+        const product = cells[8]?.textContent.toLowerCase() || '';
+        const subject = cells[9]?.textContent.toLowerCase() || '';
+        const emailBody = cells[10]?.textContent.toLowerCase() || '';
         
         let show = true;
         
@@ -248,6 +260,12 @@ function applyFilters() {
         if (filters.product && !product.includes(filters.product)) show = false;
         if (filters.subject && !subject.includes(filters.subject)) show = false;
         if (filters.emailBody && !emailBody.includes(filters.emailBody)) show = false;
+        
+        // Business account filter
+        if (filters.businessAccount) {
+            if (filters.businessAccount === 'business' && !isBusiness) show = false;
+            if (filters.businessAccount === 'personal' && isBusiness) show = false;
+        }
         
         // Numeric filter for followers
         if (filters.followers) {
@@ -311,6 +329,13 @@ function clearFilters() {
         followerCustomInput.style.display = 'none';
         followerCustomInput.value = '';
     }
+    
+    // Reset business account filter
+    const businessAccountSelect = document.getElementById('filterBusinessAccount');
+    if (businessAccountSelect) {
+        businessAccountSelect.value = '';
+    }
+    
     applyFilters();
 }
 
@@ -987,6 +1012,9 @@ function createLeadRow(lead, index) {
         <td data-label="Hashtag">${lead.hashtag || ''}</td>
         <td data-label="Full Name">${lead.full_name || ''}</td>
         <td data-label="Followers">${formatNumber(lead.followersCount || 0)}</td>
+        <td data-label="Business">
+            ${lead.isBusiness ? '<i class="fas fa-building" style="color: var(--color-natural-green);" title="Business Account"></i>' : '<i class="fas fa-user" style="color: var(--color-medium-gray);" title="Personal Account"></i>'}
+        </td>
         <td data-label="Email" class="editable-cell" onclick="startInlineEdit(this, '${lead.username}', 'email')">
             ${lead.email || '<span style="color: var(--color-light-gray);">Klicken zum Hinzufügen</span>'}
         </td>
