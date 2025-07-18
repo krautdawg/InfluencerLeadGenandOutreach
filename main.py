@@ -1391,6 +1391,24 @@ async def discover_hashtags_async(keyword, ig_sessionid, search_limit):
         # Sort by user count descending
         variants.sort(key=lambda x: x['user_count'], reverse=True)
         
+        # Save hashtag-username pairs to database for tracking
+        all_profiles = []
+        for variant in variants:
+            for username in variant['usernames']:
+                all_profiles.append({
+                    'username': username,
+                    'hashtag': variant['hashtag']
+                })
+        
+        if all_profiles:
+            try:
+                # Deduplicate and save hashtag-username pairs
+                unique_profiles, duplicates = deduplicate_profiles(all_profiles)
+                saved_pairs = save_hashtag_username_pairs(unique_profiles, duplicates)
+                logger.info(f"Saved {len(saved_pairs)} hashtag-username pairs to database")
+            except Exception as e:
+                logger.error(f"Failed to save hashtag-username pairs: {e}")
+        
         # Update progress
         app_data['processing_progress']['completed_steps'] = 1
         app_data['processing_progress']['current_step'] = f'Hashtag-Suche abgeschlossen - {len(variants)} Varianten gefunden'
