@@ -47,6 +47,7 @@ class Lead(db.Model):
     following_count = db.Column(db.Integer, default=0)
     posts_count = db.Column(db.Integer, default=0)
     is_verified = db.Column(db.Boolean, default=False)
+    is_business = db.Column(db.Boolean, default=False)
     profile_pic_url = db.Column(db.String(500))
     is_duplicate = db.Column(db.Boolean, default=False)
     
@@ -91,6 +92,7 @@ class Lead(db.Model):
             'followingCount': self.following_count,
             'postsCount': self.posts_count,
             'isVerified': self.is_verified,
+            'isBusiness': self.is_business,
             'profilePicUrl': self.profile_pic_url,
             'is_duplicate': self.is_duplicate,
             'addressStreet': self.address_street,
@@ -146,6 +148,7 @@ class LeadBackup(db.Model):
     following_count = db.Column(db.Integer, default=0)
     posts_count = db.Column(db.Integer, default=0)
     is_verified = db.Column(db.Boolean, default=False)
+    is_business = db.Column(db.Boolean, default=False)
     profile_pic_url = db.Column(db.String(500))
     is_duplicate = db.Column(db.Boolean, default=False)
     

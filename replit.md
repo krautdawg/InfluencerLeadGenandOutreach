@@ -6,6 +6,30 @@ K+L Influence is a Flask-based Instagram lead generation and outreach automation
 
 ## Recent Changes
 
+### 2025-07-18: Added Business Account Detection Field (COMPLETED)
+- **Feature**: Implemented `is_business` field to identify Instagram business accounts from Apify profile enrichment
+- **Database Changes**:
+  - **Lead Model**: Added `is_business` boolean column to Lead model with default False
+  - **LeadBackup Model**: Added `is_business` column to backup table for consistency
+  - **Database Migration**: Applied ALTER TABLE statements to add column to existing database
+- **API Integration**: 
+  - **Profile Enrichment**: Enhanced lead creation to capture `is_business` field from Apify actor `8WEn9FvZnhE7lM3oA`
+  - **Data Mapping**: Added `is_business=lead_data.get('is_business', False)` to lead creation process
+  - **Backup Function**: Updated backup function to include `is_business` field preservation
+- **Export Functionality**:
+  - **CSV Export**: Added "Business Account" column to CSV export with Yes/No values
+  - **JSON Export**: Included `isBusiness` field in lead dictionary serialization
+  - **Google Sheets Compatible**: Business account status exported as human-readable text
+- **Technical Implementation**:
+  - Database schema updated with ALTER TABLE commands for both `lead` and `lead_backup` tables
+  - Lead creation enhanced to capture business account status from profile enrichment API
+  - Export functions updated to include business account detection in all formats
+- **Benefits**:
+  - **Lead Qualification**: Easily identify business vs personal Instagram accounts
+  - **Targeting Precision**: Better lead segmentation for business-focused outreach campaigns
+  - **Export Analytics**: Business account data included in all lead exports for analysis
+- **Status**: Business account detection fully implemented and operational
+
 ### 2025-07-18: Fixed Hashtag Selection UI Bug (COMPLETED)
 - **Bug Identified**: Auto-revert functionality in hashtag selection was causing the UI to close prematurely when users unselected hashtag variants
 - **Root Cause**: Checkbox change events and global click listeners were triggering automatic revert to leads table, leaving users with blank canvas
