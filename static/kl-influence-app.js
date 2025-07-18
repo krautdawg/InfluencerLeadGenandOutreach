@@ -711,44 +711,31 @@ function showHashtagSelection(hashtag_variants) {
         }
     }
     
-    // Add global click listener to revert on any interaction with hashtag selection container
-    selectionContainer.addEventListener('click', () => {
-        setTimeout(revertToLeadsTable, 100);
-    });
+    // Removed global click listener to prevent premature UI closure
     
     // Add event listeners
     document.getElementById('selectAllHashtags').addEventListener('click', (e) => {
-        e.stopPropagation(); // Prevent immediate container click
+        e.stopPropagation();
         document.querySelectorAll('.hashtag-checkbox').forEach(cb => cb.checked = true);
-        setTimeout(revertToLeadsTable, 500); // Small delay to show the action
     });
     
     document.getElementById('deselectAllHashtags').addEventListener('click', (e) => {
-        e.stopPropagation(); // Prevent immediate container click
+        e.stopPropagation();
         document.querySelectorAll('.hashtag-checkbox').forEach(cb => cb.checked = false);
-        setTimeout(revertToLeadsTable, 500); // Small delay to show the action
     });
     
     document.getElementById('continueEnrichment').addEventListener('click', (e) => {
-        e.stopPropagation(); // Prevent immediate container click
+        e.stopPropagation();
         continueWithEnrichment();
-        setTimeout(revertToLeadsTable, 100); // Quick revert since enrichment handles its own UI
     });
     
     document.getElementById('cancelSelection').addEventListener('click', (e) => {
-        e.stopPropagation(); // Prevent immediate container click
+        e.stopPropagation();
         revertToLeadsTable();
         showToast('Verarbeitung abgebrochen', 'info');
     });
     
-    // Add event listeners to checkboxes to trigger revert on change
-    setTimeout(() => {
-        document.querySelectorAll('.hashtag-checkbox').forEach(checkbox => {
-            checkbox.addEventListener('change', () => {
-                setTimeout(revertToLeadsTable, 300); // Small delay to show the check/uncheck
-            });
-        });
-    }, 100); // Small delay to ensure checkboxes are rendered
+    // Checkboxes no longer trigger auto-revert to allow proper selection
 }
 
 // Continue with enrichment for selected hashtags

@@ -6,6 +6,26 @@ K+L Influence is a Flask-based Instagram lead generation and outreach automation
 
 ## Recent Changes
 
+### 2025-07-18: Fixed Hashtag Selection UI Bug (COMPLETED)
+- **Bug Identified**: Auto-revert functionality in hashtag selection was causing the UI to close prematurely when users unselected hashtag variants
+- **Root Cause**: Checkbox change events and global click listeners were triggering automatic revert to leads table, leaving users with blank canvas
+- **Fix Implemented**:
+  - **Removed Auto-Revert on Checkboxes**: Eliminated checkbox change event listeners that triggered automatic revert
+  - **Removed Global Click Listener**: Disabled container-wide click events that caused premature UI closure
+  - **Preserved Cancel Functionality**: Kept revert behavior only for "Cancel" button to maintain expected user flow
+  - **Maintained Selection State**: Users can now freely select/deselect hashtag variants without losing the UI
+- **User Experience Improvements**:
+  - **Stable UI**: Hashtag selection interface remains open during selection process
+  - **Proper Workflow**: Users can complete hashtag selection without premature UI closure
+  - **Expected Behavior**: Only "Cancel" button and "Continue with Enrichment" trigger UI changes
+  - **No Blank Canvas**: Fixed issue where unselecting variants left users with empty display
+- **Technical Changes**:
+  - Removed `setTimeout(revertToLeadsTable, 300)` from checkbox change events
+  - Removed global container click listener that triggered auto-revert
+  - Simplified button event handlers to remove unnecessary revert calls
+  - Preserved cancel button functionality for proper user exit path
+- **Status**: Hashtag selection UI now functions correctly without premature closure
+
 ### 2025-07-17: PostgreSQL Database Integration (COMPLETED)
 - **Update**: Successfully integrated PostgreSQL database using Replit's database service
 - **Database Setup**:
