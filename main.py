@@ -172,6 +172,10 @@ def save_hashtag_username_pairs(profiles, duplicates):
 
                 if not hashtag or not username:
                     continue
+                    
+                # Debug: Log profile data being saved
+                if i < 3:  # Log first 3 profiles
+                    logger.info(f"Saving profile {i+1}: username={username}, hashtag={hashtag}, timestamp={timestamp}, post_url={post_url}")
 
                 # Check if pair already exists
                 existing_pair = HashtagUsernamePair.query.filter_by(
@@ -1431,6 +1435,11 @@ async def discover_hashtags_async(keyword, ig_sessionid, search_limit):
         hashtag_items = hashtag_data.get('items', [])
         logger.info(f"Processing {len(hashtag_items)} hashtag items")
         
+        # Debug: Log first item to see structure
+        if hashtag_items:
+            first_item = hashtag_items[0]
+            logger.info(f"First item structure: username={first_item.get('username')}, hashtag={first_item.get('hashtag')}, timestamp={first_item.get('timestamp')}, post_url={first_item.get('post_url')}")
+        
         # Count users per hashtag variant
         hashtag_counts = {}
         hashtag_usernames = {}  # Store usernames per hashtag
@@ -1438,6 +1447,8 @@ async def discover_hashtags_async(keyword, ig_sessionid, search_limit):
         for item in hashtag_items:
             username = item.get('username')
             hashtag = item.get('hashtag', keyword)
+            timestamp = item.get('timestamp')
+            post_url = item.get('post_url')
             
             if username:
                 # URL decode the hashtag for display
@@ -1449,15 +1460,22 @@ async def discover_hashtags_async(keyword, ig_sessionid, search_limit):
                     hashtag_usernames[decoded_hashtag] = []
                 
                 hashtag_counts[decoded_hashtag] += 1
-                hashtag_usernames[decoded_hashtag].append(username)
+                # Store complete profile data including timestamp and post_url
+                hashtag_usernames[decoded_hashtag].append({
+                    'username': username,
+                    'timestamp': timestamp,
+                    'post_url': post_url
+                })
         
         # Create hashtag variants list with counts
         variants = []
         for hashtag, count in hashtag_counts.items():
+            # Extract just usernames for variant display
+            usernames_only = [user_data['username'] for user_data in hashtag_usernames[hashtag]]
             variants.append({
                 'hashtag': hashtag,
                 'user_count': count,
-                'usernames': hashtag_usernames[hashtag]
+                'usernames': usernames_only
             })
         
         # Sort by user count descending
@@ -1465,11 +1483,13 @@ async def discover_hashtags_async(keyword, ig_sessionid, search_limit):
         
         # Save hashtag-username pairs to database for tracking
         all_profiles = []
-        for variant in variants:
-            for username in variant['usernames']:
+        for hashtag, user_data_list in hashtag_usernames.items():
+            for user_data in user_data_list:
                 all_profiles.append({
-                    'username': username,
-                    'hashtag': variant['hashtag']
+                    'username': user_data['username'],
+                    'hashtag': hashtag,
+                    'timestamp': user_data['timestamp'],
+                    'post_url': user_data['post_url']
                 })
         
         if all_profiles:
