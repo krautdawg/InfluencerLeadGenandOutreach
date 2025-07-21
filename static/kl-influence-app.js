@@ -1687,11 +1687,14 @@ function debounce(func, wait) {
 }
 
 // Email template auto-save functionality
-function initializeEmailTemplateAutoSave() {
+async function initializeEmailTemplateAutoSave() {
     const subjectPrompt = document.getElementById('subjectPrompt');
     const bodyPrompt = document.getElementById('bodyPrompt');
     
     if (!subjectPrompt || !bodyPrompt) return;
+    
+    // Load existing templates from backend first
+    await loadEmailTemplates();
     
     // Create save status indicators
     addSaveStatusIndicators();
@@ -1823,10 +1826,10 @@ async function loadEmailTemplates() {
             
             console.log('Email templates loaded successfully from backend');
         } else {
-            console.error('Failed to load email templates from backend');
+            console.warn('Failed to load email templates from backend, using defaults');
         }
     } catch (error) {
-        console.error('Error loading email templates:', error);
+        console.warn('Error loading email templates, using defaults:', error);
     }
 }
 
