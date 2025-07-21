@@ -224,6 +224,8 @@ function applyFilters() {
         businessAccount: document.getElementById('filterBusinessAccount')?.value || '',
         email: document.getElementById('filterEmail')?.value.toLowerCase() || '',
         website: document.getElementById('filterWebsite')?.value.toLowerCase() || '',
+        postTime: document.getElementById('filterPostTime')?.value.toLowerCase() || '',
+        postLink: document.getElementById('filterPostLink')?.value.toLowerCase() || '',
         product: document.getElementById('filterProduct')?.value.toLowerCase() || '',
         subject: document.getElementById('filterSubject')?.value.toLowerCase() || '',
         emailBody: document.getElementById('filterEmailBody')?.value.toLowerCase() || ''
@@ -245,9 +247,11 @@ function applyFilters() {
         const isBusiness = businessIcon.includes('fa-building');
         const email = cells[6]?.textContent.toLowerCase() || '';
         const website = cells[7]?.textContent.toLowerCase() || '';
-        const product = cells[8]?.textContent.toLowerCase() || '';
-        const subject = cells[9]?.textContent.toLowerCase() || '';
-        const emailBody = cells[10]?.textContent.toLowerCase() || '';
+        const postTime = cells[8]?.textContent.toLowerCase() || '';
+        const postLink = cells[9]?.textContent.toLowerCase() || '';
+        const product = cells[10]?.textContent.toLowerCase() || '';
+        const subject = cells[11]?.textContent.toLowerCase() || '';
+        const emailBody = cells[12]?.textContent.toLowerCase() || '';
         
         let show = true;
         
@@ -257,6 +261,8 @@ function applyFilters() {
         if (filters.fullName && !fullName.includes(filters.fullName)) show = false;
         if (filters.email && !email.includes(filters.email)) show = false;
         if (filters.website && !website.includes(filters.website)) show = false;
+        if (filters.postTime && !postTime.includes(filters.postTime)) show = false;
+        if (filters.postLink && !postLink.includes(filters.postLink)) show = false;
         if (filters.product && !product.includes(filters.product)) show = false;
         if (filters.subject && !subject.includes(filters.subject)) show = false;
         if (filters.emailBody && !emailBody.includes(filters.emailBody)) show = false;
@@ -1021,6 +1027,12 @@ function createLeadRow(lead, index) {
         <td data-label="Website" class="editable-cell" onclick="startInlineEdit(this, '${lead.username}', 'website')">
             ${lead.website ? `<a href="${lead.website}" target="_blank" style="color: var(--color-natural-green);">${lead.website}</a>` : '<span style="color: var(--color-light-gray);">Klicken zum Hinzufügen</span>'}
         </td>
+        <td data-label="Post Zeit">
+            ${lead.sourceTimestamp ? formatGermanDate(lead.sourceTimestamp) : '<span style="color: var(--color-light-gray);">-</span>'}
+        </td>
+        <td data-label="Post Link">
+            ${lead.sourcePostUrl ? `<a href="${lead.sourcePostUrl}" target="_blank" style="color: var(--color-natural-green);" title="Instagram Post öffnen"><i class="fab fa-instagram"></i> Zum Post</a>` : '<span style="color: var(--color-light-gray);">-</span>'}
+        </td>
         <td data-label="Product" class="editable-cell" id="product-cell-${lead.username}" onclick="editProductSelection('${lead.username}')">
             ${getProductNameById(lead.selectedProductId) || '<span style="color: var(--color-light-gray);">Kein Produkt</span>'}
         </td>
@@ -1624,6 +1636,25 @@ function formatDateTime(isoString) {
         }
     } catch (error) {
         console.error('Error formatting date:', error);
+        return '';
+    }
+}
+
+// Helper function to format German date for Post Zeit column
+function formatGermanDate(isoString) {
+    if (!isoString) return '';
+    
+    try {
+        const date = new Date(isoString);
+        return date.toLocaleString('de-DE', { 
+            day: '2-digit', 
+            month: '2-digit', 
+            year: 'numeric',
+            hour: '2-digit', 
+            minute: '2-digit'
+        });
+    } catch (error) {
+        console.error('Error formatting German date:', error);
         return '';
     }
 }
