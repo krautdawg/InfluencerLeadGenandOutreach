@@ -552,13 +552,33 @@ def save_leads_incrementally(enriched_leads, keyword, default_product_id=None):
                     ).first()
 
                     # Lookup source post data from HashtagUsernamePair table
+                    # Try exact keyword match first, then try partial matches for hashtag variations
                     hashtag_pair = HashtagUsernamePair.query.filter_by(
                         username=lead_data['username'],
                         hashtag=keyword
                     ).first()
                     
+                    if not hashtag_pair:
+                        # Try partial match - look for hashtags that contain the keyword
+                        hashtag_pair = HashtagUsernamePair.query.filter(
+                            HashtagUsernamePair.username == lead_data['username'],
+                            HashtagUsernamePair.hashtag.like(f'%{keyword}%')
+                        ).first()
+                    
+                    if not hashtag_pair:
+                        # Try reverse match - look for keyword that contains the hashtag
+                        hashtag_pair = HashtagUsernamePair.query.filter(
+                            HashtagUsernamePair.username == lead_data['username']
+                        ).first()
+                    
                     source_timestamp = hashtag_pair.timestamp if hashtag_pair else None
                     source_post_url = hashtag_pair.post_url if hashtag_pair else None
+                    
+                    # Debug logging to track hashtag matching
+                    if hashtag_pair:
+                        logger.info(f"Found hashtag pair for {lead_data['username']}: stored_hashtag='{hashtag_pair.hashtag}' vs search_keyword='{keyword}', timestamp={source_timestamp}, post_url={source_post_url}")
+                    else:
+                        logger.warning(f"No hashtag pair found for {lead_data['username']} with keyword '{keyword}'")
 
                     if existing_lead:
                         # Update existing lead

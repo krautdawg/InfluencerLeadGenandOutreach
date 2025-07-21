@@ -6,6 +6,32 @@ K+L Influence is a Flask-based Instagram lead generation and outreach automation
 
 ## Recent Changes
 
+### 2025-07-21: Fixed Hashtag Matching for Timestamp and Post URL Data Transfer (COMPLETED)
+- **Issue**: Timestamp and post_url data was being captured correctly in hashtag_username_pair table but not transferring to leads table during enrichment
+- **Root Cause**: Hashtag mismatch during enrichment lookup - stored hashtag variants (e.g., 'pilzextrakten') didn't match search keywords (e.g., 'pilzextrakt')
+- **Solution Implemented**:
+  - **Enhanced Hashtag Matching**: Added intelligent hashtag matching logic with three fallback levels:
+    1. Exact keyword match (original behavior)
+    2. Partial match using LIKE '%keyword%' for hashtag variants
+    3. Fallback to any hashtag pair for the username
+  - **Debug Logging**: Added comprehensive logging to track hashtag matching success/failure
+  - **Data Flow Fix**: Enhanced `save_leads_incrementally` function with robust hashtag pair lookup
+- **Technical Details**:
+  - Modified hashtag pair query to handle Instagram's hashtag variations
+  - Added LIKE pattern matching for hashtag variants containing the search keyword
+  - Implemented fallback mechanism to ensure data is never lost due to minor hashtag differences
+  - Added detailed logging for debugging hashtag matching issues
+- **Verification**:
+  - Successfully tested with existing data where 'pilzextrakt' search matches 'pilzextrakten' stored hashtag
+  - Lead ID 154 now properly shows timestamp '2022-11-06 19:18:45' and post_url 'https://www.instagram.com/p/CkoYbfCAWyP/'
+  - Confirmed data flows from hashtag_username_pair to lead table during enrichment
+- **Benefits**:
+  - Timestamp and post URL data now properly transfers to leads table
+  - Robust handling of Instagram hashtag variations and plurals
+  - Enhanced data integrity with intelligent matching fallbacks
+  - Complete audit trail from original Instagram posts to final leads
+- **Status**: Hashtag matching fix fully implemented and verified with real data
+
 ### 2025-07-18: Added Timestamp and Post URL Tracking to Hashtag Data Collection (COMPLETED)
 - **Update**: Extended first Apify API call to capture timestamp and post URL from Instagram posts
 - **New Fields Added**:
