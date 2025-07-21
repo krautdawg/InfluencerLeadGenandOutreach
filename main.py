@@ -1906,9 +1906,9 @@ def draft_email(username):
             profile_content_with_email = f"Profil: @{lead.username}, Name: {lead.full_name}, Bio: {lead.bio}, Email: {lead.email}, Hashtag: {lead.hashtag}"
 
             # Create clean alternative prompts without any product mentions
-            final_subject_prompt = 'Schreibe in DU-Form eine persönliche Betreffzeile mit freundlichen Hook für eine Influencer Kooperation mit Kasimir + Liselotte. Nutze persönliche Infos (z.B. Username, BIO, Interessen), sprich sie direkt in DU-Form. Fokussiere dich auf die Interessen und den Content des Influencers. Antworte im JSON-Format: {"subject": "betreff text"}'
+            final_subject_prompt = 'Schreibe in DU-Form eine persönliche Betreffzeile mit freundlichen Hook für eine Influencer Kooperation mit Kasimir + Liselotte. Nutze persönliche Infos (z.B. Username, BIO, Interessen), sprich sie direkt in DU-Form. Fokussiere dich auf die Interessen und den Content des Influencers. Antworte nur mit der Betreffzeile, ohne zusätzliche Formatierung.'
 
-            final_body_prompt = 'Erstelle eine personalisierte, professionelle deutsche E-Mail, ohne die Betreffzeile, für potenzielle Instagram Influencer Kooperationen. Die E-Mail kommt von Kasimir vom Store KasimirLieselotte. Verwende einen höflichen, professionellen Ton auf Deutsch aber in DU-Form um es casual im Instagram feel zu bleiben. Fokussiere dich auf eine allgemeine Kooperationsanfrage, die auf die Interessen und den Content des Influencers eingeht. Erwähne deine Begeisterung für ihren Content und schlage eine mögliche Zusammenarbeit vor, ohne spezifische Produkte zu erwähnen. Füge am Ende die Signatur mit der Website https://www.kasimirlieselotte.de/ hinzu. Antworte im JSON-Format: {"body": "email inhalt"}'
+            final_body_prompt = 'Erstelle eine personalisierte, professionelle deutsche E-Mail, ohne die Betreffzeile, für potenzielle Instagram Influencer Kooperationen. Die E-Mail kommt von Kasimir vom Store KasimirLieselotte. Verwende einen höflichen, professionellen Ton auf Deutsch aber in DU-Form um es casual im Instagram feel zu bleiben. Fokussiere dich auf eine allgemeine Kooperationsanfrage, die auf die Interessen und den Content des Influencers eingeht. Erwähne deine Begeisterung für ihren Content und schlage eine mögliche Zusammenarbeit vor, ohne spezifische Produkte zu erwähnen. Füge am Ende die Signatur mit der Website https://www.kasimirlieselotte.de/ hinzu. Antworte nur mit dem Email-Inhalt, ohne zusätzliche Formatierung.'
 
         # Generate subject using appropriate prompt
         subject_response = openai_client.chat.completions.create(
@@ -1920,7 +1920,6 @@ def draft_email(username):
                 "role": "user",
                 "content": profile_content
             }],
-            response_format={"type": "json_object"},
             max_tokens=100)
 
         # Generate body using appropriate prompt
@@ -1933,18 +1932,15 @@ def draft_email(username):
                 "role": "user",
                 "content": profile_content_with_email
             }],
-            response_format={"type": "json_object"},
             max_tokens=500)
 
-        subject_data = json.loads(subject_response.choices[0].message.content)
-        body_data = json.loads(body_response.choices[0].message.content)
+        # Extract plain text responses
+        subject_text = subject_response.choices[0].message.content.strip()
+        body_text = body_response.choices[0].message.content.strip()
 
         # Update lead with generated content
-        lead.subject = subject_data.get('subject',
-                                       'Collaboration Opportunity')
-        lead.email_body = body_data.get(
-            'body',
-            'Hello, I would like to discuss a collaboration opportunity.')
+        lead.subject = subject_text if subject_text else 'Collaboration Opportunity'
+        lead.email_body = body_text if body_text else 'Hello, I would like to discuss a collaboration opportunity.'
 
         # Save to database
         db.session.commit()
