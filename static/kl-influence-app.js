@@ -1256,12 +1256,7 @@ function showEditModal(title, label, content, field) {
     }, 100);
 }
 
-// Close edit modal
-function closeEditModal() {
-    document.getElementById('editModal').classList.remove('show');
-    editingUsername = null;
-    editingField = null;
-}
+
 
 // Save edit modal
 async function saveEditModal() {
@@ -1301,7 +1296,7 @@ async function saveEditModal() {
     }
     
     // Always close the modal after saving (no automatic transition)
-    closeEditModal();
+    closeModal('editModal');
 }
 
 // Send email
@@ -2256,6 +2251,13 @@ function closeModal(modalId) {
     const modal = document.getElementById(modalId);
     if (modal) {
         modal.classList.remove('show');
+        
+        // Special cleanup for editModal
+        if (modalId === 'editModal') {
+            editingUsername = null;
+            editingField = null;
+        }
+        
         // Allow transition to complete before hiding
         setTimeout(() => {
             modal.style.display = 'none';

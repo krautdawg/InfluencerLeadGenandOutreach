@@ -253,6 +253,9 @@
         <div class="modal-dialog">
             <div class="modal-header">
                 <h4 class="modal-title" id="editModalTitle">Inhalt bearbeiten</h4>
+                <button type="button" class="close" onclick="closeModal('editModal')" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
             </div>
             <div class="modal-body">
                 <div class="form-group">
@@ -261,7 +264,7 @@
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" onclick="closeEditModal()">Abbrechen</button>
+                <button type="button" class="btn btn-secondary" onclick="closeModal('editModal')">Abbrechen</button>
                 <button type="button" class="btn btn-primary" onclick="saveEditModal()">Änderungen speichern</button>
             </div>
         </div>
