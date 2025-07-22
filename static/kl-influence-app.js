@@ -1248,7 +1248,10 @@ function showEditModal(title, label, content, field) {
     document.getElementById('editModalTitle').textContent = title;
     document.getElementById('editModalLabel').textContent = label;
     document.getElementById('editModalContent').value = content || '';
-    document.getElementById('editModal').classList.add('show');
+    
+    const modal = document.getElementById('editModal');
+    modal.style.display = 'flex';
+    modal.classList.add('show');
     
     // Focus on textarea
     setTimeout(() => {

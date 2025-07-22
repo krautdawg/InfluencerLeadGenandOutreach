@@ -13,6 +13,21 @@ K+L Influence is a Flask-based Instagram lead generation and outreach automation
 
 ## Recent Changes
 
+### 2025-07-22: Fixed Edit Modal Display Issue (COMPLETED)
+- **Issue**: After closing the email/subject template modal by clicking outside, the modal could not be reopened
+- **Root Cause**: The `showEditModal` function only added the 'show' class but didn't set `style.display = 'flex'`, while `closeModal` set `style.display = 'none'`, preventing the modal from being visible again
+- **Solution Implemented**:
+  - Updated `showEditModal` to set `modal.style.display = 'flex'` before adding the 'show' class
+  - Ensured consistent modal opening behavior across all modals (editModal, promptSettingsModal)
+- **Technical Implementation**:
+  - Modified lines in `showEditModal` function to match the promptSettingsModal opening pattern
+  - Modal now properly sets display style on open, allowing it to be reopened after closing
+- **Benefits**:
+  - Edit modal can now be reopened multiple times without page refresh
+  - Consistent modal behavior across the application
+  - Fixed the bug where users couldn't edit subject/email fields after closing the modal once
+- **Status**: Edit modal display issue fixed - modal now reopens correctly after being closed
+
 ### 2025-07-22: Fixed SQLAlchemy Relationship Loading for Checkbox Variables (COMPLETED)
 - **Feature**: Fixed SQLAlchemy relationship loading issue that prevented product data from appearing in auto-generated email content
 - **Root Issue**: Lead queries weren't loading the `selected_product` relationship, causing `lead.selected_product` to be None even when `selected_product_id` existed
