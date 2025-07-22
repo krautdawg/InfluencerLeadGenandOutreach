@@ -2048,8 +2048,8 @@ def build_dynamic_prompt_content(lead, prompt_type, has_product):
 @login_required
 def draft_email(username):
     """Generate email draft using OpenAI"""
-    # Find the lead in database
-    lead = Lead.query.filter_by(username=username).first()
+    # Find the lead in database with eager loading of selected_product
+    lead = Lead.query.options(db.joinedload(Lead.selected_product)).filter_by(username=username).first()
     if not lead:
         return {"error": "Lead not found"}, 404
 

@@ -13,6 +13,33 @@ K+L Influence is a Flask-based Instagram lead generation and outreach automation
 
 ## Recent Changes
 
+### 2025-07-22: Fixed SQLAlchemy Relationship Loading for Checkbox Variables (COMPLETED)
+- **Feature**: Fixed SQLAlchemy relationship loading issue that prevented product data from appearing in auto-generated email content
+- **Root Issue**: Lead queries weren't loading the `selected_product` relationship, causing `lead.selected_product` to be None even when `selected_product_id` existed
+- **Solution Implemented**:
+  - **Eager Loading**: Added `db.joinedload(Lead.selected_product)` to lead query in `/draft-email/<username>` endpoint
+  - **Single Query Load**: Lead and associated Product now loaded together in single database operation
+  - **Relationship Fix**: `lead.selected_product` now contains actual Product object with name, URL, description
+- **Technical Implementation**:
+  - **Query Enhancement**: `Lead.query.options(db.joinedload(Lead.selected_product)).filter_by(username=username).first()`
+  - **Proper Relationship Access**: Product data now accessible via `lead.selected_product.name`, `lead.selected_product.url`, etc.
+  - **Auto-Generated Content**: Product variables now properly included in structured data sent to OpenAI
+- **Expected Result**: OpenAI now receives complete structured data:
+  ```
+  Username: actiplant_suisse
+  Full Name: actiplant_suisse
+  Hashtag: #vitalpilzextrakt
+  Product Name: Funghi Funk
+  Product URL: https://www.kasimirlieselotte.de/shop/Funghi-Funk-Spray-50-ml-kaufen
+  Product Description: Funghi Funk Spray 50ml - 100% rein - Hergestellt in Deutschland
+  ```
+- **Benefits**:
+  - **Complete Data**: All checkbox variables (including product data) now pass real information to OpenAI
+  - **Performance**: Single query loads both Lead and Product efficiently
+  - **Reliable Relationships**: SQLAlchemy relationships work properly throughout application
+  - **Personalized Emails**: OpenAI can generate truly personalized content with actual product information
+- **Status**: SQLAlchemy relationship loading fixed - checkbox variables now send complete real data including product information to OpenAI
+
 ### 2025-07-22: Auto-Generated Structured Data System for Email Generation (COMPLETED)
 - **Feature**: Implemented auto-generated structured data system that passes checkbox variables directly to OpenAI without complex template substitution
 - **Root Issue**: Checkbox variables were collected correctly but had no template to populate, resulting in empty content sent to OpenAI
