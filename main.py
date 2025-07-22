@@ -86,11 +86,11 @@ with app.app_context():
             # Default user prompts/templates with conditional markup
             default_user_prompts = {
                 'with_product': {
-                    'subject': '[IF product_name_enabled]Kooperation mit {product_name} - Perfekt für dich![/IF][IF username_enabled] @{username}[/IF]',
+                    'subject': '[IF product_name_enabled]Kooperation mit {product_name}[/IF][IF username_enabled] @{username}[/IF]',
                     'body': 'Profil: [IF username_enabled]@{username}[/IF][IF full_name_enabled], Name: {full_name}[/IF][IF bio_enabled], Bio: {bio}[/IF][IF hashtag_enabled], Hashtag: {hashtag}[/IF][IF caption_enabled], Beitragstext: {caption}[/IF][IF product_name_enabled]\n\nAusgewähltes Produkt: {product_name}[/IF][IF product_url_enabled]\nProdukt-URL: {product_url}[/IF][IF product_description_enabled]\nBeschreibung: {product_description}[/IF]'
                 },
                 'without_product': {
-                    'subject': '[IF username_enabled]Kooperationsanfrage für @{username}[/IF] - Liebe deinen Content!',
+                    'subject': '[IF username_enabled], Username {username} [/IF]',
                     'body': 'Profil: [IF username_enabled]@{username}[/IF][IF full_name_enabled], Name: {full_name}[/IF][IF bio_enabled], Bio: {bio}[/IF][IF hashtag_enabled], Hashtag: {hashtag}[/IF][IF caption_enabled], Beitragstext: {caption}[/IF]'
                 }
             }
