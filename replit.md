@@ -1,5 +1,12 @@
 # Instagram LeadGen - Full-Stack Application
 
+## User Preferences
+
+**CRITICAL**: NEVER MAKE CODE CHANGES UNTIL USER APPROVAL
+- All code modifications must be explicitly approved by the user before implementation
+- Present proposed changes and wait for user confirmation
+- Do not proceed with any code edits without explicit user consent
+
 ## Overview
 
 K+L Influence is a Flask-based Instagram lead generation and outreach automation tool that crawls Instagram hashtags, enriches profile data, and generates personalized email outreach campaigns. The application features a modern, professional design following the K+L Internal Web App Style Guide, with Natural Green branding, Inter typography, and Google Sheets-style table interactions for efficient data management.
