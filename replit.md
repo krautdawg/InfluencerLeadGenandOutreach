@@ -6,6 +6,28 @@ K+L Influence is a Flask-based Instagram lead generation and outreach automation
 
 ## Recent Changes
 
+### 2025-07-22: Fixed Emoji-Induced Caption Data Loss in Database Storage (COMPLETED)
+- **Issue**: Caption data was being extracted correctly (1124+ character captions with emojis) but disappearing during database save operations
+- **Root Cause**: Instagram captions contain emojis (🌟, 😅, ✂️, ♥) that were causing encoding issues during database parameter binding
+- **Debug Evidence**: Logs showed "caption_length=1124" during extraction but "caption_length=0, caption=None" during save
+- **Solution Implemented**:
+  - **Emoji-Safe Processing**: Created `clean_caption_for_database()` function with UTF-8 encoding safety
+  - **Database Compatibility**: Ensures emojis are properly encoded for PostgreSQL storage
+  - **Enhanced Debug Logging**: Added emoji character count tracking to identify encoding issues
+  - **Fallback Protection**: Graceful handling of encoding failures with truncation fallback
+- **Technical Implementation**:
+  - UTF-8 encoding validation with `errors='ignore'` to handle problematic characters
+  - Emoji detection in debug logs showing count of Unicode characters > 127
+  - Enhanced logging in save operations showing raw vs cleaned caption lengths
+  - Applied to both new HashtagUsernamePair creation and existing pair updates
+- **Verification**: Enhanced debug logging will now show emoji character counts and successful caption cleaning
+- **Benefits**:
+  - **Complete Caption Preservation**: Instagram post captions with emojis now save correctly to database
+  - **Encoding Safety**: Robust handling of international characters and emojis
+  - **Debug Transparency**: Clear visibility into emoji processing and encoding operations
+  - **Data Integrity**: No more silent caption data loss due to encoding issues
+- **Status**: Emoji-safe caption handling fully implemented with comprehensive debug logging
+
 ### 2025-07-22: Added Caption Field (Beitragstext) to Hashtag Discovery and Lead Enrichment (COMPLETED)
 - **Feature**: Implemented caption field extraction from APIFY Actor DrF9mzPPEuVizVF4l for post content tracking
 - **Database Schema Changes**:

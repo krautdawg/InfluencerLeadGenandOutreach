@@ -157,6 +157,25 @@ def deduplicate_profiles(profiles):
     return unique_profiles, duplicates
 
 
+def clean_caption_for_database(caption):
+    """Clean caption text to handle emojis and special characters safely"""
+    if not caption:
+        return ''
+    
+    try:
+        # Ensure proper UTF-8 encoding
+        if isinstance(caption, bytes):
+            caption = caption.decode('utf-8', errors='ignore')
+        
+        # Remove or replace problematic characters that might cause database issues
+        # Keep emojis but ensure they're properly encoded
+        cleaned = caption.encode('utf-8', errors='ignore').decode('utf-8')
+        return cleaned
+    except Exception as e:
+        logger.warning(f"Caption cleaning failed: {e}, using fallback")
+        return caption[:1000] if caption else ''  # Truncate as fallback
+
+
 def save_hashtag_username_pairs(profiles, duplicates):
     """Save deduplicated hashtag-username pairs to database"""
     saved_pairs = []
@@ -169,14 +188,16 @@ def save_hashtag_username_pairs(profiles, duplicates):
                 username = profile.get('username', '')
                 timestamp = profile.get('timestamp')
                 post_url = profile.get('post_url')
-                caption = profile.get('caption', '')
+                raw_caption = profile.get('caption', '')
+                caption = clean_caption_for_database(raw_caption)
 
                 if not hashtag or not username:
                     continue
                     
-                # Debug: Log profile data being saved
+                # Debug: Log profile data being saved with emoji detection
                 if i < 3:  # Log first 3 profiles
-                    logger.info(f"Saving profile {i+1}: username={username}, hashtag={hashtag}, timestamp={timestamp}, post_url={post_url}, caption_length={len(caption) if caption else 0}, caption={caption[:80] if caption else 'None'}...")
+                    emoji_count = sum(1 for char in raw_caption if ord(char) > 127) if raw_caption else 0
+                    logger.info(f"Saving profile {i+1}: username={username}, hashtag={hashtag}, timestamp={timestamp}, post_url={post_url}, raw_caption_length={len(raw_caption) if raw_caption else 0}, emoji_chars={emoji_count}, cleaned_length={len(caption)}, caption={caption[:80] if caption else 'None'}...")
 
                 # Check if pair already exists
                 existing_pair = HashtagUsernamePair.query.filter_by(
@@ -195,7 +216,8 @@ def save_hashtag_username_pairs(profiles, duplicates):
                         existing_pair.beitragstext = caption
                         # Debug: Log caption update for existing pair
                         if i < 3:
-                            logger.info(f"DEBUG UPDATE existing pair: username={username}, caption_length={len(caption)}, caption_set={caption[:50]}...")
+                            emoji_count = sum(1 for char in caption if ord(char) > 127) if caption else 0
+                            logger.info(f"DEBUG UPDATE existing pair: username={username}, caption_length={len(caption)}, emoji_chars={emoji_count}, caption_set={caption[:50]}...")
                     else:
                         # Debug: Log when no caption to update
                         if i < 3:
@@ -212,9 +234,10 @@ def save_hashtag_username_pairs(profiles, duplicates):
                         is_duplicate=username in duplicates
                     )
                     
-                    # Debug: Log new pair creation with caption
+                    # Debug: Log new pair creation with caption and emoji info
                     if i < 3:
-                        logger.info(f"DEBUG CREATE new pair: username={username}, beitragstext_param={caption[:50] if caption else 'None'}, caption_length={len(caption) if caption else 0}")
+                        emoji_count = sum(1 for char in caption if ord(char) > 127) if caption else 0
+                        logger.info(f"DEBUG CREATE new pair: username={username}, beitragstext_param={caption[:50] if caption else 'None'}, caption_length={len(caption) if caption else 0}, emoji_chars={emoji_count}")
                     
                     db.session.add(new_pair)
                     saved_pairs.append(new_pair)
