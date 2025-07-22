@@ -1528,10 +1528,11 @@ async def discover_hashtags_async(keyword, ig_sessionid, search_limit):
         hashtag_items = hashtag_data.get('items', [])
         logger.info(f"Processing {len(hashtag_items)} hashtag items")
         
-        # Debug: Log first item to see structure
+        # Debug: Log first item to see structure including caption
         if hashtag_items:
             first_item = hashtag_items[0]
-            logger.info(f"First item structure: username={first_item.get('username')}, hashtag={first_item.get('hashtag')}, timestamp={first_item.get('timestamp')}, post_url={first_item.get('post_url')}")
+            caption_preview = first_item.get('caption', '')
+            logger.info(f"First item structure: username={first_item.get('username')}, hashtag={first_item.get('hashtag')}, timestamp={first_item.get('timestamp')}, post_url={first_item.get('post_url')}, caption_length={len(caption_preview) if caption_preview else 0}, caption_preview={caption_preview[:50] if caption_preview else 'None'}...")
         
         # Count users per hashtag variant
         hashtag_counts = {}
@@ -1542,6 +1543,7 @@ async def discover_hashtags_async(keyword, ig_sessionid, search_limit):
             hashtag = item.get('hashtag', keyword)
             timestamp = item.get('timestamp')
             post_url = item.get('post_url')
+            caption = item.get('caption', '')  # GET CAPTION FROM ITEM
             
             if username:
                 # URL decode the hashtag for display
@@ -1553,11 +1555,12 @@ async def discover_hashtags_async(keyword, ig_sessionid, search_limit):
                     hashtag_usernames[decoded_hashtag] = []
                 
                 hashtag_counts[decoded_hashtag] += 1
-                # Store complete profile data including timestamp and post_url
+                # Store complete profile data including timestamp, post_url AND CAPTION
                 hashtag_usernames[decoded_hashtag].append({
                     'username': username,
                     'timestamp': timestamp,
-                    'post_url': post_url
+                    'post_url': post_url,
+                    'caption': caption  # INCLUDE CAPTION
                 })
         
         # Create hashtag variants list with counts
@@ -1582,7 +1585,8 @@ async def discover_hashtags_async(keyword, ig_sessionid, search_limit):
                     'username': user_data['username'],
                     'hashtag': hashtag,
                     'timestamp': user_data['timestamp'],
-                    'post_url': user_data['post_url']
+                    'post_url': user_data['post_url'],
+                    'caption': user_data['caption']  # INCLUDE CAPTION IN PROFILES
                 })
         
         if all_profiles:
