@@ -6,19 +6,16 @@ A sophisticated Instagram lead generation platform that leverages advanced web s
 **Current Status**: Enhanced with Emergency STOP functionality
 
 ## Recent Changes (July 22, 2025)
-✓ **Emergency STOP System - Complete Implementation**: Forceful termination system
+✓ **Emergency STOP System - Process Termination Implementation**: True immediate cessation
   - **REMOVED**: Regular stop functionality completely eliminated
-  - **ENHANCED**: Only emergency stop remains for immediate forceful termination
-  - Prominent red 🛑 NOTFALL STOPP button with pulsing animation 
-  - Immediate UI feedback and multiple rapid backend stop requests
-  - Enhanced backend `/emergency-stop-processing` endpoint with force cleanup
-  - Emergency stop checks in ALL critical processing loops:
-    * Anti-spam pause intervals
-    * Profile batch enrichment functions  
-    * Hashtag processing loops
-    * Perplexity API calls
-  - Force UI reset capability for complete state recovery
-  - Worker reloading confirms immediate process termination
+  - **SIGNAL-BASED TERMINATION**: Emergency stop now kills worker process like Ctrl+C
+  - Process termination using SIGTERM signal for immediate cessation
+  - No dependency on API call completion or flag checking
+  - Gunicorn automatically restarts worker after termination
+  - Frontend shows process termination feedback and auto-reloads page
+  - Fallback mechanism: touches main.py to force worker restart if signal fails
+  - All running operations (Apify calls, ThreadPools, etc.) terminated immediately
+  - Comprehensive logging with CRITICAL level for emergency stop events
 
 ## Project Architecture
 

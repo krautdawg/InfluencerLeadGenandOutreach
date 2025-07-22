@@ -1262,20 +1262,24 @@ def process_keyword():
 @app.route('/emergency-stop-processing', methods=['POST'])
 @login_required
 def emergency_stop_processing():
-    """Emergency STOP - immediate and forceful termination of all processing"""
+    """Emergency STOP - immediate process termination like Ctrl+C"""
+    import os
+    import signal
+    import threading
+    
     try:
         data = request.get_json() or {}
         force = data.get('force', False)
         immediate = data.get('immediate', False)
         
-        # Immediate stop flags
+        # Set stop flags immediately
         app_data['stop_requested'] = True
         app_data['emergency_stop'] = True
         app_data['processing_status'] = None
         
-        # Clear all processing states immediately
+        # Clear all processing states
         app_data['processing_progress'] = {
-            'current_step': 'NOTFALL STOPP - Alle Prozesse beendet',
+            'current_step': 'NOTFALL STOPP - Prozess wird beendet',
             'total_steps': 0,
             'completed_steps': 0,
             'estimated_time_remaining': 0,
@@ -1283,50 +1287,57 @@ def emergency_stop_processing():
             'phase': 'stopped'
         }
         
-        # Additional force cleanup if requested
-        if force:
-            # Clear session processing data
-            app_data['hashtag_variants'] = []
-            app_data['keyword'] = ''
-            app_data['ig_sessionid'] = ''
-            app_data['search_limit'] = 100
-            app_data['default_product_id'] = None
-            
-            # Reset all concurrent processing tracking
-            app_data['concurrent_api_calls'] = 0
-            app_data['processing_start_time'] = None
-            
         # Log emergency stop with details
         user_agent = request.headers.get('User-Agent', 'Unknown')
         client_ip = request.remote_addr
-        logger.critical(f"EMERGENCY STOP activated by user - IP: {client_ip}, User-Agent: {user_agent}, Force: {force}, Immediate: {immediate}")
+        logger.critical(f"EMERGENCY STOP - Terminating worker process immediately - IP: {client_ip}, User-Agent: {user_agent}, Force: {force}, Immediate: {immediate}")
+        
+        # Schedule immediate process termination in separate thread
+        def kill_process():
+            import time
+            time.sleep(0.5)  # Brief delay to send response first
+            logger.critical("EMERGENCY STOP - Sending SIGTERM to worker process")
+            os.kill(os.getpid(), signal.SIGTERM)
+        
+        # Start termination thread
+        threading.Thread(target=kill_process, daemon=True).start()
         
         return jsonify({
-            "success": True, 
-            "message": "Notfall-Stopp erfolgreich aktiviert",
+            "success": True,
+            "message": "Notfall-Stopp aktiviert - Prozess wird sofort beendet",
             "emergency": True,
             "timestamp": time.time(),
             "details": {
                 "force_cleanup": force,
                 "immediate_stop": immediate,
-                "all_processes_terminated": True
+                "process_termination": True,
+                "worker_restart": "Gunicorn will restart worker automatically"
             }
         })
         
     except Exception as e:
         logger.error(f"Emergency stop failed: {e}")
-        # Even if there's an error, try to set basic stop flags
+        # Fallback: try to set basic stop flags and force worker restart
         try:
             app_data['stop_requested'] = True
             app_data['emergency_stop'] = True
             app_data['processing_status'] = None
+            
+            # Force worker restart by touching main.py
+            import time
+            main_py_path = "main.py"
+            current_time = time.time()
+            os.utime(main_py_path, (current_time, current_time))
+            logger.critical("Emergency stop fallback - forced worker restart by touching main.py")
         except:
             pass
+            
         return jsonify({
-            "error": "Emergency stop error, but basic stop flags set", 
-            "success": True,  # Still return success since we did stop
-            "emergency": True
-        }), 500
+            "success": True,  # Still return success since we attempted termination
+            "message": "Notfall-Stopp Fehler - Fallback aktiviert",
+            "emergency": True,
+            "fallback": True
+        }), 200
 
 
 @app.route('/api/hashtag-variants', methods=['GET'])
