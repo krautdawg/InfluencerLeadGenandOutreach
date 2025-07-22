@@ -2035,11 +2035,7 @@ function initializePromptSettings() {
     console.log('Initializing Prompt Settings...');
     const promptSettingsBtn = document.getElementById('promptSettingsBtn');
     const savePromptSettingsBtn = document.getElementById('savePromptSettings');
-    const promptProductSelect = document.getElementById('promptProductSelect');
     const promptTypeSelect = document.getElementById('promptTypeSelect');
-    const addProductBtn = document.getElementById('addProductBtn');
-    const editProductBtn = document.getElementById('editProductBtn');
-    const saveProductBtn = document.getElementById('saveProduct');
     
     console.log('promptSettingsBtn:', promptSettingsBtn);
     
@@ -2056,7 +2052,6 @@ function initializePromptSettings() {
         
         try {
             await loadSystemPrompts();
-            populatePromptProductSelector();
             updatePromptFields();
             updateVariablesList();
             
@@ -2080,62 +2075,21 @@ function initializePromptSettings() {
         savePromptSettingsBtn.addEventListener('click', saveSystemPrompts);
     }
     
-    // Product selection change
-    if (promptProductSelect) {
-        promptProductSelect.addEventListener('change', () => {
+    // Prompt mode change (radio buttons)
+    const promptModeRadios = document.querySelectorAll('input[name="promptMode"]');
+    promptModeRadios.forEach(radio => {
+        radio.addEventListener('change', () => {
             updatePromptFields();
             updateVariablesList();
-            
-            // Show/hide edit button
-            const editBtn = document.getElementById('editProductBtn');
-            if (editBtn) {
-                editBtn.style.display = promptProductSelect.value && promptProductSelect.value !== '0' ? 'inline-block' : 'none';
-            }
         });
-    }
+    });
     
     // Email type selection change
     if (promptTypeSelect) {
         promptTypeSelect.addEventListener('change', updatePromptFields);
     }
     
-    // Add new product
-    if (addProductBtn) {
-        addProductBtn.addEventListener('click', () => {
-            document.getElementById('productEditTitle').textContent = 'Neues Produkt hinzufügen';
-            document.getElementById('productEditId').value = '';
-            document.getElementById('productName').value = '';
-            document.getElementById('productUrl').value = '';
-            document.getElementById('productImageUrl').value = '';
-            document.getElementById('productDescription').value = '';
-            document.getElementById('productPrice').value = '';
-            document.getElementById('productEditModal').style.display = 'block';
-        });
-    }
-    
-    // Edit existing product
-    if (editProductBtn) {
-        editProductBtn.addEventListener('click', () => {
-            const productId = promptProductSelect.value;
-            const product = products.find(p => p.id == productId);
-            
-            if (product) {
-                document.getElementById('productEditTitle').textContent = 'Produkt bearbeiten';
-                document.getElementById('productEditId').value = product.id;
-                document.getElementById('productName').value = product.name || '';
-                document.getElementById('productUrl').value = product.url || '';
-                document.getElementById('productImageUrl').value = product.image_url || '';
-                document.getElementById('productDescription').value = product.description || '';
-                document.getElementById('productPrice').value = product.price || '';
-                document.getElementById('productEditModal').style.display = 'block';
-            }
-        });
-    }
-    
-    // Save product
-    if (saveProductBtn) {
-        saveProductBtn.addEventListener('click', saveProduct);
-    }
+    // Product management functionality removed - now using simple binary choice
 }
 
 // Load system prompts from backend
@@ -2159,30 +2113,14 @@ async function loadSystemPrompts() {
     }
 }
 
-// Populate product selector in prompt settings
-function populatePromptProductSelector() {
-    const promptProductSelect = document.getElementById('promptProductSelect');
-    if (!promptProductSelect) return;
-    
-    // Clear existing options (except the first one)
-    while (promptProductSelect.children.length > 1) {
-        promptProductSelect.removeChild(promptProductSelect.lastChild);
-    }
-    
-    // Add product options
-    products.forEach(product => {
-        const option = document.createElement('option');
-        option.value = product.id;
-        option.textContent = product.name;
-        promptProductSelect.appendChild(option);
-    });
-}
+// Product selector removed - now using binary radio button choice
 
 // Update prompt fields based on selection
 function updatePromptFields() {
     if (!currentSystemPrompts) return;
     
-    const hasProduct = document.getElementById('promptProductSelect').value !== '0';
+    const selectedMode = document.querySelector('input[name="promptMode"]:checked');
+    const hasProduct = selectedMode ? selectedMode.value === 'with_product' : false;
     const promptType = document.getElementById('promptTypeSelect').value;
     
     const key = hasProduct ? 'with_product' : 'without_product';
@@ -2205,7 +2143,8 @@ function updateVariablesList() {
     const variablesList = document.getElementById('variablesList');
     if (!variablesList) return;
     
-    const hasProduct = document.getElementById('promptProductSelect').value !== '0';
+    const selectedMode = document.querySelector('input[name="promptMode"]:checked');
+    const hasProduct = selectedMode ? selectedMode.value === 'with_product' : false;
     
     // Clear existing variables
     variablesList.innerHTML = '';
@@ -2244,7 +2183,8 @@ function updateVariablesList() {
 
 // Save system prompts
 async function saveSystemPrompts() {
-    const hasProduct = document.getElementById('promptProductSelect').value !== '0';
+    const selectedMode = document.querySelector('input[name="promptMode"]:checked');
+    const hasProduct = selectedMode ? selectedMode.value === 'with_product' : false;
     const promptType = document.getElementById('promptTypeSelect').value;
     const systemMessage = document.getElementById('systemMessage').value;
     const userTemplate = document.getElementById('userTemplate').value;
@@ -2278,53 +2218,7 @@ async function saveSystemPrompts() {
     }
 }
 
-// Save product
-async function saveProduct() {
-    const productId = document.getElementById('productEditId').value;
-    const productData = {
-        name: document.getElementById('productName').value,
-        url: document.getElementById('productUrl').value,
-        image_url: document.getElementById('productImageUrl').value,
-        description: document.getElementById('productDescription').value,
-        price: document.getElementById('productPrice').value
-    };
-    
-    if (productId) {
-        productData.id = productId;
-    }
-    
-    try {
-        const response = await fetch('/api/products', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(productData)
-        });
-        
-        if (response.ok) {
-            const result = await response.json();
-            showToast('Produkt erfolgreich gespeichert', 'success');
-            closeModal('productEditModal');
-            
-            // Reload products
-            await loadProducts();
-            populatePromptProductSelector();
-            
-            // Select the new/updated product
-            if (result.product && result.product.id) {
-                document.getElementById('promptProductSelect').value = result.product.id;
-                updatePromptFields();
-                updateVariablesList();
-            }
-        } else {
-            const error = await response.json();
-            console.error('Failed to save product:', error);
-            showToast('Fehler beim Speichern des Produkts', 'error');
-        }
-    } catch (error) {
-        console.error('Error saving product:', error);
-        showToast('Fehler beim Speichern des Produkts', 'error');
-    }
-}
+// Product management functionality removed
 
 // Modal utility functions
 function closeModal(modalId) {

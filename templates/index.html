@@ -274,21 +274,24 @@
                 <h4 class="modal-title">Prompt Einstellungen</h4>
             </div>
             <div class="modal-body">
-                <!-- Product Selection -->
+                <!-- Prompt Type Selection -->
                 <div class="form-group">
-                    <label for="promptProductSelect">Produkt auswählen</label>
-                    <div class="d-flex align-items-center gap-2">
-                        <select class="form-control" id="promptProductSelect">
-                            <option value="0">Kein Produkt</option>
-                            <!-- Products will be populated dynamically -->
-                        </select>
-                        <button type="button" class="btn btn-sm btn-primary" id="addProductBtn">
-                            <i class="fas fa-plus"></i> Neu
-                        </button>
-                        <button type="button" class="btn btn-sm btn-secondary" id="editProductBtn" style="display: none;">
-                            <i class="fas fa-edit"></i> Bearbeiten
-                        </button>
+                    <label>Prompt Typ auswählen</label>
+                    <div class="d-flex gap-4">
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="promptMode" id="promptModeWithoutProduct" value="without_product" checked>
+                            <label class="form-check-label" for="promptModeWithoutProduct">
+                                Ohne Produkt
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="promptMode" id="promptModeWithProduct" value="with_product">
+                            <label class="form-check-label" for="promptModeWithProduct">
+                                Mit Produkt
+                            </label>
+                        </div>
                     </div>
+                    <small class="form-text">Wähle, ob die E-Mails ein spezifisches Produkt erwähnen sollen.</small>
                 </div>
 
                 <!-- Email Type Selection -->
