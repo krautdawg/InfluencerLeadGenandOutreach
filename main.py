@@ -38,7 +38,7 @@ app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
 }
 
 # Initialize database
-from models import db, Lead, ProcessingSession, HashtagUsernamePair, LeadBackup, Product, SystemPrompt
+from models import db, Lead, ProcessingSession, HashtagUsernamePair, LeadBackup, Product, SystemPrompt, UserPrompt
 db.init_app(app)
 
 # Initialize OpenAI client
@@ -83,6 +83,34 @@ with app.app_context():
                         )
                         db.session.add(system_prompt)
             
+            # Default user prompts/templates
+            default_user_prompts = {
+                'with_product': {
+                    'subject': 'Kooperation mit {product_name} - Perfekt für dich!',
+                    'body': 'Hallo {username}!\n\nIch bin Kasimir von KasimirLieselotte und habe deinen Content verfolgt - einfach toll!\n\nIch denke unser {product_name} würde perfekt zu deinem Stil passen. Hier ist der Link: {product_url}\n\n{product_description}\n\nHast du Lust auf eine Kooperation?\n\nLiebe Grüße,\nKasimir\nhttps://www.kasimirlieselotte.de/'
+                },
+                'without_product': {
+                    'subject': 'Kooperationsanfrage - Liebe deinen Content!',
+                    'body': 'Hallo {username}!\n\nIch bin Kasimir von KasimirLieselotte und bin begeistert von deinem Content!\n\nIch würde sehr gerne eine Kooperation mit dir eingehen. Unser Brand passt meiner Meinung nach perfekt zu deinem Stil.\n\nHast du Interesse an einer Zusammenarbeit?\n\nLiebe Grüße,\nKasimir\nhttps://www.kasimirlieselotte.de/'
+                }
+            }
+            
+            # Initialize user prompts for each combination
+            for has_product, prompts in [(True, default_user_prompts['with_product']), 
+                                         (False, default_user_prompts['without_product'])]:
+                for prompt_type, message in prompts.items():
+                    existing = UserPrompt.query.filter_by(
+                        prompt_type=prompt_type,
+                        has_product=has_product
+                    ).first()
+                    
+                    if not existing:
+                        user_prompt = UserPrompt(
+                            prompt_type=prompt_type,
+                            has_product=has_product,
+                            user_message=message
+                        )
+                        db.session.add(user_prompt)
 
 
 
@@ -2304,12 +2332,13 @@ def clear_data():
 @app.route('/api/system-prompts', methods=['GET'])
 @login_required
 def get_system_prompts():
-    """Get system prompts"""
+    """Get system prompts and user prompts"""
     try:
         # Get all system prompts
-        prompts = SystemPrompt.query.all()
+        system_prompts = SystemPrompt.query.all()
+        user_prompts = UserPrompt.query.all()
         
-        # Organize prompts by type and has_product
+        # Organize system prompts by type and has_product
         result = {
             'with_product': {
                 'subject': '',
@@ -2321,16 +2350,27 @@ def get_system_prompts():
             }
         }
         
-        for prompt in prompts:
+        for prompt in system_prompts:
             key = 'with_product' if prompt.has_product else 'without_product'
             result[key][prompt.prompt_type] = prompt.system_message
         
-        # User templates are now managed through SystemPrompt table
-        # Return the appropriate prompts based on current selection
-        result['user_templates'] = {
-            'subject': result['with_product']['subject'],  # Default to with_product for now
-            'body': result['with_product']['body']
+        # Organize user prompts
+        user_templates = {
+            'with_product': {
+                'subject': '',
+                'body': ''
+            },
+            'without_product': {
+                'subject': '',
+                'body': ''
+            }
         }
+        
+        for prompt in user_prompts:
+            key = 'with_product' if prompt.has_product else 'without_product'
+            user_templates[key][prompt.prompt_type] = prompt.user_message
+        
+        result['user_templates'] = user_templates
         
         return jsonify(result)
     except Exception as e:
@@ -2341,7 +2381,7 @@ def get_system_prompts():
 @app.route('/api/system-prompts', methods=['POST'])
 @login_required
 def save_system_prompts():
-    """Save system prompts"""
+    """Save system prompts and user prompts"""
     try:
         data = request.get_json()
         
@@ -2377,7 +2417,23 @@ def save_system_prompts():
             )
             db.session.add(system_prompt)
         
-        # User template functionality removed - all prompts now managed through SystemPrompt table
+        # Update user prompt/template if provided
+        if user_template is not None:
+            user_prompt = UserPrompt.query.filter_by(
+                prompt_type=prompt_type,
+                has_product=has_product
+            ).first()
+            
+            if user_prompt:
+                user_prompt.user_message = user_template
+                user_prompt.updated_at = datetime.utcnow()
+            else:
+                user_prompt = UserPrompt(
+                    prompt_type=prompt_type,
+                    has_product=has_product,
+                    user_message=user_template
+                )
+                db.session.add(user_prompt)
         
         db.session.commit()
         

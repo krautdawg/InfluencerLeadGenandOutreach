@@ -242,27 +242,6 @@ class ProcessingSession(db.Model):
         }
 
 
-class EmailTemplate(db.Model):
-    """Model for storing email generation templates"""
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(50), unique=True, nullable=False)  # 'subject' or 'body'
-    template = db.Column(db.Text, nullable=False)
-    has_product = db.Column(db.Boolean, default=False)  # Whether this template is for product-specific emails
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-
-    def to_dict(self):
-        """Convert EmailTemplate object to dictionary"""
-        return {
-            'id': self.id,
-            'name': self.name,
-            'template': self.template,
-            'has_product': self.has_product,
-            'created_at': self.created_at.isoformat() if self.created_at else None,
-            'updated_at': self.updated_at.isoformat() if self.updated_at else None
-        }
-
-
 class SystemPrompt(db.Model):
     """Model for storing system prompts for email generation"""
     id = db.Column(db.Integer, primary_key=True)
@@ -279,6 +258,27 @@ class SystemPrompt(db.Model):
             'prompt_type': self.prompt_type,
             'has_product': self.has_product,
             'system_message': self.system_message,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None
+        }
+
+
+class UserPrompt(db.Model):
+    """Model for storing user prompts/templates for email generation"""
+    id = db.Column(db.Integer, primary_key=True)
+    prompt_type = db.Column(db.String(20), nullable=False)  # 'subject' or 'body'
+    has_product = db.Column(db.Boolean, nullable=False)  # True for with product, False for without
+    user_message = db.Column(db.Text, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    def to_dict(self):
+        """Convert UserPrompt object to dictionary"""
+        return {
+            'id': self.id,
+            'prompt_type': self.prompt_type,
+            'has_product': self.has_product,
+            'user_message': self.user_message,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None
         }

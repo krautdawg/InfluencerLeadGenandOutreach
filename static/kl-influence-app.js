@@ -2131,10 +2131,10 @@ function updatePromptFields() {
         systemMessage.value = currentSystemPrompts[key][promptType] || '';
     }
     
-    // Update user template
+    // Update user template - now uses the same key structure as system prompts
     const userTemplate = document.getElementById('userTemplate');
-    if (userTemplate) {
-        userTemplate.value = currentSystemPrompts.user_templates[promptType] || '';
+    if (userTemplate && currentSystemPrompts.user_templates) {
+        userTemplate.value = currentSystemPrompts.user_templates[key][promptType] || '';
     }
 }
 
