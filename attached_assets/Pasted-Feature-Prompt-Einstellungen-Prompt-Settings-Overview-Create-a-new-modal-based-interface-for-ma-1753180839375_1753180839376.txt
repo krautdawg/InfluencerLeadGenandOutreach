@@ -1,0 +1,89 @@
+Feature: Prompt Einstellungen (Prompt Settings)
+Overview
+Create a new modal-based interface for managing email generation prompts, replacing the existing Email Prompts UI in the left navigation bar. This feature allows users to configure AI prompts for generating email subjects and bodies, with support for product-specific and general outreach scenarios.
+
+UI Implementation
+1. Navigation
+Add a new button labeled "Prompt Einstellungen" in the top header
+Position: Inline with IG-SessionID and Logout buttons, next to the app logo
+Remove the existing Email Prompts section from the left navigation bar
+2. Modal Interface
+Type: Modal dialog overlay
+Layout: Vertically stacked sections
+Save Mechanism: Save button at the bottom of the modal
+3. Modal Content Structure
+Top Section - Configuration Dropdowns:
+
+Product Selection Dropdown
+Options: List all products from the Products table + "Kein Produkt" (No Product) option
+When a product is selected, enable ADD/EDIT functionality:
+EDIT button opens a sub-modal to modify: URL, image_url, and Description
+ADD button opens a sub-modal to create new products
+Email Type Dropdown
+Options: "Betreff" (Subject) / "E-Mail Text" (Body)
+Middle Section - System Message:
+
+Label: "System-Nachricht"
+Input: Multi-line text area with database write access
+Pre-filled: Load existing system messages from database
+Note: Automatically append format instruction based on email type:
+Subject: Antworte im JSON-Format: {"subject": "betreff text"}
+Body: Antworte im JSON-Format: {"body": "email inhalt"}
+Bottom Section - User Message Template:
+
+Label: "Benutzer-Nachricht Vorlage"
+Input: Multi-line text area (similar to current email prompt settings)
+Variable Checkboxes: Display available variables based on product selection
+When Product IS Selected:
+
+☐ Benutzername
+☐ Vollständiger Name
+☐ Bio
+☐ Hashtag
+☐ Beitragstext
+☐ Ausgewähltes Produkt
+☐ Produkt-URL
+☐ Beschreibung
+When NO Product is Selected:
+
+☐ Benutzername
+☐ Vollständiger Name
+☐ Bio
+☐ Hashtag
+☐ Beitragstext
+Database Schema Changes
+1. Create New Table: system_prompts
+- id (primary key)
+- user_id (foreign key)
+- prompt_type (enum: 'subject', 'body')
+- has_product (boolean)
+- system_message (text)
+- created_at
+- updated_at
+2. Modify email_template Table
+Add column: has_product (boolean)
+Ensure template column continues to store user message templates
+Default System Messages
+Product Selected - Subject:
+
+Schreibe in DU-Form eine persönliche Betreffzeile mit freundlichen Hook für eine Influencer Kooperation mit Kasimir + Liselotte. Nutze persönliche Infos (z.B. Username, BIO, Interessen), sprich sie direkt in DU-Form. Falls ein Produkt ausgewählt ist, erwähne es subtil in der Betreffzeile.
+Product Selected - Body:
+
+Erstelle eine personalisierte, professionelle deutsche E-Mail, ohne die Betreffzeile, für potenzielle Instagram Influencer Kooperationen. Die E-Mail kommt von Kasimir vom Store KasimirLieselotte. Verwende einen höflichen, professionellen Ton auf Deutsch aber in DU-Form um es casual im Instagram feel zu bleiben. WICHTIG: Falls ein Produkt ausgewählt ist, integriere unbedingt folgende Elemente in die E-Mail: 1) Erwähne das Produkt namentlich, 2) Füge den Produkt-Link ein...
+No Product - Subject:
+
+Schreibe in DU-Form eine persönliche Betreffzeile mit freundlichen Hook für eine Influencer Kooperation mit Kasimir + Liselotte. Nutze persönliche Infos (z.B. Username, BIO, Interessen), sprich sie direkt in DU-Form. Fokussiere dich auf die Interessen und den Content des Influencers.
+No Product - Body:
+
+Erstelle eine personalisierte, professionelle deutsche E-Mail, ohne die Betreffzeile, für potenzielle Instagram Influencer Kooperationen. Die E-Mail kommt von Kasimir vom Store KasimirLieselotte. Verwende einen höflichen, professionellen Ton auf Deutsch aber in DU-Form um es casual im Instagram feel zu bleiben. Fokussiere dich auf eine allgemeine Kooperationsanfrage...
+Migration Requirements
+Remove all DEFAULT fallback prompts from the codebase
+Migrate existing email templates to the new structure
+Initialize system_prompts table with default values for all users
+Remove the old Email Prompts UI from the left navigation
+Functional Requirements
+Save button persists all changes to the database
+Modal loads current settings when opened
+Product ADD/EDIT sub-modals handle product management
+Variable checkboxes are informational only (showing available variables)
+System automatically appends JSON format instructions to system messages before API calls

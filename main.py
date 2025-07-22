@@ -38,7 +38,7 @@ app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
 }
 
 # Initialize database
-from models import db, Lead, ProcessingSession, HashtagUsernamePair, LeadBackup, EmailTemplate, Product
+from models import db, Lead, ProcessingSession, HashtagUsernamePair, LeadBackup, EmailTemplate, Product, SystemPrompt
 db.init_app(app)
 
 # Initialize OpenAI client
@@ -50,32 +50,67 @@ openai_client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
 with app.app_context():
     db.create_all()
 
-    # Initialize default email templates if they don't exist
-    def initialize_default_templates():
-        """Initialize default email templates if they don't exist"""
+    # Initialize default system prompts and email templates
+    def initialize_default_prompts():
+        """Initialize default system prompts and email templates if they don't exist"""
         try:
-            default_subject_template = 'Schreibe in DU-Form eine persönliche Betreffzeile mit freundlichen Hook für eine Influencer Kooperation mit Kasimir + Liselotte. Nutze persönliche Infos (z.B. Username, BIO, Interessen), sprich sie direkt in DU-Form. Falls ein Produkt ausgewählt ist, erwähne es subtil in der Betreffzeile. Antworte im JSON-Format: {"subject": "betreff text"}'
-            default_body_template = 'Erstelle eine personalisierte, professionelle deutsche E-Mail, ohne die Betreffzeile, für potenzielle Instagram Influencer Kooperationen. Die E-Mail kommt von Kasimir vom Store KasimirLieselotte. Verwende einen höflichen, professionellen Ton auf Deutsch aber in DU-Form um es casual im Instagram feel zu bleiben. WICHTIG: Falls ein Produkt ausgewählt ist, integriere unbedingt folgende Elemente in die E-Mail: 1) Erwähne das Produkt namentlich, 2) Füge den direkten Link zum Produkt ein (Produkt-URL), 3) Erkläre kurz die Produkteigenschaften basierend auf der Beschreibung, 4) Beziehe das Produkt auf die Bio/Interessen des Influencers. Die E-Mail sollte den Produktlink natürlich in den Text einbetten. Füge am Ende die Signatur mit der Website https://www.kasimirlieselotte.de/ hinzu. Antworte im JSON-Format: {"body": "email inhalt"}'
-
+            # Default system prompts from the specification
+            default_system_prompts = {
+                'with_product': {
+                    'subject': 'Schreibe in DU-Form eine persönliche Betreffzeile mit freundlichen Hook für eine Influencer Kooperation mit Kasimir + Liselotte. Nutze persönliche Infos (z.B. Username, BIO, Interessen), sprich sie direkt in DU-Form. Falls ein Produkt ausgewählt ist, erwähne es subtil in der Betreffzeile.',
+                    'body': 'Erstelle eine personalisierte, professionelle deutsche E-Mail, ohne die Betreffzeile, für potenzielle Instagram Influencer Kooperationen. Die E-Mail kommt von Kasimir vom Store KasimirLieselotte. Verwende einen höflichen, professionellen Ton auf Deutsch aber in DU-Form um es casual im Instagram feel zu bleiben. WICHTIG: Falls ein Produkt ausgewählt ist, integriere unbedingt folgende Elemente in die E-Mail: 1) Erwähne das Produkt namentlich, 2) Füge den direkten Link zum Produkt ein (Produkt-URL), 3) Erkläre kurz die Produkteigenschaften basierend auf der Beschreibung, 4) Beziehe das Produkt auf die Bio/Interessen des Influencers. Die E-Mail sollte den Produktlink natürlich in den Text einbetten. Füge am Ende die Signatur mit der Website https://www.kasimirlieselotte.de/ hinzu.'
+                },
+                'without_product': {
+                    'subject': 'Schreibe in DU-Form eine persönliche Betreffzeile mit freundlichen Hook für eine Influencer Kooperation mit Kasimir + Liselotte. Nutze persönliche Infos (z.B. Username, BIO, Interessen), sprich sie direkt in DU-Form. Fokussiere dich auf die Interessen und den Content des Influencers.',
+                    'body': 'Erstelle eine personalisierte, professionelle deutsche E-Mail, ohne die Betreffzeile, für potenzielle Instagram Influencer Kooperationen. Die E-Mail kommt von Kasimir vom Store KasimirLieselotte. Verwende einen höflichen, professionellen Ton auf Deutsch aber in DU-Form um es casual im Instagram feel zu bleiben. Fokussiere dich auf eine allgemeine Kooperationsanfrage, die auf die Interessen und den Content des Influencers eingeht. Erwähne deine Begeisterung für ihren Content und schlage eine mögliche Zusammenarbeit vor, ohne spezifische Produkte zu erwähnen. Füge am Ende die Signatur mit der Website https://www.kasimirlieselotte.de/ hinzu.'
+                }
+            }
+            
+            # Initialize system prompts for each combination (without user-specific prompts)
+            for has_product, prompts in [(True, default_system_prompts['with_product']), 
+                                         (False, default_system_prompts['without_product'])]:
+                for prompt_type, message in prompts.items():
+                    existing = SystemPrompt.query.filter_by(
+                        prompt_type=prompt_type,
+                        has_product=has_product
+                    ).first()
+                    
+                    if not existing:
+                        system_prompt = SystemPrompt(
+                            prompt_type=prompt_type,
+                            has_product=has_product,
+                            system_message=message
+                        )
+                        db.session.add(system_prompt)
+            
+            # Initialize email templates for backward compatibility (will be migrated later)
             # Check if subject template exists
             subject_template = EmailTemplate.query.filter_by(name='subject').first()
             if not subject_template:
-                subject_template = EmailTemplate(name='subject', template=default_subject_template)
+                subject_template = EmailTemplate(
+                    name='subject', 
+                    template='Profil: @{username}, Name: {full_name}, Bio: {bio}, Hashtag: {hashtag}, Beitragstext: {caption}',
+                    has_product=False
+                )
                 db.session.add(subject_template)
 
             # Check if body template exists
             body_template = EmailTemplate.query.filter_by(name='body').first()
             if not body_template:
-                body_template = EmailTemplate(name='body', template=default_body_template)
+                body_template = EmailTemplate(
+                    name='body', 
+                    template='Profil: @{username}, Name: {full_name}, Bio: {bio}, Hashtag: {hashtag}, Beitragstext: {caption}',
+                    has_product=False
+                )
                 db.session.add(body_template)
 
             db.session.commit()
-            logger.info("Email templates initialized successfully")
+            logger.info("System prompts and email templates initialized successfully")
         except Exception as e:
-            logger.error(f"Failed to initialize email templates: {e}")
+            logger.error(f"Failed to initialize prompts: {e}")
             db.session.rollback()
 
-    initialize_default_templates()
+    initialize_default_prompts()
 
     # Initialize default products if they don't exist
     def initialize_default_products():
@@ -2345,6 +2380,164 @@ def save_email_templates():
         logger.error(f"Failed to save email templates: {e}")
         db.session.rollback()
         return jsonify({"error": "Failed to save email templates", "success": False}), 500
+
+
+@app.route('/api/system-prompts', methods=['GET'])
+@login_required
+def get_system_prompts():
+    """Get system prompts"""
+    try:
+        # Get all system prompts
+        prompts = SystemPrompt.query.all()
+        
+        # Organize prompts by type and has_product
+        result = {
+            'with_product': {
+                'subject': '',
+                'body': ''
+            },
+            'without_product': {
+                'subject': '',
+                'body': ''
+            }
+        }
+        
+        for prompt in prompts:
+            key = 'with_product' if prompt.has_product else 'without_product'
+            result[key][prompt.prompt_type] = prompt.system_message
+        
+        # Get email templates for user messages (ignoring has_product for now due to migration)
+        try:
+            subject_template = db.session.query(EmailTemplate.name, EmailTemplate.template).filter_by(name='subject').first()
+            body_template = db.session.query(EmailTemplate.name, EmailTemplate.template).filter_by(name='body').first()
+        except Exception:
+            # Fallback if has_product column doesn't exist yet
+            subject_template = EmailTemplate.query.filter_by(name='subject').first()
+            body_template = EmailTemplate.query.filter_by(name='body').first()
+        
+        result['user_templates'] = {
+            'subject': subject_template.template if subject_template else '',
+            'body': body_template.template if body_template else ''
+        }
+        
+        return jsonify(result)
+    except Exception as e:
+        logger.error(f"Failed to get system prompts: {e}")
+        return jsonify({"error": "Failed to get system prompts"}), 500
+
+
+@app.route('/api/system-prompts', methods=['POST'])
+@login_required
+def save_system_prompts():
+    """Save system prompts"""
+    try:
+        data = request.get_json()
+        
+        if not data:
+            return jsonify({"error": "No data provided"}), 400
+        
+        # Extract values from request
+        prompt_type = data.get('prompt_type')  # 'subject' or 'body'
+        has_product = data.get('has_product')  # True or False
+        system_message = data.get('system_message')
+        user_template = data.get('user_template')
+        
+        if prompt_type not in ['subject', 'body']:
+            return jsonify({"error": "Invalid prompt type"}), 400
+        
+        if has_product is None:
+            return jsonify({"error": "has_product flag required"}), 400
+        
+        # Update system prompt
+        system_prompt = SystemPrompt.query.filter_by(
+            prompt_type=prompt_type,
+            has_product=has_product
+        ).first()
+        
+        if system_prompt:
+            system_prompt.system_message = system_message
+            system_prompt.updated_at = datetime.utcnow()
+        else:
+            system_prompt = SystemPrompt(
+                prompt_type=prompt_type,
+                has_product=has_product,
+                system_message=system_message
+            )
+            db.session.add(system_prompt)
+        
+        # Update user template if provided
+        if user_template is not None:
+            template = EmailTemplate.query.filter_by(name=prompt_type).first()
+            if template:
+                template.template = user_template
+                template.has_product = has_product
+                template.updated_at = datetime.utcnow()
+            else:
+                template = EmailTemplate(
+                    name=prompt_type,
+                    template=user_template,
+                    has_product=has_product
+                )
+                db.session.add(template)
+        
+        db.session.commit()
+        
+        return jsonify({
+            "success": True,
+            "message": "Prompts saved successfully"
+        })
+    except Exception as e:
+        logger.error(f"Failed to save system prompts: {e}")
+        db.session.rollback()
+        return jsonify({"error": "Failed to save system prompts"}), 500
+
+
+@app.route('/api/products', methods=['POST'])
+@login_required
+def save_product():
+    """Create or update a product"""
+    try:
+        data = request.get_json()
+        
+        if not data:
+            return jsonify({"error": "No data provided"}), 400
+        
+        product_id = data.get('id')
+        
+        if product_id:
+            # Update existing product
+            product = Product.query.get(product_id)
+            if not product:
+                return jsonify({"error": "Product not found"}), 404
+                
+            product.name = data.get('name', product.name)
+            product.url = data.get('url', product.url)
+            product.image_url = data.get('image_url', product.image_url)
+            product.description = data.get('description', product.description)
+            product.price = data.get('price', product.price)
+            product.updated_at = datetime.utcnow()
+        else:
+            # Create new product
+            product = Product(
+                name=data.get('name'),
+                url=data.get('url'),
+                image_url=data.get('image_url'),
+                description=data.get('description'),
+                price=data.get('price', '')
+            )
+            db.session.add(product)
+        
+        db.session.commit()
+        
+        return jsonify({
+            "success": True,
+            "product": product.to_dict(),
+            "message": "Product saved successfully"
+        })
+    except Exception as e:
+        logger.error(f"Failed to save product: {e}")
+        db.session.rollback()
+        return jsonify({"error": "Failed to save product"}), 500
 
 
 @app.route('/api/products', methods=['GET'])

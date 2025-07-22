@@ -64,6 +64,9 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Initialize UI state for resource protection
     updateUIState();
+    
+    // Initialize Prompt Settings
+    initializePromptSettings();
 });
 
 // Initialize all event listeners
@@ -2024,6 +2027,282 @@ async function updateLeadProduct(username, productId) {
         return false;
     }
 }
+
+// Prompt Settings functionality
+let currentSystemPrompts = null;
+
+// Initialize Prompt Settings
+function initializePromptSettings() {
+    const promptSettingsBtn = document.getElementById('promptSettingsBtn');
+    const savePromptSettingsBtn = document.getElementById('savePromptSettings');
+    const promptProductSelect = document.getElementById('promptProductSelect');
+    const promptTypeSelect = document.getElementById('promptTypeSelect');
+    const addProductBtn = document.getElementById('addProductBtn');
+    const editProductBtn = document.getElementById('editProductBtn');
+    const saveProductBtn = document.getElementById('saveProduct');
+    
+    if (!promptSettingsBtn) return;
+    
+    // Open prompt settings modal
+    promptSettingsBtn.addEventListener('click', async () => {
+        await loadSystemPrompts();
+        populatePromptProductSelector();
+        updatePromptFields();
+        updateVariablesList();
+        document.getElementById('promptSettingsModal').style.display = 'block';
+    });
+    
+    // Save prompt settings
+    if (savePromptSettingsBtn) {
+        savePromptSettingsBtn.addEventListener('click', saveSystemPrompts);
+    }
+    
+    // Product selection change
+    if (promptProductSelect) {
+        promptProductSelect.addEventListener('change', () => {
+            updatePromptFields();
+            updateVariablesList();
+            
+            // Show/hide edit button
+            const editBtn = document.getElementById('editProductBtn');
+            if (editBtn) {
+                editBtn.style.display = promptProductSelect.value && promptProductSelect.value !== '0' ? 'inline-block' : 'none';
+            }
+        });
+    }
+    
+    // Email type selection change
+    if (promptTypeSelect) {
+        promptTypeSelect.addEventListener('change', updatePromptFields);
+    }
+    
+    // Add new product
+    if (addProductBtn) {
+        addProductBtn.addEventListener('click', () => {
+            document.getElementById('productEditTitle').textContent = 'Neues Produkt hinzufügen';
+            document.getElementById('productEditId').value = '';
+            document.getElementById('productName').value = '';
+            document.getElementById('productUrl').value = '';
+            document.getElementById('productImageUrl').value = '';
+            document.getElementById('productDescription').value = '';
+            document.getElementById('productPrice').value = '';
+            document.getElementById('productEditModal').style.display = 'block';
+        });
+    }
+    
+    // Edit existing product
+    if (editProductBtn) {
+        editProductBtn.addEventListener('click', () => {
+            const productId = promptProductSelect.value;
+            const product = products.find(p => p.id == productId);
+            
+            if (product) {
+                document.getElementById('productEditTitle').textContent = 'Produkt bearbeiten';
+                document.getElementById('productEditId').value = product.id;
+                document.getElementById('productName').value = product.name || '';
+                document.getElementById('productUrl').value = product.url || '';
+                document.getElementById('productImageUrl').value = product.image_url || '';
+                document.getElementById('productDescription').value = product.description || '';
+                document.getElementById('productPrice').value = product.price || '';
+                document.getElementById('productEditModal').style.display = 'block';
+            }
+        });
+    }
+    
+    // Save product
+    if (saveProductBtn) {
+        saveProductBtn.addEventListener('click', saveProduct);
+    }
+}
+
+// Load system prompts from backend
+async function loadSystemPrompts() {
+    try {
+        const response = await fetch('/api/system-prompts');
+        if (response.ok) {
+            currentSystemPrompts = await response.json();
+        } else {
+            console.error('Failed to load system prompts');
+            showToast('Fehler beim Laden der Prompt-Einstellungen', 'error');
+        }
+    } catch (error) {
+        console.error('Error loading system prompts:', error);
+        showToast('Fehler beim Laden der Prompt-Einstellungen', 'error');
+    }
+}
+
+// Populate product selector in prompt settings
+function populatePromptProductSelector() {
+    const promptProductSelect = document.getElementById('promptProductSelect');
+    if (!promptProductSelect) return;
+    
+    // Clear existing options (except the first one)
+    while (promptProductSelect.children.length > 1) {
+        promptProductSelect.removeChild(promptProductSelect.lastChild);
+    }
+    
+    // Add product options
+    products.forEach(product => {
+        const option = document.createElement('option');
+        option.value = product.id;
+        option.textContent = product.name;
+        promptProductSelect.appendChild(option);
+    });
+}
+
+// Update prompt fields based on selection
+function updatePromptFields() {
+    if (!currentSystemPrompts) return;
+    
+    const hasProduct = document.getElementById('promptProductSelect').value !== '0';
+    const promptType = document.getElementById('promptTypeSelect').value;
+    
+    const key = hasProduct ? 'with_product' : 'without_product';
+    
+    // Update system message
+    const systemMessage = document.getElementById('systemMessage');
+    if (systemMessage) {
+        systemMessage.value = currentSystemPrompts[key][promptType] || '';
+    }
+    
+    // Update user template
+    const userTemplate = document.getElementById('userTemplate');
+    if (userTemplate) {
+        userTemplate.value = currentSystemPrompts.user_templates[promptType] || '';
+    }
+}
+
+// Update variables list based on product selection
+function updateVariablesList() {
+    const variablesList = document.getElementById('variablesList');
+    if (!variablesList) return;
+    
+    const hasProduct = document.getElementById('promptProductSelect').value !== '0';
+    
+    // Clear existing variables
+    variablesList.innerHTML = '';
+    
+    // Define variables based on product selection
+    const variables = hasProduct ? [
+        { name: 'Benutzername', value: '@{username}' },
+        { name: 'Vollständiger Name', value: '{full_name}' },
+        { name: 'Bio', value: '{bio}' },
+        { name: 'Hashtag', value: '{hashtag}' },
+        { name: 'Beitragstext', value: '{caption}' },
+        { name: 'Ausgewähltes Produkt', value: '{product_name}' },
+        { name: 'Produkt-URL', value: '{product_url}' },
+        { name: 'Beschreibung', value: '{product_description}' }
+    ] : [
+        { name: 'Benutzername', value: '@{username}' },
+        { name: 'Vollständiger Name', value: '{full_name}' },
+        { name: 'Bio', value: '{bio}' },
+        { name: 'Hashtag', value: '{hashtag}' },
+        { name: 'Beitragstext', value: '{caption}' }
+    ];
+    
+    // Create checkboxes for each variable
+    variables.forEach(variable => {
+        const div = document.createElement('div');
+        div.className = 'form-check';
+        div.innerHTML = `
+            <input class="form-check-input" type="checkbox" id="var_${variable.value}" disabled checked>
+            <label class="form-check-label" for="var_${variable.value}">
+                ${variable.name}
+            </label>
+        `;
+        variablesList.appendChild(div);
+    });
+}
+
+// Save system prompts
+async function saveSystemPrompts() {
+    const hasProduct = document.getElementById('promptProductSelect').value !== '0';
+    const promptType = document.getElementById('promptTypeSelect').value;
+    const systemMessage = document.getElementById('systemMessage').value;
+    const userTemplate = document.getElementById('userTemplate').value;
+    
+    const data = {
+        prompt_type: promptType,
+        has_product: hasProduct,
+        system_message: systemMessage,
+        user_template: userTemplate
+    };
+    
+    try {
+        const response = await fetch('/api/system-prompts', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        
+        if (response.ok) {
+            showToast('Prompt-Einstellungen erfolgreich gespeichert', 'success');
+            await loadSystemPrompts(); // Reload prompts
+            closeModal('promptSettingsModal');
+        } else {
+            const error = await response.json();
+            console.error('Failed to save system prompts:', error);
+            showToast('Fehler beim Speichern der Prompt-Einstellungen', 'error');
+        }
+    } catch (error) {
+        console.error('Error saving system prompts:', error);
+        showToast('Fehler beim Speichern der Prompt-Einstellungen', 'error');
+    }
+}
+
+// Save product
+async function saveProduct() {
+    const productId = document.getElementById('productEditId').value;
+    const productData = {
+        name: document.getElementById('productName').value,
+        url: document.getElementById('productUrl').value,
+        image_url: document.getElementById('productImageUrl').value,
+        description: document.getElementById('productDescription').value,
+        price: document.getElementById('productPrice').value
+    };
+    
+    if (productId) {
+        productData.id = productId;
+    }
+    
+    try {
+        const response = await fetch('/api/products', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(productData)
+        });
+        
+        if (response.ok) {
+            const result = await response.json();
+            showToast('Produkt erfolgreich gespeichert', 'success');
+            closeModal('productEditModal');
+            
+            // Reload products
+            await loadProducts();
+            populatePromptProductSelector();
+            
+            // Select the new/updated product
+            if (result.product && result.product.id) {
+                document.getElementById('promptProductSelect').value = result.product.id;
+                updatePromptFields();
+                updateVariablesList();
+            }
+        } else {
+            const error = await response.json();
+            console.error('Failed to save product:', error);
+            showToast('Fehler beim Speichern des Produkts', 'error');
+        }
+    } catch (error) {
+        console.error('Error saving product:', error);
+        showToast('Fehler beim Speichern des Produkts', 'error');
+    }
+}
+
+// Add initialization to DOMContentLoaded
+document.addEventListener('DOMContentLoaded', function() {
+    // ... existing initializations ...
+    initializePromptSettings();
+});
 
 function getProductNameById(productId) {
     if (!productId) return '';

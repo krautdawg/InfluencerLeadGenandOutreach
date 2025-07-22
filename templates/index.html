@@ -20,6 +20,10 @@
             <img src="{{ url_for('static', filename='kl-influence-logo.png') }}" alt="K+L Influence">
         </div>
         <div class="nav-links">
+            <button type="button" class="btn btn-primary" id="promptSettingsBtn" style="margin-right: 10px;">
+                <i class="fas fa-cogs"></i>
+                Prompt Einstellungen
+            </button>
             <button type="button" class="btn btn-connection" id="sessionStatus">
                 <img src="{{ url_for('static', filename='instagram-icon.svg') }}" alt="Instagram" class="instagram-icon">
                 <span id="sessionStatusText">
@@ -77,34 +81,7 @@
                 </div>
             </div>
 
-            <!-- Email Generation Settings -->
-            <div class="sidebar-section">
-                <h3>
-                    <button class="btn btn-tertiary p-0 text-left w-100" type="button" id="toggleSettings">
-                        <i class="fas fa-cog"></i>
-                        Email Prompts
-                        <i class="fas fa-chevron-down" style="float: right;"></i>
-                    </button>
-                </h3>
-                <div id="settingsPanel" style="display: none;">
-                    <div class="form-group">
-                        <label for="defaultProductSelect">Standard-Produkt für neue Emails</label>
-                        <select class="form-control" id="defaultProductSelect">
-                            <option value="">Kein Produkt ausgewählt</option>
-                            <!-- Products will be populated dynamically -->
-                        </select>
-                        <small class="form-text">Dieses Produkt wird standardmäßig für neue Email-Generierungen verwendet</small>
-                    </div>
-                    <div class="form-group">
-                        <label for="subjectPrompt">Betreff Prompt</label>
-                        <textarea class="form-control" id="subjectPrompt" rows="3">{{ email_templates.subject or 'Schreibe in DU-Form eine persönliche Betreffzeile mit freundlichen Hook für eine Influencer Kooperation mit Kasimir + Liselotte. Nutze persönliche Infos (z.B. Username, BIO, Interessen), sprich sie direkt in DU-Form. Antworte nur mit der Betreffzeile, ohne zusätzliche Formatierung.' }}</textarea>
-                    </div>
-                    <div class="form-group">
-                        <label for="bodyPrompt">Email Prompt</label>
-                        <textarea class="form-control" id="bodyPrompt" rows="5">{{ email_templates.body or 'Erstelle eine personalisierte, professionelle deutsche E-Mail, ohne die Betreffzeile, für potenzielle Instagram Influencer Kooperationen. Die E-Mail kommt von Kasimir vom Store KasimirLieselotte. Verwende einen höflichen, professionellen Ton auf Deutsch aber in DU-Form um es casual im Instagram feel zu bleiben. Füge am Ende die Signatur mit der Website https://www.kasimirlieselotte.de/ hinzu. Antworte nur mit dem Email-Inhalt, ohne zusätzliche Formatierung.' }}</textarea>
-                    </div>
-                </div>
-            </div>
+
         </nav>
 
         <!-- Main Content Area -->
@@ -286,6 +263,104 @@
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" onclick="closeEditModal()">Abbrechen</button>
                 <button type="button" class="btn btn-primary" onclick="saveEditModal()">Änderungen speichern</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Prompt Settings Modal -->
+    <div class="modal" id="promptSettingsModal">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-header">
+                <h4 class="modal-title">Prompt Einstellungen</h4>
+            </div>
+            <div class="modal-body">
+                <!-- Product Selection -->
+                <div class="form-group">
+                    <label for="promptProductSelect">Produkt auswählen</label>
+                    <div class="d-flex align-items-center gap-2">
+                        <select class="form-control" id="promptProductSelect">
+                            <option value="0">Kein Produkt</option>
+                            <!-- Products will be populated dynamically -->
+                        </select>
+                        <button type="button" class="btn btn-sm btn-primary" id="addProductBtn">
+                            <i class="fas fa-plus"></i> Neu
+                        </button>
+                        <button type="button" class="btn btn-sm btn-secondary" id="editProductBtn" style="display: none;">
+                            <i class="fas fa-edit"></i> Bearbeiten
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Email Type Selection -->
+                <div class="form-group">
+                    <label for="promptTypeSelect">E-Mail Typ</label>
+                    <select class="form-control" id="promptTypeSelect">
+                        <option value="subject">Betreff</option>
+                        <option value="body">E-Mail Text</option>
+                    </select>
+                </div>
+
+                <!-- System Message -->
+                <div class="form-group">
+                    <label for="systemMessage">System-Nachricht</label>
+                    <textarea class="form-control" id="systemMessage" rows="6" placeholder="Gib die System-Anweisungen ein..."></textarea>
+                    <small class="form-text">Diese Nachricht definiert, wie die KI den Text generieren soll.</small>
+                </div>
+
+                <!-- User Message Template -->
+                <div class="form-group">
+                    <label for="userTemplate">Benutzer-Nachricht Vorlage</label>
+                    <textarea class="form-control" id="userTemplate" rows="3" placeholder="Gib die Vorlage für die Benutzer-Nachricht ein..."></textarea>
+                    <small class="form-text">Diese Vorlage wird mit den Lead-Daten gefüllt.</small>
+                </div>
+
+                <!-- Available Variables -->
+                <div class="form-group">
+                    <label>Verfügbare Variablen:</label>
+                    <div id="variablesList" class="variable-checkboxes">
+                        <!-- Variables will be populated dynamically based on product selection -->
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('promptSettingsModal')">Abbrechen</button>
+                <button type="button" class="btn btn-primary" id="savePromptSettings">Speichern</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Product Edit Modal -->
+    <div class="modal" id="productEditModal">
+        <div class="modal-dialog">
+            <div class="modal-header">
+                <h4 class="modal-title" id="productEditTitle">Produkt bearbeiten</h4>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="productEditId">
+                <div class="form-group">
+                    <label for="productName">Produkt Name</label>
+                    <input type="text" class="form-control" id="productName" placeholder="Produkt Name eingeben...">
+                </div>
+                <div class="form-group">
+                    <label for="productUrl">Produkt URL</label>
+                    <input type="text" class="form-control" id="productUrl" placeholder="https://www.beispiel.de/produkt">
+                </div>
+                <div class="form-group">
+                    <label for="productImageUrl">Bild URL</label>
+                    <input type="text" class="form-control" id="productImageUrl" placeholder="https://www.beispiel.de/bild.jpg">
+                </div>
+                <div class="form-group">
+                    <label for="productDescription">Beschreibung</label>
+                    <textarea class="form-control" id="productDescription" rows="3" placeholder="Produkt Beschreibung..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="productPrice">Preis/Größe</label>
+                    <input type="text" class="form-control" id="productPrice" placeholder="z.B. 50 ml">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('productEditModal')">Abbrechen</button>
+                <button type="button" class="btn btn-primary" id="saveProduct">Speichern</button>
             </div>
         </div>
     </div>
