@@ -2145,35 +2145,42 @@ function updateVariablesList() {
     
     const selectedMode = document.querySelector('input[name="promptMode"]:checked');
     const hasProduct = selectedMode ? selectedMode.value === 'with_product' : false;
+    const promptType = document.getElementById('promptTypeSelect').value;
     
     // Clear existing variables
     variablesList.innerHTML = '';
     
-    // Define variables based on product selection
-    const variables = hasProduct ? [
-        { name: 'Benutzername', value: '@{username}' },
-        { name: 'Vollständiger Name', value: '{full_name}' },
-        { name: 'Bio', value: '{bio}' },
-        { name: 'Hashtag', value: '{hashtag}' },
-        { name: 'Beitragstext', value: '{caption}' },
-        { name: 'Ausgewähltes Produkt', value: '{product_name}' },
-        { name: 'Produkt-URL', value: '{product_url}' },
-        { name: 'Beschreibung', value: '{product_description}' }
+    // Define variables based on product selection with their internal names
+    const variableDefinitions = hasProduct ? [
+        { name: 'Benutzername', value: '@{username}', key: 'username' },
+        { name: 'Vollständiger Name', value: '{full_name}', key: 'full_name' },
+        { name: 'Bio', value: '{bio}', key: 'bio' },
+        { name: 'Hashtag', value: '{hashtag}', key: 'hashtag' },
+        { name: 'Beitragstext', value: '{caption}', key: 'caption' },
+        { name: 'Ausgewähltes Produkt', value: '{product_name}', key: 'product_name' },
+        { name: 'Produkt-URL', value: '{product_url}', key: 'product_url' },
+        { name: 'Beschreibung', value: '{product_description}', key: 'product_description' }
     ] : [
-        { name: 'Benutzername', value: '@{username}' },
-        { name: 'Vollständiger Name', value: '{full_name}' },
-        { name: 'Bio', value: '{bio}' },
-        { name: 'Hashtag', value: '{hashtag}' },
-        { name: 'Beitragstext', value: '{caption}' }
+        { name: 'Benutzername', value: '@{username}', key: 'username' },
+        { name: 'Vollständiger Name', value: '{full_name}', key: 'full_name' },
+        { name: 'Bio', value: '{bio}', key: 'bio' },
+        { name: 'Hashtag', value: '{hashtag}', key: 'hashtag' },
+        { name: 'Beitragstext', value: '{caption}', key: 'caption' }
     ];
     
+    // Get current variable settings from loaded prompts
+    const modeKey = hasProduct ? 'with_product' : 'without_product';
+    const currentVariableSettings = currentSystemPrompts?.variable_settings?.[modeKey]?.[promptType] || {};
+    
     // Create checkboxes for each variable
-    variables.forEach(variable => {
+    variableDefinitions.forEach(variable => {
+        const isEnabled = currentVariableSettings[variable.key] !== undefined ? currentVariableSettings[variable.key] : true;
+        
         const div = document.createElement('div');
         div.className = 'form-check mb-2';
         div.innerHTML = `
-            <input class="form-check-input" type="checkbox" id="var_${variable.value}" checked>
-            <label class="form-check-label" for="var_${variable.value}" style="margin-left: 8px; font-weight: 500;">
+            <input class="form-check-input variable-checkbox" type="checkbox" id="var_${variable.key}" data-variable="${variable.key}" ${isEnabled ? 'checked' : ''}>
+            <label class="form-check-label" for="var_${variable.key}" style="margin-left: 8px; font-weight: 500;">
                 ${variable.name} <small class="text-muted">${variable.value}</small>
             </label>
         `;
@@ -2189,11 +2196,20 @@ async function saveSystemPrompts() {
     const systemMessage = document.getElementById('systemMessage').value;
     const userTemplate = document.getElementById('userTemplate').value;
     
+    // Collect variable settings from checkboxes
+    const variableSettings = {};
+    const checkboxes = document.querySelectorAll('.variable-checkbox');
+    checkboxes.forEach(checkbox => {
+        const variableName = checkbox.dataset.variable;
+        variableSettings[variableName] = checkbox.checked;
+    });
+    
     const data = {
         prompt_type: promptType,
         has_product: hasProduct,
         system_message: systemMessage,
-        user_template: userTemplate
+        user_template: userTemplate,
+        variable_settings: variableSettings
     };
     
     try {

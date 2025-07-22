@@ -38,7 +38,7 @@ app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
 }
 
 # Initialize database
-from models import db, Lead, ProcessingSession, HashtagUsernamePair, LeadBackup, Product, SystemPrompt, UserPrompt
+from models import db, Lead, ProcessingSession, HashtagUsernamePair, LeadBackup, Product, SystemPrompt, UserPrompt, VariableSettings
 db.init_app(app)
 
 # Initialize OpenAI client
@@ -111,11 +111,36 @@ with app.app_context():
                             user_message=message
                         )
                         db.session.add(user_prompt)
-
-
+            
+            # Initialize default variable settings (all enabled by default)
+            default_variables = {
+                'without_product': ['username', 'full_name', 'bio', 'hashtag', 'caption'],
+                'with_product': ['username', 'full_name', 'bio', 'hashtag', 'caption', 'product_name', 'product_url', 'product_description']
+            }
+            
+            for has_product in [True, False]:
+                key = 'with_product' if has_product else 'without_product'
+                variables = default_variables[key]
+                
+                for prompt_type in ['subject', 'body']:
+                    for variable_name in variables:
+                        existing = VariableSettings.query.filter_by(
+                            prompt_type=prompt_type,
+                            has_product=has_product,
+                            variable_name=variable_name
+                        ).first()
+                        
+                        if not existing:
+                            variable_setting = VariableSettings(
+                                prompt_type=prompt_type,
+                                has_product=has_product,
+                                variable_name=variable_name,
+                                is_enabled=True  # All variables enabled by default
+                            )
+                            db.session.add(variable_setting)
 
             db.session.commit()
-            logger.info("System prompts and email templates initialized successfully")
+            logger.info("System prompts, email templates, and variable settings initialized successfully")
         except Exception as e:
             logger.error(f"Failed to initialize prompts: {e}")
             db.session.rollback()
@@ -1989,6 +2014,71 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit, default_pro
         return []
 
 
+def build_profile_content(lead, prompt_type, has_product):
+    """Build profile content based on enabled variable settings"""
+    try:
+        # Get variable settings for this configuration
+        variable_settings = VariableSettings.query.filter_by(
+            prompt_type=prompt_type,
+            has_product=has_product
+        ).all()
+        
+        # Create a dictionary of enabled variables
+        enabled_vars = {setting.variable_name: setting.is_enabled for setting in variable_settings}
+        
+        # Build profile content with only enabled variables
+        profile_parts = []
+        
+        if enabled_vars.get('username', True):
+            profile_parts.append(f"@{lead.username}")
+            
+        if enabled_vars.get('full_name', True) and lead.full_name:
+            profile_parts.append(f"Name: {lead.full_name}")
+            
+        if enabled_vars.get('bio', True) and lead.bio:
+            profile_parts.append(f"Bio: {lead.bio}")
+            
+        if enabled_vars.get('hashtag', True):
+            profile_parts.append(f"Hashtag: {lead.hashtag}")
+            
+        if enabled_vars.get('caption', True) and lead.beitragstext:
+            profile_parts.append(f"Beitragstext: {lead.beitragstext[:200]}...")
+        
+        profile_content = "Profil: " + ", ".join(profile_parts) if profile_parts else "Profil:"
+        
+        # Add product information if enabled and available
+        if has_product and lead.selected_product:
+            product_parts = []
+            
+            if enabled_vars.get('product_name', True):
+                product_parts.append(f"Ausgewähltes Produkt: {lead.selected_product.name}")
+                
+            if enabled_vars.get('product_url', True):
+                product_parts.append(f"Produkt-URL: {lead.selected_product.url}")
+                
+            if enabled_vars.get('product_description', True) and lead.selected_product.description:
+                product_parts.append(f"Beschreibung: {lead.selected_product.description}")
+            
+            if product_parts:
+                profile_content += "\n\n" + "\n".join(product_parts)
+        
+        return profile_content
+        
+    except Exception as e:
+        logger.warning(f"Error building profile content with variable settings: {e}")
+        # Fallback to old method if variable settings fail
+        profile_content = f"Profil: @{lead.username}, Name: {lead.full_name}, Bio: {lead.bio}, Hashtag: {lead.hashtag}"
+        
+        if lead.beitragstext:
+            profile_content += f", Beitragstext: {lead.beitragstext[:200]}..."
+        
+        if has_product and lead.selected_product:
+            product_info = f"\n\nAusgewähltes Produkt: {lead.selected_product.name}\nProdukt-URL: {lead.selected_product.url}\nBeschreibung: {lead.selected_product.description}"
+            profile_content += product_info
+            
+        return profile_content
+
+
 @app.route('/draft-email/<username>', methods=['GET'])
 @login_required
 def draft_email(username):
@@ -2026,19 +2116,9 @@ def draft_email(username):
         final_subject_prompt = subject_prompt_obj.system_message if subject_prompt_obj else default_subject
         final_body_prompt = body_prompt_obj.system_message if body_prompt_obj else default_body
         
-        # Build user content with profile and product information
-        profile_content = f"Profil: @{lead.username}, Name: {lead.full_name}, Bio: {lead.bio}, Hashtag: {lead.hashtag}"
-        
-        if lead.beitragstext:
-            profile_content += f", Beitragstext: {lead.beitragstext[:200]}..."
-        
-        # Add product info if available
-        if lead.selected_product:
-            product_info = f"\n\nAusgewähltes Produkt: {lead.selected_product.name}\nProdukt-URL: {lead.selected_product.url}\nBeschreibung: {lead.selected_product.description}"
-            profile_content += product_info
-            profile_content_with_email = f"Profil: @{lead.username}, Name: {lead.full_name}, Bio: {lead.bio}, Email: {lead.email}, Hashtag: {lead.hashtag}" + product_info
-        else:
-            profile_content_with_email = f"Profil: @{lead.username}, Name: {lead.full_name}, Bio: {lead.bio}, Email: {lead.email}, Hashtag: {lead.hashtag}"
+        # Build profile content using variable settings
+        subject_profile_content = build_profile_content(lead, 'subject', has_product)
+        body_profile_content = build_profile_content(lead, 'body', has_product)
 
         # Generate subject using appropriate prompt
         subject_response = openai_client.chat.completions.create(
@@ -2048,7 +2128,7 @@ def draft_email(username):
                 "content": final_subject_prompt
             }, {
                 "role": "user",
-                "content": profile_content
+                "content": subject_profile_content
             }],
             max_tokens=100)
 
@@ -2060,7 +2140,7 @@ def draft_email(username):
                 "content": final_body_prompt
             }, {
                 "role": "user",
-                "content": profile_content_with_email
+                "content": body_profile_content
             }],
             max_tokens=500)
 
@@ -2332,11 +2412,12 @@ def clear_data():
 @app.route('/api/system-prompts', methods=['GET'])
 @login_required
 def get_system_prompts():
-    """Get system prompts and user prompts"""
+    """Get system prompts, user prompts, and variable settings"""
     try:
         # Get all system prompts
         system_prompts = SystemPrompt.query.all()
         user_prompts = UserPrompt.query.all()
+        variable_settings = VariableSettings.query.all()
         
         # Organize system prompts by type and has_product
         result = {
@@ -2370,7 +2451,24 @@ def get_system_prompts():
             key = 'with_product' if prompt.has_product else 'without_product'
             user_templates[key][prompt.prompt_type] = prompt.user_message
         
+        # Organize variable settings
+        variable_settings_result = {
+            'with_product': {
+                'subject': {},
+                'body': {}
+            },
+            'without_product': {
+                'subject': {},
+                'body': {}
+            }
+        }
+        
+        for setting in variable_settings:
+            key = 'with_product' if setting.has_product else 'without_product'
+            variable_settings_result[key][setting.prompt_type][setting.variable_name] = setting.is_enabled
+        
         result['user_templates'] = user_templates
+        result['variable_settings'] = variable_settings_result
         
         return jsonify(result)
     except Exception as e:
@@ -2381,7 +2479,7 @@ def get_system_prompts():
 @app.route('/api/system-prompts', methods=['POST'])
 @login_required
 def save_system_prompts():
-    """Save system prompts and user prompts"""
+    """Save system prompts, user prompts, and variable settings"""
     try:
         data = request.get_json()
         
@@ -2393,6 +2491,7 @@ def save_system_prompts():
         has_product = data.get('has_product')  # True or False
         system_message = data.get('system_message')
         user_template = data.get('user_template')
+        variable_settings = data.get('variable_settings', {})  # Dictionary of variable_name: enabled
         
         if prompt_type not in ['subject', 'body']:
             return jsonify({"error": "Invalid prompt type"}), 400
@@ -2435,11 +2534,33 @@ def save_system_prompts():
                 )
                 db.session.add(user_prompt)
         
+        # Update variable settings if provided
+        if variable_settings:
+            for variable_name, is_enabled in variable_settings.items():
+                setting = VariableSettings.query.filter_by(
+                    prompt_type=prompt_type,
+                    has_product=has_product,
+                    variable_name=variable_name
+                ).first()
+                
+                if setting:
+                    setting.is_enabled = is_enabled
+                    setting.updated_at = datetime.utcnow()
+                else:
+                    # Create new variable setting if it doesn't exist
+                    new_setting = VariableSettings(
+                        prompt_type=prompt_type,
+                        has_product=has_product,
+                        variable_name=variable_name,
+                        is_enabled=is_enabled
+                    )
+                    db.session.add(new_setting)
+        
         db.session.commit()
         
         return jsonify({
             "success": True,
-            "message": "Prompts saved successfully"
+            "message": "Prompts and variable settings saved successfully"
         })
     except Exception as e:
         logger.error(f"Failed to save system prompts: {e}")

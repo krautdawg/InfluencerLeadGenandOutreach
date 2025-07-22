@@ -282,3 +282,29 @@ class UserPrompt(db.Model):
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None
         }
+
+
+class VariableSettings(db.Model):
+    """Model for storing which variables are enabled for each prompt configuration"""
+    id = db.Column(db.Integer, primary_key=True)
+    prompt_type = db.Column(db.String(20), nullable=False)  # 'subject' or 'body'
+    has_product = db.Column(db.Boolean, nullable=False)  # True for with product, False for without
+    variable_name = db.Column(db.String(50), nullable=False)  # 'username', 'full_name', 'bio', etc.
+    is_enabled = db.Column(db.Boolean, default=True, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Composite unique constraint to prevent duplicate configurations
+    __table_args__ = (db.UniqueConstraint('prompt_type', 'has_product', 'variable_name', name='unique_variable_config'),)
+    
+    def to_dict(self):
+        """Convert VariableSettings object to dictionary"""
+        return {
+            'id': self.id,
+            'prompt_type': self.prompt_type,
+            'has_product': self.has_product,
+            'variable_name': self.variable_name,
+            'is_enabled': self.is_enabled,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None
+        }
