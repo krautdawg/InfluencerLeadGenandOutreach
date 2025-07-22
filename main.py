@@ -2377,20 +2377,7 @@ def save_system_prompts():
             )
             db.session.add(system_prompt)
         
-        # Update user template if provided
-        if user_template is not None:
-            template = EmailTemplate.query.filter_by(name=prompt_type).first()
-            if template:
-                template.template = user_template
-                template.has_product = has_product
-                template.updated_at = datetime.utcnow()
-            else:
-                template = EmailTemplate(
-                    name=prompt_type,
-                    template=user_template,
-                    has_product=has_product
-                )
-                db.session.add(template)
+        # User template functionality removed - all prompts now managed through SystemPrompt table
         
         db.session.commit()
         
