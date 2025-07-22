@@ -444,24 +444,12 @@ async function emergencyStopProcessing() {
         
         if (successfulResponse) {
             const result = await successfulResponse.value.json();
-            if (result.details && result.details.process_termination) {
-                showToast('🛑 NOTFALL STOPP - Worker-Prozess wird sofort beendet', 'success');
-                showToast('🔄 System startet automatisch neu...', 'info');
-            } else {
-                showToast('✅ Notfall-Stopp erfolgreich aktiviert', 'success');
-            }
+            showToast('✅ Notfall-Stopp erfolgreich - Alle Prozesse beendet', 'success');
             
             // Force reset the UI immediately
             setTimeout(() => {
                 forceResetUI();
             }, 1000);
-            
-            // If process termination, reload page after brief delay
-            if (result.details && result.details.process_termination) {
-                setTimeout(() => {
-                    window.location.reload();
-                }, 3000);
-            }
         } else {
             showToast('⚠️ Notfall-Stopp gesendet, aber Bestätigung fehlt', 'warning');
             // Still attempt to reset UI
