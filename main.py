@@ -193,6 +193,13 @@ def save_hashtag_username_pairs(profiles, duplicates):
                         existing_pair.post_url = post_url
                     if caption:
                         existing_pair.beitragstext = caption
+                        # Debug: Log caption update for existing pair
+                        if i < 3:
+                            logger.info(f"DEBUG UPDATE existing pair: username={username}, caption_length={len(caption)}, caption_set={caption[:50]}...")
+                    else:
+                        # Debug: Log when no caption to update
+                        if i < 3:
+                            logger.info(f"DEBUG UPDATE existing pair: username={username}, NO CAPTION to update")
                     saved_pairs.append(existing_pair)
                 else:
                     # Create new pair
@@ -204,6 +211,11 @@ def save_hashtag_username_pairs(profiles, duplicates):
                         beitragstext=caption,
                         is_duplicate=username in duplicates
                     )
+                    
+                    # Debug: Log new pair creation with caption
+                    if i < 3:
+                        logger.info(f"DEBUG CREATE new pair: username={username}, beitragstext_param={caption[:50] if caption else 'None'}, caption_length={len(caption) if caption else 0}")
+                    
                     db.session.add(new_pair)
                     saved_pairs.append(new_pair)
 
@@ -310,6 +322,10 @@ def call_apify_actor_sync(actor_id, input_data, token):
                                         'post_url': post_url,
                                         'caption': caption
                                     }
+                                    
+                                    # Debug: Log data mapping for first few profiles (LATEST)
+                                    if total_processed < 3:
+                                        logger.info(f"DEBUG LATEST Data mapping - username={username}, map_caption_length={len(caption) if caption else 0}, map_caption={caption[:50] if caption else 'None'}...")
 
                 # Extract from topPosts
                 if 'topPosts' in item and isinstance(item['topPosts'], list):
@@ -345,6 +361,10 @@ def call_apify_actor_sync(actor_id, input_data, token):
                                         'post_url': post_url,
                                         'caption': caption
                                     }
+                                    
+                                    # Debug: Log data mapping for first few profiles (TOP)
+                                    if total_processed < 3:
+                                        logger.info(f"DEBUG TOP Data mapping - username={username}, map_caption_length={len(caption) if caption else 0}, map_caption={caption[:50] if caption else 'None'}...")
 
             total_processed += 1
 
@@ -356,6 +376,7 @@ def call_apify_actor_sync(actor_id, input_data, token):
 
         # Convert map to list of profile objects with complete data
         processed_items = []
+        profile_count = 0
         for username, data in username_data_map.items():
             profile_data = {
                 'username': username,
@@ -368,7 +389,15 @@ def call_apify_actor_sync(actor_id, input_data, token):
                 profile_data['post_url'] = data['post_url']
             if data.get('caption'):
                 profile_data['caption'] = data['caption']
+                
+            # Debug: Log profile data construction for first few profiles
+            if profile_count < 3:
+                caption_in_data = data.get('caption', '')
+                caption_in_profile = profile_data.get('caption', '')
+                logger.info(f"DEBUG Profile construction {profile_count + 1}: username={username}, data_caption_length={len(caption_in_data) if caption_in_data else 0}, profile_caption_length={len(caption_in_profile) if caption_in_profile else 0}, caption_match={caption_in_data == caption_in_profile}")
+                
             processed_items.append(profile_data)
+            profile_count += 1
 
         # Final cleanup
         gc.collect()
