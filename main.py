@@ -1256,7 +1256,19 @@ def process_keyword():
             return {"error": str(e)}, 500
 
 
-## Removed regular stop processing - only emergency stop available
+## Emergency stop with gunicorn worker restart functionality
+
+def force_worker_restart():
+    """Force gunicorn worker restart by touching main.py"""
+    try:
+        main_py_path = "main.py"
+        current_time = time.time()
+        os.utime(main_py_path, (current_time, current_time))
+        logger.critical("🛑 EMERGENCY STOP: Forced worker restart by touching main.py")
+        return True
+    except Exception as e:
+        logger.error(f"Failed to force worker restart: {e}")
+        return False
 
 
 @app.route('/emergency-stop-processing', methods=['POST'])
@@ -1283,6 +1295,11 @@ def emergency_stop_processing():
             'phase': 'stopped'
         }
         
+        # FORCEFUL TERMINATION: Restart gunicorn worker for immediate process kill
+        worker_restart_success = False
+        if force or immediate:
+            worker_restart_success = force_worker_restart()
+            
         # Additional force cleanup if requested
         if force:
             # Clear session processing data
@@ -1303,8 +1320,9 @@ def emergency_stop_processing():
         
         return jsonify({
             "success": True, 
-            "message": "Notfall-Stopp erfolgreich aktiviert",
+            "message": "🛑 NOTFALL STOPP - Alle Prozesse sofort beendet" + (" (Worker neu gestartet)" if worker_restart_success else ""),
             "emergency": True,
+            "worker_restarted": worker_restart_success,
             "timestamp": time.time(),
             "details": {
                 "force_cleanup": force,

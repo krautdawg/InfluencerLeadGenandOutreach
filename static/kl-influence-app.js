@@ -444,12 +444,21 @@ async function emergencyStopProcessing() {
         
         if (successfulResponse) {
             const result = await successfulResponse.value.json();
-            showToast('✅ Notfall-Stopp erfolgreich - Alle Prozesse beendet', 'success');
+            const workerRestarted = result.worker_restarted ? ' (Worker neu gestartet)' : '';
+            showToast(`✅ Notfall-Stopp erfolgreich - Alle Prozesse beendet${workerRestarted}`, 'success');
             
-            // Force reset the UI immediately
-            setTimeout(() => {
-                forceResetUI();
-            }, 1000);
+            // If worker was restarted, reload the page after a short delay
+            if (result.worker_restarted) {
+                setTimeout(() => {
+                    showToast('🔄 Seite wird neu geladen wegen Worker-Neustart...', 'info');
+                    window.location.reload();
+                }, 2000);
+            } else {
+                // Force reset the UI immediately for non-worker restart stops
+                setTimeout(() => {
+                    forceResetUI();
+                }, 1000);
+            }
         } else {
             showToast('⚠️ Notfall-Stopp gesendet, aber Bestätigung fehlt', 'warning');
             // Still attempt to reset UI
