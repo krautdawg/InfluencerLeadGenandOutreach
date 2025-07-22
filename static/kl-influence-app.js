@@ -2065,7 +2065,8 @@ function initializePromptSettings() {
             console.log('Modal element:', modal);
             
             if (modal) {
-                modal.style.display = 'block';
+                modal.style.display = 'flex';
+                modal.classList.add('show');
                 console.log('Modal opened successfully');
             } else {
                 console.error('Modal element not found!');
@@ -2331,7 +2332,11 @@ function closeModal(modalId) {
     console.log('Closing modal:', modalId);
     const modal = document.getElementById(modalId);
     if (modal) {
-        modal.style.display = 'none';
+        modal.classList.remove('show');
+        // Allow transition to complete before hiding
+        setTimeout(() => {
+            modal.style.display = 'none';
+        }, 300);
     }
 }
 

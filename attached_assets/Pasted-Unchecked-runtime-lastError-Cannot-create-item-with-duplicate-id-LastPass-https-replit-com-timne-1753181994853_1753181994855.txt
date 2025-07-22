@@ -1,0 +1,21 @@
+Unchecked runtime.lastError: Cannot create item with duplicate id LastPass https://replit.com/@timneunzig/V3BuildInfluencerLeadGenandOutreach
+Unchecked runtime.lastError: Cannot create item with duplicate id separator https://replit.com/@timneunzig/V3BuildInfluencerLeadGenandOutreach
+Unchecked runtime.lastError: Cannot create item with duplicate id Add Item https://replit.com/@timneunzig/V3BuildInfluencerLeadGenandOutreach
+Unchecked runtime.lastError: Cannot create item with duplicate id Add Password https://replit.com/@timneunzig/V3BuildInfluencerLeadGenandOutreach
+Unchecked runtime.lastError: Cannot create item with duplicate id Add Address https://replit.com/@timneunzig/V3BuildInfluencerLeadGenandOutreach
+Unchecked runtime.lastError: Cannot create item with duplicate id Add Payment Card https://replit.com/@timneunzig/V3BuildInfluencerLeadGenandOutreach
+Unchecked runtime.lastError: Cannot create item with duplicate id Add other item https://replit.com/@timneunzig/V3BuildInfluencerLeadGenandOutreach
+Unchecked runtime.lastError: Cannot create item with duplicate id Save all entered data https://replit.com/@timneunzig/V3BuildInfluencerLeadGenandOutreach
+Unchecked runtime.lastError: Cannot create item with duplicate id Generate Secure Password https://replit.com/@timneunzig/V3BuildInfluencerLeadGenandOutreach
+Unchecked runtime.lastError: The page keeping the extension port is moved into back/forward cache, so the message channel is closed.
+kl-influence-app.js:57 Existing leads found: 168
+Navigated to https://d79d2222-637b-410b-a558-d4a3e5938800-00-197n94tkp9afx.spock.replit.dev/
+kl-influence-app.js:57 Existing leads found: 168
+kl-influence-app.js:2036 Initializing Prompt Settings...
+kl-influence-app.js:2045 promptSettingsBtn: button#promptSettingsBtn.btn.btn-primary
+kl-influence-app.js:2054 Prompt Settings button clicked!
+kl-influence-app.js:2143 Loading system prompts...
+kl-influence-app.js:2146 Response status: 200
+kl-influence-app.js:2150 Loaded system prompts: {user_templates: {…}, with_product: {…}, without_product: {…}}
+kl-influence-app.js:2065 Modal element: <div class=​"modal" id=​"promptSettingsModal">​…​</div>​
+kl-influence-app.js:2069 Modal opened successfully
