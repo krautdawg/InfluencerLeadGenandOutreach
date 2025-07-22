@@ -13,20 +13,27 @@ K+L Influence is a Flask-based Instagram lead generation and outreach automation
 
 ## Recent Changes
 
-### 2025-07-22: Fixed Edit Modal Display Issue (COMPLETED)
+### 2025-07-22: Fixed Edit Modal Display Issue and Prevented Outside Click Closing (COMPLETED)
 - **Issue**: After closing the email/subject template modal by clicking outside, the modal could not be reopened
 - **Root Cause**: The `showEditModal` function only added the 'show' class but didn't set `style.display = 'flex'`, while `closeModal` set `style.display = 'none'`, preventing the modal from being visible again
+- **Additional Issue**: Modal was closing when clicking outside, which interfered with user workflow
 - **Solution Implemented**:
   - Updated `showEditModal` to set `modal.style.display = 'flex'` before adding the 'show' class
-  - Ensured consistent modal opening behavior across all modals (editModal, promptSettingsModal)
+  - Added "X" close button to editModal header matching promptSettingsModal pattern
+  - Updated cancel button to use unified `closeModal('editModal')` approach
+  - Enhanced `closeModal` function with special cleanup for editModal (editingUsername, editingField)
+  - Excluded editModal from global click-outside-to-close behavior (like promptSettingsModal)
 - **Technical Implementation**:
-  - Modified lines in `showEditModal` function to match the promptSettingsModal opening pattern
-  - Modal now properly sets display style on open, allowing it to be reopened after closing
+  - Modified `showEditModal` function to match promptSettingsModal opening pattern
+  - Updated HTML template to include close button in modal header
+  - Modified global modal click listener to exclude both promptSettingsModal and editModal
+  - Removed old `closeEditModal` function and unified all modal closing through `closeModal`
 - **Benefits**:
-  - Edit modal can now be reopened multiple times without page refresh
+  - Edit modal only closes via "X" button or "Cancel" button, not outside clicks
+  - Modal can be reopened multiple times without page refresh
   - Consistent modal behavior across the application
-  - Fixed the bug where users couldn't edit subject/email fields after closing the modal once
-- **Status**: Edit modal display issue fixed - modal now reopens correctly after being closed
+  - Fixed the bug where users couldn't edit subject/email fields after closing modal once
+- **Status**: Edit modal display and closing mechanism fixed - modal behavior now consistent with user expectations
 
 ### 2025-07-22: Fixed SQLAlchemy Relationship Loading for Checkbox Variables (COMPLETED)
 - **Feature**: Fixed SQLAlchemy relationship loading issue that prevented product data from appearing in auto-generated email content

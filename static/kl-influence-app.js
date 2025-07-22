@@ -117,10 +117,10 @@ function initializeEventListeners() {
     // Default product selector change
     document.getElementById('defaultProductSelect')?.addEventListener('change', updateTemplatePromptsBasedOnProduct);
     
-    // Modal close on background click (except for prompt settings modal)
+    // Modal close on background click (except for prompt settings modal and edit modal)
     document.querySelectorAll('.modal').forEach(modal => {
         modal.addEventListener('click', (e) => {
-            if (e.target === modal && modal.id !== 'promptSettingsModal') {
+            if (e.target === modal && modal.id !== 'promptSettingsModal' && modal.id !== 'editModal') {
                 closeModal(modal.id);
             }
         });
