@@ -1997,53 +1997,43 @@ def build_dynamic_prompt_content(lead, prompt_type, has_product):
             has_product=has_product
         ).first()
         
-        if not user_prompt or not user_prompt.user_message:
-            # Return empty string when no template exists - this is intentional
-            return ""
-        
-        # Parse the template to remove disabled variable sections
-        filtered_template = parse_prompt_template(user_prompt.user_message, enabled_vars)
-        
-        # Create variable dictionary for substitution
-        variables = {}
-        
+        # Always auto-generate structured data from enabled variables
+        auto_data_parts = []
+
         if enabled_vars.get('username', True):
-            variables['username'] = lead.username
+            auto_data_parts.append(f"Username: {lead.username}")
             
         if enabled_vars.get('full_name', True) and lead.full_name:
-            variables['full_name'] = lead.full_name
+            auto_data_parts.append(f"Full Name: {lead.full_name}")
             
         if enabled_vars.get('bio', True) and lead.bio:
-            variables['bio'] = lead.bio
+            auto_data_parts.append(f"Bio: {lead.bio}")
             
         if enabled_vars.get('hashtag', True):
-            variables['hashtag'] = lead.hashtag
+            auto_data_parts.append(f"Hashtag: {lead.hashtag}")
             
         if enabled_vars.get('caption', True) and lead.beitragstext:
-            variables['caption'] = lead.beitragstext[:200] + "..."
-        
+            auto_data_parts.append(f"Caption: {lead.beitragstext[:200]}...")
+
         # Add product variables if enabled and available
         if has_product and lead.selected_product:
             if enabled_vars.get('product_name', True):
-                variables['product_name'] = lead.selected_product.name
+                auto_data_parts.append(f"Product Name: {lead.selected_product.name}")
                 
             if enabled_vars.get('product_url', True):
-                variables['product_url'] = lead.selected_product.url
+                auto_data_parts.append(f"Product URL: {lead.selected_product.url}")
                 
             if enabled_vars.get('product_description', True) and lead.selected_product.description:
-                variables['product_description'] = lead.selected_product.description
-        
-        # Substitute variables in the filtered template
-        try:
-            final_content = filtered_template.format(**variables)
-        except KeyError as e:
-            logger.warning(f"Missing variable in template: {e}")
-            # Return template with available substitutions
-            final_content = filtered_template
-            for key, value in variables.items():
-                final_content = final_content.replace(f'{{{key}}}', str(value))
-        
-        return final_content
+                auto_data_parts.append(f"Product Description: {lead.selected_product.description}")
+
+        # Create the structured data section
+        structured_data = "\n".join(auto_data_parts) if auto_data_parts else ""
+
+        # If there's user template text, add it to the front
+        if user_prompt and user_prompt.user_message and user_prompt.user_message.strip():
+            return f"{user_prompt.user_message.strip()}\n\n{structured_data}"
+        else:
+            return structured_data
         
     except Exception as e:
         logger.error(f"Error building dynamic prompt content: {e}")
