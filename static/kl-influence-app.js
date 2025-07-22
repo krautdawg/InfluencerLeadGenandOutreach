@@ -108,8 +108,7 @@ function initializeEventListeners() {
     // Run button
     document.getElementById('runButton')?.addEventListener('click', processKeyword);
     
-    // Stop button
-    document.getElementById('stopButton')?.addEventListener('click', stopProcessing);
+
     
     // Email template auto-save
     initializeEmailTemplateAutoSave();
@@ -411,30 +410,7 @@ function updateSessionIdDisplay(sessionId) {
     }
 }
 
-// Stop processing
-async function stopProcessing() {
-    try {
-        const response = await fetch('/stop-processing', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' }
-        });
-        
-        if (response.ok) {
-            const result = await response.json();
-            showToast('Stopp-Anfrage gesendet...', 'info');
-            
-            // Update button states
-            const stopButton = document.getElementById('stopButton');
-            stopButton.disabled = true;
-            stopButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Stopping...';
-        } else {
-            showToast('Stopp fehlgeschlagen', 'error');
-        }
-    } catch (error) {
-        console.error('Error stopping processing:', error);
-        showToast('Error stopping processing', 'error');
-    }
-}
+
 
 // Process keyword
 async function processKeyword() {
@@ -459,7 +435,6 @@ async function processKeyword() {
     }
     
     const runButton = document.getElementById('runButton');
-    const stopButton = document.getElementById('stopButton');
     
     // Set lead generation state
     setLeadGenerationState(true);
@@ -467,11 +442,6 @@ async function processKeyword() {
     // Update UI for processing state
     runButton.disabled = true;
     runButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
-    runButton.style.display = 'none';
-    
-    stopButton.disabled = false;
-    stopButton.style.display = 'inline-block';
-    stopButton.innerHTML = '<i class="fas fa-stop"></i> Stop Processing';
     
     // Show processing status with detailed initial step
     document.getElementById('processingStatus').style.display = 'block';
@@ -592,7 +562,6 @@ async function fetchAndDisplayAllLeadsOnStartup() {
 function updateUIState() {
     // Lead Generation UI elements
     const runButton = document.getElementById('runButton');
-    const stopButton = document.getElementById('stopButton');
     const keywordInput = document.getElementById('keywordInput');
     const searchLimitInput = document.getElementById('searchLimitInput');
     
@@ -914,16 +883,10 @@ async function updateProgress() {
 // Reset processing UI to initial state
 function resetProcessingUI() {
     const runButton = document.getElementById('runButton');
-    const stopButton = document.getElementById('stopButton');
     
     // Reset run button
     runButton.disabled = false;
     runButton.innerHTML = '<i class="fas fa-play"></i><span>Leads generieren</span>';
-    runButton.style.display = 'inline-block';
-    
-    // Hide stop button
-    stopButton.disabled = true;
-    stopButton.style.display = 'none';
     
     // Hide processing status
     document.getElementById('processingStatus').style.display = 'none';

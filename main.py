@@ -1242,24 +1242,6 @@ def process_keyword():
             return {"error": str(e)}, 500
 
 
-@app.route('/stop-processing', methods=['POST'])
-@login_required
-def stop_processing():
-    """Stop current processing"""
-    try:
-        app_data['stop_requested'] = True
-        app_data['processing_status'] = 'Stopping...'
-        
-        # Update progress to show stopping
-        app_data['processing_progress']['current_step'] = 'Stoppe Verarbeitung...'
-        app_data['processing_progress']['final_status'] = 'stopped'
-        
-        logger.info("Stop requested by user")
-        return jsonify({"success": True, "message": "Stopp-Anfrage gesendet"})
-    except Exception as e:
-        logger.error(f"Failed to stop processing: {e}")
-        return jsonify({"error": "Fehler beim Stoppen"}), 500
-
 
 @app.route('/emergency-restart', methods=['POST'])
 @login_required
