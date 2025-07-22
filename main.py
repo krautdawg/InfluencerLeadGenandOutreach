@@ -786,6 +786,12 @@ async def enrich_profile_batch(usernames, ig_sessionid, apify_token,
                                perplexity_key, semaphore):
     """Enrich a batch of profiles with concurrent processing"""
     async with semaphore:
+        # Check for emergency stop at the start
+        if app_data.get('stop_requested', False) or app_data.get('emergency_stop', False):
+            stop_type = "EMERGENCY STOP" if app_data.get('emergency_stop', False) else "user stop"
+            logger.info(f"Profile batch enrichment stopped by {stop_type}")
+            return []
+        
         try:
             # Call Apify profile enrichment actor with correct format
             instagram_urls = [f"https://www.instagram.com/{username}" for username in usernames]
@@ -816,6 +822,12 @@ async def enrich_profile_batch(usernames, ig_sessionid, apify_token,
                     profile_map[username_from_url] = item
 
             for username in usernames:
+                # Check for emergency stop in the enrichment loop
+                if app_data.get('stop_requested', False) or app_data.get('emergency_stop', False):
+                    stop_type = "EMERGENCY STOP" if app_data.get('emergency_stop', False) else "user stop"
+                    logger.info(f"Profile enrichment stopped by {stop_type} during username {username}")
+                    return enriched_profiles  # Return what we've processed so far
+                
                 profile_info = profile_map.get(username, {})
 
                 # Always try to enrich contact info with Perplexity for missing data
@@ -1244,23 +1256,7 @@ def process_keyword():
             return {"error": str(e)}, 500
 
 
-@app.route('/stop-processing', methods=['POST'])
-@login_required
-def stop_processing():
-    """Stop current processing"""
-    try:
-        app_data['stop_requested'] = True
-        app_data['processing_status'] = 'Stopping...'
-        
-        # Update progress to show stopping
-        app_data['processing_progress']['current_step'] = 'Stoppe Verarbeitung...'
-        app_data['processing_progress']['final_status'] = 'stopped'
-        
-        logger.info("Stop requested by user")
-        return jsonify({"success": True, "message": "Stopp-Anfrage gesendet"})
-    except Exception as e:
-        logger.error(f"Failed to stop processing: {e}")
-        return jsonify({"error": "Fehler beim Stoppen"}), 500
+## Removed regular stop processing - only emergency stop available
 
 
 @app.route('/emergency-stop-processing', methods=['POST'])
@@ -1546,10 +1542,15 @@ async def enrich_selected_profiles_async(selected_profiles, ig_sessionid, defaul
             
             app_data['processing_progress']['completed_steps'] = i + 1
             
-            # Anti-spam pause
+            # Anti-spam pause with emergency stop checking
             if i < len(batches) - 1:
                 logger.info(f"Anti-spam pause: 90s before batch {i+2}")
                 for remaining in range(90, 0, -15):
+                    # Check for emergency stop during pause
+                    if app_data.get('stop_requested', False) or app_data.get('emergency_stop', False):
+                        stop_type = "EMERGENCY STOP" if app_data.get('emergency_stop', False) else "user stop"
+                        logger.info(f"Processing stopped by {stop_type} during anti-spam pause")
+                        return
                     app_data['processing_progress']['current_step'] = f'⏸ Anti-Spam Pause: {remaining}s bis Batch {i+2}/{len(batches)}'
                     await asyncio.sleep(15)
                     
@@ -1622,6 +1623,12 @@ async def discover_hashtags_async(keyword, ig_sessionid, search_limit):
         hashtag_usernames = {}  # Store usernames per hashtag
         
         for item in hashtag_items:
+            # Check for emergency stop during hashtag processing
+            if app_data.get('stop_requested', False) or app_data.get('emergency_stop', False):
+                stop_type = "EMERGENCY STOP" if app_data.get('emergency_stop', False) else "user stop"
+                logger.info(f"Hashtag processing stopped by {stop_type}")
+                break
+                
             username = item.get('username')
             hashtag = item.get('hashtag', keyword)
             timestamp = item.get('timestamp')
