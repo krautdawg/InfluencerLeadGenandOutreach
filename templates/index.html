@@ -24,6 +24,10 @@
                 <i class="fas fa-cogs"></i>
                 Prompt Einstellungen
             </button>
+            <button type="button" class="btn btn-primary" id="productManageBtn" style="margin-right: 10px;">
+                <i class="fas fa-box"></i>
+                Produkte verwalten
+            </button>
             <button type="button" class="btn btn-connection" id="sessionStatus">
                 <img src="{{ url_for('static', filename='instagram-icon.svg') }}" alt="Instagram" class="instagram-icon">
                 <span id="sessionStatusText">
@@ -351,9 +355,22 @@
         <div class="modal-dialog">
             <div class="modal-header">
                 <h4 class="modal-title" id="productEditTitle">Produkt bearbeiten</h4>
+                <button type="button" class="close" onclick="closeModal('productEditModal')" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
             </div>
             <div class="modal-body">
                 <input type="hidden" id="productEditId">
+                <!-- Product Selector -->
+                <div class="form-group">
+                    <label for="productSelector">Produkt auswählen</label>
+                    <select class="form-control" id="productSelector">
+                        <option value="">-- Neues Produkt erstellen --</option>
+                        <!-- Products will be populated dynamically -->
+                    </select>
+                    <small class="form-text">Wähle ein bestehendes Produkt zum Bearbeiten oder erstelle ein neues.</small>
+                </div>
+                <hr>
                 <div class="form-group">
                     <label for="productName">Produkt Name</label>
                     <input type="text" class="form-control" id="productName" placeholder="Produkt Name eingeben...">

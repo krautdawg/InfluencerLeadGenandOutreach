@@ -2677,5 +2677,53 @@ def set_default_product():
         return {"error": "Failed to set default product"}, 500
 
 
+@app.route('/api/products/<int:product_id>/check-usage', methods=['GET'])
+@login_required
+def check_product_usage(product_id):
+    """Check if a product is being used by any leads"""
+    try:
+        # Check if product exists
+        product = Product.query.get(product_id)
+        if not product:
+            return {"error": "Product not found"}, 404
+        
+        # Count leads using this product
+        lead_count = Lead.query.filter_by(selected_product_id=product_id).count()
+        
+        return jsonify({
+            "in_use": lead_count > 0,
+            "lead_count": lead_count
+        })
+    except Exception as e:
+        logger.error(f"Failed to check product usage: {e}")
+        return {"error": "Failed to check product usage"}, 500
+
+
+@app.route('/api/products/<int:product_id>', methods=['DELETE'])
+@login_required
+def delete_product(product_id):
+    """Delete a product if it's not being used by any leads"""
+    try:
+        # Check if product exists
+        product = Product.query.get(product_id)
+        if not product:
+            return {"error": "Product not found"}, 404
+        
+        # Check if product is being used
+        lead_count = Lead.query.filter_by(selected_product_id=product_id).count()
+        if lead_count > 0:
+            return {"error": f"Product is being used by {lead_count} lead(s)"}, 400
+        
+        # Delete the product
+        db.session.delete(product)
+        db.session.commit()
+        
+        return jsonify({"success": True, "message": "Product deleted successfully"})
+    except Exception as e:
+        logger.error(f"Failed to delete product: {e}")
+        db.session.rollback()
+        return {"error": "Failed to delete product"}, 500
+
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
