@@ -374,59 +374,6 @@ select:focus {
   gap: var(--space-sm);
 }
 
-/* Emergency button styles */
-.btn-emergency {
-  background: linear-gradient(135deg, #ff4444, #cc0000);
-  color: var(--color-white);
-  border: 2px solid #cc0000;
-  font-weight: 700;
-  font-size: 15px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  box-shadow: 0 4px 12px rgba(255, 68, 68, 0.3);
-  animation: emergency-pulse 2s infinite;
-}
-
-.btn-emergency:hover {
-  background: linear-gradient(135deg, #ff0000, #990000);
-  border-color: #990000;
-  box-shadow: 0 6px 16px rgba(255, 0, 0, 0.4);
-  transform: translateY(-1px);
-}
-
-.btn-emergency:active {
-  transform: translateY(0);
-  box-shadow: 0 2px 8px rgba(255, 0, 0, 0.3);
-}
-
-.btn-emergency.stopping {
-  background: linear-gradient(135deg, #666, #333);
-  border-color: #333;
-  animation: none;
-  cursor: not-allowed;
-}
-
-.btn-emergency.stopping:hover {
-  background: linear-gradient(135deg, #666, #333);
-  transform: none;
-}
-
-@keyframes emergency-pulse {
-  0% { box-shadow: 0 4px 12px rgba(255, 68, 68, 0.3); }
-  50% { box-shadow: 0 4px 20px rgba(255, 68, 68, 0.5); }
-  100% { box-shadow: 0 4px 12px rgba(255, 68, 68, 0.3); }
-}
-
-.btn-danger {
-  background-color: #d32f2f;
-  color: var(--color-white);
-}
-
-.btn-danger:hover {
-  background-color: #b71c1c;
-  color: var(--color-white);
-}
-
 /* 7. Cards
 ------------------------------------------- */
 .card {

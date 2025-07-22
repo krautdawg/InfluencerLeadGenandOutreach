@@ -108,10 +108,8 @@ function initializeEventListeners() {
     // Run button
     document.getElementById('runButton')?.addEventListener('click', processKeyword);
     
-    // Removed regular stop button - only emergency stop available
-    
-    // Emergency STOP button
-    document.getElementById('emergencyStopButton')?.addEventListener('click', emergencyStopProcessing);
+    // Stop button
+    document.getElementById('stopButton')?.addEventListener('click', stopProcessing);
     
     // Email template auto-save
     initializeEmailTemplateAutoSave();
@@ -411,116 +409,27 @@ function updateSessionIdDisplay(sessionId) {
 }
 
 // Stop processing
-// Removed regular stop processing - only emergency stop available
-
-// Emergency STOP processing - immediate and forceful
-async function emergencyStopProcessing() {
-    const emergencyButton = document.getElementById('emergencyStopButton');
-    
+async function stopProcessing() {
     try {
-        // Immediate UI feedback
-        emergencyButton.classList.add('stopping');
-        emergencyButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> STOPPE NOTFALL...';
-        emergencyButton.disabled = true;
+        const response = await fetch('/stop-processing', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        });
         
-        // Show immediate notification
-        showToast('🛑 NOTFALL STOPP aktiviert - Alle Prozesse werden beendet...', 'error');
-        
-        // Make multiple rapid stop requests to ensure stopping
-        const stopRequests = [];
-        for (let i = 0; i < 3; i++) {
-            stopRequests.push(
-                fetch('/emergency-stop-processing', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ force: true, immediate: true })
-                })
-            );
-        }
-        
-        // Wait for at least one response
-        const responses = await Promise.allSettled(stopRequests);
-        const successfulResponse = responses.find(r => r.status === 'fulfilled' && r.value.ok);
-        
-        if (successfulResponse) {
-            const result = await successfulResponse.value.json();
-            const workerRestarted = result.worker_restarted ? ' (Worker neu gestartet)' : '';
-            showToast(`✅ Notfall-Stopp erfolgreich - Alle Prozesse beendet${workerRestarted}`, 'success');
+        if (response.ok) {
+            const result = await response.json();
+            showToast('Stopp-Anfrage gesendet...', 'info');
             
-            // If worker was restarted, reload the page after a short delay
-            if (result.worker_restarted) {
-                setTimeout(() => {
-                    showToast('🔄 Seite wird neu geladen wegen Worker-Neustart...', 'info');
-                    window.location.reload();
-                }, 2000);
-            } else {
-                // Force reset the UI immediately for non-worker restart stops
-                setTimeout(() => {
-                    forceResetUI();
-                }, 1000);
-            }
+            // Update button states
+            const stopButton = document.getElementById('stopButton');
+            stopButton.disabled = true;
+            stopButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Stopping...';
         } else {
-            showToast('⚠️ Notfall-Stopp gesendet, aber Bestätigung fehlt', 'warning');
-            // Still attempt to reset UI
-            setTimeout(() => {
-                forceResetUI();
-            }, 2000);
+            showToast('Stopp fehlgeschlagen', 'error');
         }
-        
     } catch (error) {
-        console.error('Emergency stop error:', error);
-        showToast('❌ Notfall-Stopp Fehler - UI wird zurückgesetzt', 'error');
-        
-        // Force UI reset even on error
-        setTimeout(() => {
-            forceResetUI();
-        }, 1000);
-    }
-}
-
-// Force reset all UI elements to default state
-function forceResetUI() {
-    try {
-        // Reset processing states
-        setLeadGenerationState(false);
-        isEmailDraftGenerationInProgress = false;
-        
-        // Reset button states
-        const runButton = document.getElementById('runButton');
-        const emergencyButton = document.getElementById('emergencyStopButton');
-        
-        if (runButton) {
-            runButton.disabled = false;
-            runButton.innerHTML = '<i class="fas fa-play"></i> <span>Leads generieren</span>';
-            runButton.style.display = 'inline-block';
-        }
-        
-        if (emergencyButton) {
-            emergencyButton.classList.remove('stopping');
-            emergencyButton.innerHTML = '<i class="fas fa-hand-paper"></i> <span>🛑 NOTFALL STOPP</span>';
-            emergencyButton.disabled = false;
-            emergencyButton.style.display = 'none';
-        }
-        
-        // Hide processing status
-        const processingStatus = document.getElementById('processingStatus');
-        if (processingStatus) {
-            processingStatus.style.display = 'none';
-        }
-        
-        // Re-enable inputs
-        const keywordInput = document.getElementById('keywordInput');
-        const searchLimitInput = document.getElementById('searchLimitInput');
-        if (keywordInput) keywordInput.disabled = false;
-        if (searchLimitInput) searchLimitInput.disabled = false;
-        
-        // Update overall UI state
-        updateUIState();
-        
-        console.log('UI force reset completed');
-        
-    } catch (error) {
-        console.error('Error during force UI reset:', error);
+        console.error('Error stopping processing:', error);
+        showToast('Error stopping processing', 'error');
     }
 }
 
@@ -547,7 +456,7 @@ async function processKeyword() {
     }
     
     const runButton = document.getElementById('runButton');
-    const emergencyButton = document.getElementById('emergencyStopButton');
+    const stopButton = document.getElementById('stopButton');
     
     // Set lead generation state
     setLeadGenerationState(true);
@@ -557,13 +466,9 @@ async function processKeyword() {
     runButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
     runButton.style.display = 'none';
     
-    // Show emergency stop button during processing
-    if (emergencyButton) {
-        emergencyButton.disabled = false;
-        emergencyButton.style.display = 'inline-block';
-        emergencyButton.classList.remove('stopping');
-        emergencyButton.innerHTML = '<i class="fas fa-hand-paper"></i> <span>🛑 NOTFALL STOPP</span>';
-    }
+    stopButton.disabled = false;
+    stopButton.style.display = 'inline-block';
+    stopButton.innerHTML = '<i class="fas fa-stop"></i> Stop Processing';
     
     // Show processing status with detailed initial step
     document.getElementById('processingStatus').style.display = 'block';
@@ -684,6 +589,7 @@ async function fetchAndDisplayAllLeadsOnStartup() {
 function updateUIState() {
     // Lead Generation UI elements
     const runButton = document.getElementById('runButton');
+    const stopButton = document.getElementById('stopButton');
     const keywordInput = document.getElementById('keywordInput');
     const searchLimitInput = document.getElementById('searchLimitInput');
     
@@ -1005,20 +911,16 @@ async function updateProgress() {
 // Reset processing UI to initial state
 function resetProcessingUI() {
     const runButton = document.getElementById('runButton');
-    const emergencyButton = document.getElementById('emergencyStopButton');
+    const stopButton = document.getElementById('stopButton');
     
     // Reset run button
     runButton.disabled = false;
     runButton.innerHTML = '<i class="fas fa-play"></i><span>Leads generieren</span>';
     runButton.style.display = 'inline-block';
     
-    // Hide and reset emergency stop button
-    if (emergencyButton) {
-        emergencyButton.disabled = true;
-        emergencyButton.style.display = 'none';
-        emergencyButton.classList.remove('stopping');
-        emergencyButton.innerHTML = '<i class="fas fa-hand-paper"></i> <span>🛑 NOTFALL STOPP</span>';
-    }
+    // Hide stop button
+    stopButton.disabled = true;
+    stopButton.style.display = 'none';
     
     // Hide processing status
     document.getElementById('processingStatus').style.display = 'none';
