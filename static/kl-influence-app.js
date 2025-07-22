@@ -131,6 +131,9 @@ function initializeEventListeners() {
     
     // Mobile input field optimization
     optimizeMobileInputs();
+    
+    // Emergency restart button
+    document.getElementById('emergencyRestartBtn')?.addEventListener('click', emergencyRestart);
 }
 
 // Initialize table filters
@@ -2027,6 +2030,45 @@ async function updateLeadProduct(username, productId) {
 
 // Prompt Settings functionality
 let currentSystemPrompts = null;
+
+// Emergency restart function
+async function emergencyRestart() {
+    const confirmed = confirm(
+        "⚠️ WARNUNG: Server Neustart\n\n" +
+        "Dies wird den Server sofort neu starten und alle laufenden Prozesse beenden.\n\n" +
+        "Sind Sie sicher, dass Sie fortfahren möchten?"
+    );
+    
+    if (!confirmed) {
+        return;
+    }
+    
+    try {
+        showToast('Server wird neu gestartet...', 'warning');
+        
+        // Send restart request
+        const response = await fetch('/emergency-restart', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        // The server will restart before we get a response, but handle it gracefully
+        if (response.ok) {
+            showToast('Neustart eingeleitet...', 'info');
+        }
+        
+    } catch (error) {
+        // Expected - connection will be lost when server restarts
+        showToast('Server wird neu gestartet...', 'info');
+        
+        // Attempt to reload page after a short delay
+        setTimeout(() => {
+            window.location.reload();
+        }, 3000);
+    }
+}
 
 // Initialize Prompt Settings
 function initializePromptSettings() {

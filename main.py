@@ -1261,6 +1261,37 @@ def stop_processing():
         return jsonify({"error": "Fehler beim Stoppen"}), 500
 
 
+@app.route('/emergency-restart', methods=['POST'])
+@login_required
+def emergency_restart():
+    """Emergency restart - forcefully terminates the server process"""
+    import os
+    import sys
+    
+    try:
+        logger.warning("Emergency restart requested by user - forcefully terminating server")
+        
+        # Return a response before terminating
+        response = jsonify({"success": True, "message": "Server wird neu gestartet..."})
+        
+        # Schedule the restart after the response is sent
+        def restart_server():
+            import time
+            time.sleep(0.1)  # Give time for response to be sent
+            os._exit(1)  # Force exit - Gunicorn will restart the worker
+        
+        import threading
+        restart_thread = threading.Thread(target=restart_server)
+        restart_thread.daemon = True
+        restart_thread.start()
+        
+        return response
+        
+    except Exception as e:
+        logger.error(f"Failed to restart server: {e}")
+        return jsonify({"error": "Fehler beim Neustart"}), 500
+
+
 @app.route('/api/hashtag-variants', methods=['GET'])
 @login_required
 def get_hashtag_variants():

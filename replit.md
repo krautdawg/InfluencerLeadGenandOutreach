@@ -13,6 +13,31 @@ K+L Influence is a Flask-based Instagram lead generation and outreach automation
 
 ## Recent Changes
 
+### 2025-07-22: Added Emergency Server Restart Button (COMPLETED)
+- **Feature**: Implemented emergency server restart functionality with red warning button in left navigation
+- **Location**: Added to bottom of sidebar navigation with clear warning styling and confirmation dialog
+- **Safety Features**:
+  - Confirmation dialog with warning message in German: "⚠️ WARNUNG: Server Neustart"
+  - Clear explanation that all running processes will be terminated
+  - Red emergency button styling to indicate dangerous action
+  - "Nur bei Problemen verwenden" warning text below button
+- **Technical Implementation**:
+  - **Frontend**: Emergency restart button with Font Awesome warning icon and confirmation dialog
+  - **Backend**: `/emergency-restart` endpoint using `os._exit(1)` for forceful termination
+  - **Threading**: Response sent before restart to prevent connection errors
+  - **Auto-reload**: Frontend attempts page reload after 3 seconds to reconnect
+- **UI Design**:
+  - Red button with hover effects and warning styling
+  - Positioned at bottom of sidebar with visual separation
+  - Emergency button CSS class with proper hover and active states
+  - Toast notifications showing restart progress
+- **Benefits**:
+  - Quick recovery from stuck processes or memory issues
+  - Forceful restart when normal stop buttons don't work
+  - Clear user feedback and safety warnings
+  - Automatic reconnection after restart
+- **Status**: Emergency restart functionality fully implemented and operational
+
 ### 2025-07-22: Fixed Edit Modal Display Issue and Prevented Outside Click Closing (COMPLETED)
 - **Issue**: After closing the email/subject template modal by clicking outside, the modal could not be reopened
 - **Root Cause**: The `showEditModal` function only added the 'show' class but didn't set `style.display = 'flex'`, while `closeModal` set `style.display = 'none'`, preventing the modal from being visible again
