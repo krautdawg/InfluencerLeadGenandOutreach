@@ -6,6 +6,33 @@ K+L Influence is a Flask-based Instagram lead generation and outreach automation
 
 ## Recent Changes
 
+### 2025-07-22: Added Caption Field (Beitragstext) to Hashtag Discovery and Lead Enrichment (COMPLETED)
+- **Feature**: Implemented caption field extraction from APIFY Actor DrF9mzPPEuVizVF4l for post content tracking
+- **Database Schema Changes**:
+  - **HashtagUsernamePair Model**: Added `beitragstext` Text column to store Instagram post captions
+  - **Lead Model**: Added `beitragstext` Text column to store original post captions during enrichment
+  - **Model Updates**: Enhanced `to_dict()` methods in both models to include beitragstext field
+- **Data Extraction Enhancement**:
+  - **APIFY Integration**: Modified `call_apify_actor_sync` to extract `caption` field from both `latestPosts` and `topPosts`
+  - **Data Processing**: Updated username_data_map structure to include caption alongside hashtag, timestamp, and post_url
+  - **Profile Building**: Enhanced processed_items creation to include caption data when available
+- **Database Saving Logic**:
+  - **HashtagUsernamePair**: Updated `save_hashtag_username_pairs` to save caption as `beitragstext` for both new and existing records
+  - **Lead Enrichment**: Modified `save_leads_incrementally` to transfer caption from HashtagUsernamePair to Lead records
+  - **Data Transfer**: Enhanced hashtag pair lookup to extract and transfer caption during lead creation/updates
+- **Technical Implementation**:
+  - Enhanced extraction logic in both latestPosts and topPosts processing loops
+  - Added caption field to profile data structure with proper null handling
+  - Updated database creation and update operations for both tables
+  - Implemented proper data flow from Instagram posts → HashtagUsernamePair → Lead records
+  - Added debug logging for caption data tracking (truncated to 50 characters for readability)
+- **Benefits**:
+  - **Content Analysis**: Access to original Instagram post content for lead qualification
+  - **Campaign Intelligence**: Understanding of user engagement through post captions
+  - **Targeted Outreach**: Personalized messaging based on actual post content
+  - **Data Completeness**: Full post context preserved throughout the lead generation pipeline
+- **Status**: Caption field extraction and storage fully implemented across all database tables and processing stages
+
 ### 2025-07-21: Fixed Hashtag Matching for Timestamp and Post URL Data Transfer (COMPLETED)
 - **Issue**: Timestamp and post_url data was being captured correctly in hashtag_username_pair table but not transferring to leads table during enrichment
 - **Root Cause**: Hashtag mismatch during enrichment lookup - stored hashtag variants (e.g., 'pilzextrakten') didn't match search keywords (e.g., 'pilzextrakt')

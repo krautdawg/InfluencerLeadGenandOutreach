@@ -169,13 +169,14 @@ def save_hashtag_username_pairs(profiles, duplicates):
                 username = profile.get('username', '')
                 timestamp = profile.get('timestamp')
                 post_url = profile.get('post_url')
+                caption = profile.get('caption', '')
 
                 if not hashtag or not username:
                     continue
                     
                 # Debug: Log profile data being saved
                 if i < 3:  # Log first 3 profiles
-                    logger.info(f"Saving profile {i+1}: username={username}, hashtag={hashtag}, timestamp={timestamp}, post_url={post_url}")
+                    logger.info(f"Saving profile {i+1}: username={username}, hashtag={hashtag}, timestamp={timestamp}, post_url={post_url}, caption={caption[:50] if caption else 'None'}...")
 
                 # Check if pair already exists
                 existing_pair = HashtagUsernamePair.query.filter_by(
@@ -190,6 +191,8 @@ def save_hashtag_username_pairs(profiles, duplicates):
                         existing_pair.timestamp = timestamp
                     if post_url:
                         existing_pair.post_url = post_url
+                    if caption:
+                        existing_pair.beitragstext = caption
                     saved_pairs.append(existing_pair)
                 else:
                     # Create new pair
@@ -198,6 +201,7 @@ def save_hashtag_username_pairs(profiles, duplicates):
                         username=username,
                         timestamp=timestamp,
                         post_url=post_url,
+                        beitragstext=caption,
                         is_duplicate=username in duplicates
                     )
                     db.session.add(new_pair)
@@ -278,9 +282,10 @@ def call_apify_actor_sync(actor_id, input_data, token):
                         if isinstance(post, dict) and 'ownerUsername' in post:
                             username = post['ownerUsername']
                             if username and isinstance(username, str):
-                                # Extract timestamp and URL
+                                # Extract timestamp, URL, and caption
                                 timestamp_str = post.get('timestamp')
                                 post_url = post.get('url')
+                                caption = post.get('caption', '')
                                 
                                 # Parse timestamp if available
                                 timestamp_obj = None
@@ -298,7 +303,8 @@ def call_apify_actor_sync(actor_id, input_data, token):
                                     username_data_map[username] = {
                                         'hashtag': hashtag_id,
                                         'timestamp': timestamp_obj,
-                                        'post_url': post_url
+                                        'post_url': post_url,
+                                        'caption': caption
                                     }
 
                 # Extract from topPosts
@@ -307,9 +313,10 @@ def call_apify_actor_sync(actor_id, input_data, token):
                         if isinstance(post, dict) and 'ownerUsername' in post:
                             username = post['ownerUsername']
                             if username and isinstance(username, str):
-                                # Extract timestamp and URL
+                                # Extract timestamp, URL, and caption
                                 timestamp_str = post.get('timestamp')
                                 post_url = post.get('url')
+                                caption = post.get('caption', '')
                                 
                                 # Parse timestamp if available
                                 timestamp_obj = None
@@ -327,7 +334,8 @@ def call_apify_actor_sync(actor_id, input_data, token):
                                     username_data_map[username] = {
                                         'hashtag': hashtag_id,
                                         'timestamp': timestamp_obj,
-                                        'post_url': post_url
+                                        'post_url': post_url,
+                                        'caption': caption
                                     }
 
             total_processed += 1
@@ -345,11 +353,13 @@ def call_apify_actor_sync(actor_id, input_data, token):
                 'username': username,
                 'hashtag': data['hashtag']
             }
-            # Only add timestamp and post_url if they exist
+            # Only add timestamp, post_url and caption if they exist
             if data.get('timestamp'):
                 profile_data['timestamp'] = data['timestamp']
             if data.get('post_url'):
                 profile_data['post_url'] = data['post_url']
+            if data.get('caption'):
+                profile_data['caption'] = data['caption']
             processed_items.append(profile_data)
 
         # Final cleanup
@@ -573,10 +583,11 @@ def save_leads_incrementally(enriched_leads, keyword, default_product_id=None):
                     
                     source_timestamp = hashtag_pair.timestamp if hashtag_pair else None
                     source_post_url = hashtag_pair.post_url if hashtag_pair else None
+                    source_caption = hashtag_pair.beitragstext if hashtag_pair else None
                     
                     # Debug logging to track hashtag matching
                     if hashtag_pair:
-                        logger.info(f"Found hashtag pair for {lead_data['username']}: stored_hashtag='{hashtag_pair.hashtag}' vs search_keyword='{keyword}', timestamp={source_timestamp}, post_url={source_post_url}")
+                        logger.info(f"Found hashtag pair for {lead_data['username']}: stored_hashtag='{hashtag_pair.hashtag}' vs search_keyword='{keyword}', timestamp={source_timestamp}, post_url={source_post_url}, caption={source_caption[:50] if source_caption else 'None'}...")
                     else:
                         logger.warning(f"No hashtag pair found for {lead_data['username']} with keyword '{keyword}'")
 
@@ -600,6 +611,7 @@ def save_leads_incrementally(enriched_leads, keyword, default_product_id=None):
                         existing_lead.is_duplicate = lead_data.get('is_duplicate', False)
                         existing_lead.source_timestamp = source_timestamp
                         existing_lead.source_post_url = source_post_url
+                        existing_lead.beitragstext = source_caption
                         existing_lead.updated_at = datetime.utcnow()
 
                         # Create backup before updating
@@ -629,7 +641,8 @@ def save_leads_incrementally(enriched_leads, keyword, default_product_id=None):
                             longitude=lead_data.get('longitude'),
                             is_duplicate=lead_data.get('is_duplicate', False),
                             source_timestamp=source_timestamp,
-                            source_post_url=source_post_url
+                            source_post_url=source_post_url,
+                            beitragstext=source_caption
                         )
                         db.session.add(new_lead)
                         current_lead = new_lead
