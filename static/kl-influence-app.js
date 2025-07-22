@@ -117,10 +117,10 @@ function initializeEventListeners() {
     // Default product selector change
     document.getElementById('defaultProductSelect')?.addEventListener('change', updateTemplatePromptsBasedOnProduct);
     
-    // Modal close on background click
+    // Modal close on background click (except for prompt settings modal)
     document.querySelectorAll('.modal').forEach(modal => {
         modal.addEventListener('click', (e) => {
-            if (e.target === modal) {
+            if (e.target === modal && modal.id !== 'promptSettingsModal') {
                 closeModal(modal.id);
             }
         });
@@ -2221,8 +2221,22 @@ async function saveSystemPrompts() {
         
         if (response.ok) {
             showToast('Prompt-Einstellungen erfolgreich gespeichert', 'success');
+            
+            // Add visual feedback to the save button
+            const saveBtn = document.getElementById('savePromptSettings');
+            const originalText = saveBtn.textContent;
+            const originalBgColor = saveBtn.style.backgroundColor;
+            saveBtn.textContent = 'Gespeichert!';
+            saveBtn.style.backgroundColor = 'var(--color-success)';
+            
+            // Reset button after 2 seconds
+            setTimeout(() => {
+                saveBtn.textContent = originalText;
+                saveBtn.style.backgroundColor = originalBgColor;
+            }, 2000);
+            
             await loadSystemPrompts(); // Reload prompts
-            closeModal('promptSettingsModal');
+            // Keep modal open - don't close it automatically
         } else {
             const error = await response.json();
             console.error('Failed to save system prompts:', error);
