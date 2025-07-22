@@ -38,7 +38,7 @@ app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
 }
 
 # Initialize database
-from models import db, Lead, ProcessingSession, HashtagUsernamePair, LeadBackup, EmailTemplate, Product, SystemPrompt
+from models import db, Lead, ProcessingSession, HashtagUsernamePair, LeadBackup, Product, SystemPrompt
 db.init_app(app)
 
 # Initialize OpenAI client
@@ -83,26 +83,8 @@ with app.app_context():
                         )
                         db.session.add(system_prompt)
             
-            # Initialize email templates for backward compatibility (will be migrated later)
-            # Check if subject template exists
-            subject_template = EmailTemplate.query.filter_by(name='subject').first()
-            if not subject_template:
-                subject_template = EmailTemplate(
-                    name='subject', 
-                    template='Profil: @{username}, Name: {full_name}, Bio: {bio}, Hashtag: {hashtag}, Beitragstext: {caption}',
-                    has_product=False
-                )
-                db.session.add(subject_template)
 
-            # Check if body template exists
-            body_template = EmailTemplate.query.filter_by(name='body').first()
-            if not body_template:
-                body_template = EmailTemplate(
-                    name='body', 
-                    template='Profil: @{username}, Name: {full_name}, Bio: {bio}, Hashtag: {hashtag}, Beitragstext: {caption}',
-                    has_product=False
-                )
-                db.session.add(body_template)
+
 
             db.session.commit()
             logger.info("System prompts and email templates initialized successfully")
@@ -982,13 +964,10 @@ def index():
         leads = Lead.query.order_by(Lead.created_at.desc()).all()
         leads_dict = [lead.to_dict() for lead in leads]
 
-        # Get email templates
-        subject_template = EmailTemplate.query.filter_by(name='subject').first()
-        body_template = EmailTemplate.query.filter_by(name='body').first()
-
+        # Templates are now managed through SystemPrompt table
         templates = {
-            'subject': subject_template.template if subject_template else '',
-            'body': body_template.template if body_template else ''
+            'subject': '',
+            'body': ''
         }
 
         # Get products
@@ -1986,41 +1965,52 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit, default_pro
 @login_required
 def draft_email(username):
     """Generate email draft using OpenAI"""
-    # Get templates from database
-    subject_template = EmailTemplate.query.filter_by(name='subject').first()
-    body_template = EmailTemplate.query.filter_by(name='body').first()
-
-    # Use stored templates or fallback to defaults
-    subject_prompt = subject_template.template if subject_template else 'Schreibe in DU-Form eine persönliche Betreffzeile mit freundlichen Hook für eine Influencer Kooperation mit Kasimir + Liselotte. Nutze persönliche Infos (z.B. Username, BIO, Interessen), sprich sie direkt in DU-Form. Falls ein Produkt ausgewählt ist, erwähne es subtil in der Betreffzeile. Antworte im JSON-Format: {"subject": "betreff text"}'
-    body_prompt = body_template.template if body_template else 'Erstelle eine personalisierte, professionelle deutsche E-Mail, ohne die Betreffzeile, für potenzielle Instagram Influencer Kooperationen. Die E-Mail kommt von Kasimir vom Store KasimirLieselotte. Verwende einen höflichen, professionellen Ton auf Deutsch aber in DU-Form um es casual im Instagram feel zu bleiben. WICHTIG: Falls ein Produkt ausgewählt ist, integriere unbedingt folgende Elemente in die E-Mail: 1) Erwähne das Produkt namentlich, 2) Füge den direkten Link zum Produkt ein (Produkt-URL), 3) Erkläre kurz die Produkteigenschaften basierend auf der Beschreibung, 4) Beziehe das Produkt auf die Bio/Interessen des Influencers. Die E-Mail sollte den Produktlink natürlich in den Text einbetten. Füge am Ende die Signatur mit der Website https://www.kasimirlieselotte.de/ hinzu. Antworte im JSON-Format: {"body": "email inhalt"}'
-
     # Find the lead in database
     lead = Lead.query.filter_by(username=username).first()
     if not lead:
         return {"error": "Lead not found"}, 404
 
     try:
+        # Determine if product is selected
+        has_product = lead.selected_product is not None
+        
+        # Get system prompts from database based on product selection
+        subject_prompt_obj = SystemPrompt.query.filter_by(
+            prompt_type='subject', 
+            has_product=has_product
+        ).first()
+        
+        body_prompt_obj = SystemPrompt.query.filter_by(
+            prompt_type='body', 
+            has_product=has_product
+        ).first()
+        
+        # Use system prompts if available, otherwise use defaults
+        if has_product:
+            # With product defaults
+            default_subject = 'Schreibe in DU-Form eine persönliche Betreffzeile mit freundlichen Hook für eine Influencer Kooperation mit Kasimir + Liselotte. Nutze persönliche Infos (z.B. Username, BIO, Interessen), sprich sie direkt in DU-Form. Falls ein Produkt ausgewählt ist, erwähne es subtil in der Betreffzeile.'
+            default_body = 'Erstelle eine personalisierte, professionelle deutsche E-Mail, ohne die Betreffzeile, für potenzielle Instagram Influencer Kooperationen. Die E-Mail kommt von Kasimir vom Store KasimirLieselotte. Verwende einen höflichen, professionellen Ton auf Deutsch aber in DU-Form um es casual im Instagram feel zu bleiben. WICHTIG: Falls ein Produkt ausgewählt ist, integriere unbedingt folgende Elemente in die E-Mail: 1) Erwähne das Produkt namentlich, 2) Füge den direkten Link zum Produkt ein (Produkt-URL), 3) Erkläre kurz die Produkteigenschaften basierend auf der Beschreibung, 4) Beziehe das Produkt auf die Bio/Interessen des Influencers. Die E-Mail sollte den Produktlink natürlich in den Text einbetten. Füge am Ende die Signatur mit der Website https://www.kasimirlieselotte.de/ hinzu.'
+        else:
+            # Without product defaults
+            default_subject = 'Schreibe in DU-Form eine persönliche Betreffzeile mit freundlichen Hook für eine Influencer Kooperation mit Kasimir + Liselotte. Nutze persönliche Infos (z.B. Username, BIO, Interessen), sprich sie direkt in DU-Form. Fokussiere dich auf die Interessen und den Content des Influencers.'
+            default_body = 'Erstelle eine personalisierte, professionelle deutsche E-Mail, ohne die Betreffzeile, für potenzielle Instagram Influencer Kooperationen. Die E-Mail kommt von Kasimir vom Store KasimirLieselotte. Verwende einen höflichen, professionellen Ton auf Deutsch aber in DU-Form um es casual im Instagram feel zu bleiben. Fokussiere dich auf eine allgemeine Kooperationsanfrage, die auf die Interessen und den Content des Influencers eingeht. Erwähne deine Begeisterung für ihren Content und schlage eine mögliche Zusammenarbeit vor, ohne spezifische Produkte zu erwähnen. Füge am Ende die Signatur mit der Website https://www.kasimirlieselotte.de/ hinzu.'
+        
+        final_subject_prompt = subject_prompt_obj.system_message if subject_prompt_obj else default_subject
+        final_body_prompt = body_prompt_obj.system_message if body_prompt_obj else default_body
+        
         # Build user content with profile and product information
         profile_content = f"Profil: @{lead.username}, Name: {lead.full_name}, Bio: {lead.bio}, Hashtag: {lead.hashtag}"
-
-        # Create different prompts based on whether product is selected
+        
+        if lead.beitragstext:
+            profile_content += f", Beitragstext: {lead.beitragstext[:200]}..."
+        
+        # Add product info if available
         if lead.selected_product:
-            # WITH PRODUCT: Use current prompts with product instructions
             product_info = f"\n\nAusgewähltes Produkt: {lead.selected_product.name}\nProdukt-URL: {lead.selected_product.url}\nBeschreibung: {lead.selected_product.description}"
             profile_content += product_info
             profile_content_with_email = f"Profil: @{lead.username}, Name: {lead.full_name}, Bio: {lead.bio}, Email: {lead.email}, Hashtag: {lead.hashtag}" + product_info
-
-            # Use current prompts with product instructions
-            final_subject_prompt = subject_prompt
-            final_body_prompt = body_prompt
         else:
-            # WITHOUT PRODUCT: Use alternative prompts without product references
             profile_content_with_email = f"Profil: @{lead.username}, Name: {lead.full_name}, Bio: {lead.bio}, Email: {lead.email}, Hashtag: {lead.hashtag}"
-
-            # Create clean alternative prompts without any product mentions
-            final_subject_prompt = 'Schreibe in DU-Form eine persönliche Betreffzeile mit freundlichen Hook für eine Influencer Kooperation mit Kasimir + Liselotte. Nutze persönliche Infos (z.B. Username, BIO, Interessen), sprich sie direkt in DU-Form. Fokussiere dich auf die Interessen und den Content des Influencers. Antworte nur mit der Betreffzeile, ohne zusätzliche Formatierung.'
-
-            final_body_prompt = 'Erstelle eine personalisierte, professionelle deutsche E-Mail, ohne die Betreffzeile, für potenzielle Instagram Influencer Kooperationen. Die E-Mail kommt von Kasimir vom Store KasimirLieselotte. Verwende einen höflichen, professionellen Ton auf Deutsch aber in DU-Form um es casual im Instagram feel zu bleiben. Fokussiere dich auf eine allgemeine Kooperationsanfrage, die auf die Interessen und den Content des Influencers eingeht. Erwähne deine Begeisterung für ihren Content und schlage eine mögliche Zusammenarbeit vor, ohne spezifische Produkte zu erwähnen. Füge am Ende die Signatur mit der Website https://www.kasimirlieselotte.de/ hinzu. Antworte nur mit dem Email-Inhalt, ohne zusätzliche Formatierung.'
 
         # Generate subject using appropriate prompt
         subject_response = openai_client.chat.completions.create(
@@ -2305,81 +2295,10 @@ def clear_data():
         return {"error": "Failed to clear data"}, 500
 
 
-@app.route('/api/email-templates', methods=['GET'])
-@login_required
-def get_email_templates():
-    """Get current email templates"""
-    try:
-        subject_template = EmailTemplate.query.filter_by(name='subject').first()
-        body_template = EmailTemplate.query.filter_by(name='body').first()
-
-        result = {
-            'subject': subject_template.template if subject_template else '',
-            'body': body_template.template if body_template else '',
-            'success': True
-        }
-        
-        # Add last updated timestamps if available
-        if subject_template:
-            result['subject_updated'] = subject_template.updated_at.isoformat() if subject_template.updated_at else None
-        if body_template:
-            result['body_updated'] = body_template.updated_at.isoformat() if body_template.updated_at else None
-        
-        return jsonify(result)
-    except Exception as e:
-        logger.error(f"Failed to get email templates: {e}")
-        return jsonify({"error": "Failed to get email templates", "success": False}), 500
+# Email templates API removed - now using SystemPrompt table
 
 
-@app.route('/api/email-templates', methods=['POST'])
-@login_required
-def save_email_templates():
-    """Save email templates"""
-    try:
-        data = request.get_json()
-        
-        if not data:
-            return jsonify({"error": "No data provided", "success": False}), 400
-        
-        updated_fields = []
-        current_time = datetime.utcnow()
-
-        if 'subject' in data:
-            subject_template = EmailTemplate.query.filter_by(name='subject').first()
-            if subject_template:
-                subject_template.template = data['subject']
-                subject_template.updated_at = current_time
-            else:
-                subject_template = EmailTemplate(name='subject', template=data['subject'])
-                db.session.add(subject_template)
-            updated_fields.append('subject')
-
-        if 'body' in data:
-            body_template = EmailTemplate.query.filter_by(name='body').first()
-            if body_template:
-                body_template.template = data['body']
-                body_template.updated_at = current_time
-            else:
-                body_template = EmailTemplate(name='body', template=data['body'])
-                db.session.add(body_template)
-            updated_fields.append('body')
-
-        if not updated_fields:
-            return jsonify({"error": "No valid fields to update", "success": False}), 400
-
-        db.session.commit()
-        
-        logger.info(f"Email templates saved successfully: {', '.join(updated_fields)}")
-        return jsonify({
-            "success": True, 
-            "message": "Email templates saved successfully",
-            "updated_fields": updated_fields,
-            "timestamp": current_time.isoformat()
-        })
-    except Exception as e:
-        logger.error(f"Failed to save email templates: {e}")
-        db.session.rollback()
-        return jsonify({"error": "Failed to save email templates", "success": False}), 500
+# Email templates POST API removed - now using SystemPrompt table
 
 
 @app.route('/api/system-prompts', methods=['GET'])
@@ -2406,18 +2325,11 @@ def get_system_prompts():
             key = 'with_product' if prompt.has_product else 'without_product'
             result[key][prompt.prompt_type] = prompt.system_message
         
-        # Get email templates for user messages (ignoring has_product for now due to migration)
-        try:
-            subject_template = db.session.query(EmailTemplate.name, EmailTemplate.template).filter_by(name='subject').first()
-            body_template = db.session.query(EmailTemplate.name, EmailTemplate.template).filter_by(name='body').first()
-        except Exception:
-            # Fallback if has_product column doesn't exist yet
-            subject_template = EmailTemplate.query.filter_by(name='subject').first()
-            body_template = EmailTemplate.query.filter_by(name='body').first()
-        
+        # User templates are now managed through SystemPrompt table
+        # Return the appropriate prompts based on current selection
         result['user_templates'] = {
-            'subject': subject_template.template if subject_template else '',
-            'body': body_template.template if body_template else ''
+            'subject': result['with_product']['subject'],  # Default to with_product for now
+            'body': result['with_product']['body']
         }
         
         return jsonify(result)

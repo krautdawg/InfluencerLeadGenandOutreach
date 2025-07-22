@@ -13,6 +13,27 @@ K+L Influence is a Flask-based Instagram lead generation and outreach automation
 
 ## Recent Changes
 
+### 2025-07-22: Connected Prompt Settings to Email Generation and Removed EmailTemplate Table (COMPLETED)
+- **Issue**: Email generation was using EmailTemplate table while Prompt Settings updated SystemPrompt table - no connection between them
+- **Root Cause**: Two separate database tables were being used for the same purpose without any integration
+- **Solution Implemented**:
+  - **Email Generation Fix**: Modified `/draft-email/<username>` endpoint to use SystemPrompt table instead of EmailTemplate
+  - **Dynamic Prompt Selection**: Email generation now checks `has_product` flag from lead to select appropriate prompts
+  - **EmailTemplate Removal**: Completely removed EmailTemplate model and all references from codebase
+  - **Import Cleanup**: Removed EmailTemplate from model imports
+  - **API Cleanup**: Removed `/api/email-templates` GET and POST endpoints
+  - **Index Route Update**: Removed EmailTemplate queries from main index route
+- **Technical Implementation**:
+  - Email generation queries SystemPrompt table based on `prompt_type` and `has_product` flag
+  - Fallback to default prompts if SystemPrompt entries don't exist
+  - Simplified architecture with single source of truth for prompts
+- **Benefits**:
+  - **Working Integration**: Changes in Prompt Settings now directly affect email generation
+  - **Cleaner Architecture**: Single table for all prompt management
+  - **Consistent Behavior**: No more confusion between two separate prompt systems
+  - **Simplified Codebase**: Removed redundant EmailTemplate model and endpoints
+- **Status**: Prompt Settings and email generation are now properly connected through SystemPrompt table
+
 ### 2025-07-22: Fixed Caption Data Loss in Hashtag Discovery Phase (COMPLETED)
 - **Issue**: Caption data was being extracted correctly by APIFY actor but never saved to hashtag_username_pair table during discovery phase
 - **Root Cause Discovery Process**:
