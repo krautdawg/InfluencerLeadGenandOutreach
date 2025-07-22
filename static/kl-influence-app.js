@@ -2033,6 +2033,7 @@ let currentSystemPrompts = null;
 
 // Initialize Prompt Settings
 function initializePromptSettings() {
+    console.log('Initializing Prompt Settings...');
     const promptSettingsBtn = document.getElementById('promptSettingsBtn');
     const savePromptSettingsBtn = document.getElementById('savePromptSettings');
     const promptProductSelect = document.getElementById('promptProductSelect');
@@ -2041,15 +2042,37 @@ function initializePromptSettings() {
     const editProductBtn = document.getElementById('editProductBtn');
     const saveProductBtn = document.getElementById('saveProduct');
     
-    if (!promptSettingsBtn) return;
+    console.log('promptSettingsBtn:', promptSettingsBtn);
+    
+    if (!promptSettingsBtn) {
+        console.error('Prompt Settings button not found!');
+        return;
+    }
     
     // Open prompt settings modal
-    promptSettingsBtn.addEventListener('click', async () => {
-        await loadSystemPrompts();
-        populatePromptProductSelector();
-        updatePromptFields();
-        updateVariablesList();
-        document.getElementById('promptSettingsModal').style.display = 'block';
+    promptSettingsBtn.addEventListener('click', async (e) => {
+        console.log('Prompt Settings button clicked!');
+        e.preventDefault();
+        e.stopPropagation();
+        
+        try {
+            await loadSystemPrompts();
+            populatePromptProductSelector();
+            updatePromptFields();
+            updateVariablesList();
+            
+            const modal = document.getElementById('promptSettingsModal');
+            console.log('Modal element:', modal);
+            
+            if (modal) {
+                modal.style.display = 'block';
+                console.log('Modal opened successfully');
+            } else {
+                console.error('Modal element not found!');
+            }
+        } catch (error) {
+            console.error('Error opening prompt settings modal:', error);
+        }
     });
     
     // Save prompt settings
@@ -2117,12 +2140,17 @@ function initializePromptSettings() {
 
 // Load system prompts from backend
 async function loadSystemPrompts() {
+    console.log('Loading system prompts...');
     try {
         const response = await fetch('/api/system-prompts');
+        console.log('Response status:', response.status);
+        
         if (response.ok) {
             currentSystemPrompts = await response.json();
+            console.log('Loaded system prompts:', currentSystemPrompts);
         } else {
-            console.error('Failed to load system prompts');
+            const errorText = await response.text();
+            console.error('Failed to load system prompts:', errorText);
             showToast('Fehler beim Laden der Prompt-Einstellungen', 'error');
         }
     } catch (error) {
@@ -2298,11 +2326,17 @@ async function saveProduct() {
     }
 }
 
-// Add initialization to DOMContentLoaded
-document.addEventListener('DOMContentLoaded', function() {
-    // ... existing initializations ...
-    initializePromptSettings();
-});
+// Modal utility functions
+function closeModal(modalId) {
+    console.log('Closing modal:', modalId);
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.style.display = 'none';
+    }
+}
+
+// Add initialization to DOMContentLoaded (this was already called above)
+// Just ensure the prompt settings initialization is included
 
 function getProductNameById(productId) {
     if (!productId) return '';
