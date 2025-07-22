@@ -176,7 +176,7 @@ def save_hashtag_username_pairs(profiles, duplicates):
                     
                 # Debug: Log profile data being saved
                 if i < 3:  # Log first 3 profiles
-                    logger.info(f"Saving profile {i+1}: username={username}, hashtag={hashtag}, timestamp={timestamp}, post_url={post_url}, caption={caption[:50] if caption else 'None'}...")
+                    logger.info(f"Saving profile {i+1}: username={username}, hashtag={hashtag}, timestamp={timestamp}, post_url={post_url}, caption_length={len(caption) if caption else 0}, caption={caption[:80] if caption else 'None'}...")
 
                 # Check if pair already exists
                 existing_pair = HashtagUsernamePair.query.filter_by(
@@ -287,6 +287,10 @@ def call_apify_actor_sync(actor_id, input_data, token):
                                 post_url = post.get('url')
                                 caption = post.get('caption', '')
                                 
+                                # Debug: Log caption extraction for first few posts
+                                if total_processed < 5:
+                                    logger.info(f"DEBUG LATEST Caption extraction - Post {total_processed + 1}: username={username}, caption_length={len(caption) if caption else 0}, caption_preview={caption[:100] if caption else 'None'}...")
+                                
                                 # Parse timestamp if available
                                 timestamp_obj = None
                                 if timestamp_str:
@@ -317,6 +321,10 @@ def call_apify_actor_sync(actor_id, input_data, token):
                                 timestamp_str = post.get('timestamp')
                                 post_url = post.get('url')
                                 caption = post.get('caption', '')
+                                
+                                # Debug: Log caption extraction for first few posts
+                                if total_processed < 5:
+                                    logger.info(f"DEBUG TOP Caption extraction - Post {total_processed + 1}: username={username}, caption_length={len(caption) if caption else 0}, caption_preview={caption[:100] if caption else 'None'}...")
                                 
                                 # Parse timestamp if available
                                 timestamp_obj = None
