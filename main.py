@@ -1992,7 +1992,7 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit, default_pro
 @app.route('/draft-email/<username>', methods=['GET'])
 @login_required
 def draft_email(username):
-    """Generate email draft using UserPrompt templates with placeholder replacement"""
+    """Generate email draft using OpenAI"""
     # Find the lead in database
     lead = Lead.query.filter_by(username=username).first()
     if not lead:
@@ -2002,64 +2002,72 @@ def draft_email(username):
         # Determine if product is selected
         has_product = lead.selected_product is not None
         
-        # Get user prompt templates from database based on product selection
-        subject_template_obj = UserPrompt.query.filter_by(
+        # Get system prompts from database based on product selection
+        subject_prompt_obj = SystemPrompt.query.filter_by(
             prompt_type='subject', 
             has_product=has_product
         ).first()
         
-        body_template_obj = UserPrompt.query.filter_by(
+        body_prompt_obj = SystemPrompt.query.filter_by(
             prompt_type='body', 
             has_product=has_product
         ).first()
         
-        # Use user templates if available, otherwise use defaults
+        # Use system prompts if available, otherwise use defaults
         if has_product:
-            default_subject_template = 'Kooperation mit {product_name} - Perfekt für dich!'
-            default_body_template = 'Hallo {username}!\n\nIch bin Kasimir von KasimirLieselotte und habe deinen Content verfolgt - einfach toll!\n\nIch denke unser {product_name} würde perfekt zu deinem Stil passen. Hier ist der Link: {product_url}\n\n{product_description}\n\nHast du Lust auf eine Kooperation?\n\nLiebe Grüße,\nKasimir\nhttps://www.kasimirlieselotte.de/'
+            # With product defaults
+            default_subject = 'Schreibe in DU-Form eine persönliche Betreffzeile mit freundlichen Hook für eine Influencer Kooperation mit Kasimir + Liselotte. Nutze persönliche Infos (z.B. Username, BIO, Interessen), sprich sie direkt in DU-Form. Falls ein Produkt ausgewählt ist, erwähne es subtil in der Betreffzeile.'
+            default_body = 'Erstelle eine personalisierte, professionelle deutsche E-Mail, ohne die Betreffzeile, für potenzielle Instagram Influencer Kooperationen. Die E-Mail kommt von Kasimir vom Store KasimirLieselotte. Verwende einen höflichen, professionellen Ton auf Deutsch aber in DU-Form um es casual im Instagram feel zu bleiben. WICHTIG: Falls ein Produkt ausgewählt ist, integriere unbedingt folgende Elemente in die E-Mail: 1) Erwähne das Produkt namentlich, 2) Füge den direkten Link zum Produkt ein (Produkt-URL), 3) Erkläre kurz die Produkteigenschaften basierend auf der Beschreibung, 4) Beziehe das Produkt auf die Bio/Interessen des Influencers. Die E-Mail sollte den Produktlink natürlich in den Text einbetten. Füge am Ende die Signatur mit der Website https://www.kasimirlieselotte.de/ hinzu.'
         else:
-            default_subject_template = 'Kooperationsanfrage - Liebe deinen Content!'
-            default_body_template = 'Hallo {username}!\n\nIch bin Kasimir von KasimirLieselotte und bin begeistert von deinem Content!\n\nIch würde sehr gerne eine Kooperation mit dir eingehen. Unser Brand passt meiner Meinung nach perfekt zu deinem Stil.\n\nHast du Interesse an einer Zusammenarbeit?\n\nLiebe Grüße,\nKasimir\nhttps://www.kasimirlieselotte.de/'
+            # Without product defaults
+            default_subject = 'Schreibe in DU-Form eine persönliche Betreffzeile mit freundlichen Hook für eine Influencer Kooperation mit Kasimir + Liselotte. Nutze persönliche Infos (z.B. Username, BIO, Interessen), sprich sie direkt in DU-Form. Fokussiere dich auf die Interessen und den Content des Influencers.'
+            default_body = 'Erstelle eine personalisierte, professionelle deutsche E-Mail, ohne die Betreffzeile, für potenzielle Instagram Influencer Kooperationen. Die E-Mail kommt von Kasimir vom Store KasimirLieselotte. Verwende einen höflichen, professionellen Ton auf Deutsch aber in DU-Form um es casual im Instagram feel zu bleiben. Fokussiere dich auf eine allgemeine Kooperationsanfrage, die auf die Interessen und den Content des Influencers eingeht. Erwähne deine Begeisterung für ihren Content und schlage eine mögliche Zusammenarbeit vor, ohne spezifische Produkte zu erwähnen. Füge am Ende die Signatur mit der Website https://www.kasimirlieselotte.de/ hinzu.'
         
-        # Get final templates
-        subject_template = subject_template_obj.user_message if subject_template_obj else default_subject_template
-        body_template = body_template_obj.user_message if body_template_obj else default_body_template
+        final_subject_prompt = subject_prompt_obj.system_message if subject_prompt_obj else default_subject
+        final_body_prompt = body_prompt_obj.system_message if body_prompt_obj else default_body
         
-        # Prepare replacement variables
-        replacements = {
-            'username': lead.username or '',
-            'full_name': lead.full_name or '',
-            'bio': lead.bio or '',
-            'hashtag': lead.hashtag or '',
-            'caption': lead.beitragstext[:200] if lead.beitragstext else ''
-        }
+        # Build user content with profile and product information
+        profile_content = f"Profil: @{lead.username}, Name: {lead.full_name}, Bio: {lead.bio}, Hashtag: {lead.hashtag}"
         
-        # Add product-specific replacements if product is selected
+        if lead.beitragstext:
+            profile_content += f", Beitragstext: {lead.beitragstext[:200]}..."
+        
+        # Add product info if available
         if lead.selected_product:
-            replacements.update({
-                'product_name': lead.selected_product.name or '',
-                'product_url': lead.selected_product.url or '',
-                'product_description': lead.selected_product.description or ''
-            })
-        
-        # Replace placeholders in templates
-        subject_text = subject_template
-        body_text = body_template
-        
-        for key, value in replacements.items():
-            placeholder = '{' + key + '}'
-            subject_text = subject_text.replace(placeholder, str(value))
-            body_text = body_text.replace(placeholder, str(value))
-        
-        # Clean up any remaining unreplaced placeholders
-        import re
-        subject_text = re.sub(r'\{[^}]+\}', '', subject_text)
-        body_text = re.sub(r'\{[^}]+\}', '', body_text)
-        
-        # Ensure subject is not too long (max 200 characters for database)
-        if len(subject_text) > 200:
-            subject_text = subject_text[:197] + '...'
-        
+            product_info = f"\n\nAusgewähltes Produkt: {lead.selected_product.name}\nProdukt-URL: {lead.selected_product.url}\nBeschreibung: {lead.selected_product.description}"
+            profile_content += product_info
+            profile_content_with_email = f"Profil: @{lead.username}, Name: {lead.full_name}, Bio: {lead.bio}, Email: {lead.email}, Hashtag: {lead.hashtag}" + product_info
+        else:
+            profile_content_with_email = f"Profil: @{lead.username}, Name: {lead.full_name}, Bio: {lead.bio}, Email: {lead.email}, Hashtag: {lead.hashtag}"
+
+        # Generate subject using appropriate prompt
+        subject_response = openai_client.chat.completions.create(
+            model="gpt-4o",
+            messages=[{
+                "role": "system",
+                "content": final_subject_prompt
+            }, {
+                "role": "user",
+                "content": profile_content
+            }],
+            max_tokens=100)
+
+        # Generate body using appropriate prompt
+        body_response = openai_client.chat.completions.create(
+            model="gpt-4o",
+            messages=[{
+                "role": "system",
+                "content": final_body_prompt
+            }, {
+                "role": "user",
+                "content": profile_content_with_email
+            }],
+            max_tokens=500)
+
+        # Extract plain text responses
+        subject_text = subject_response.choices[0].message.content.strip()
+        body_text = body_response.choices[0].message.content.strip()
+
         # Update lead with generated content
         lead.subject = subject_text if subject_text else 'Collaboration Opportunity'
         lead.email_body = body_text if body_text else 'Hello, I would like to discuss a collaboration opportunity.'
