@@ -851,6 +851,63 @@ select:focus {
   gap: var(--space-sm);
 }
 
+/* Variable checkboxes styling */
+.variable-checkboxes {
+  background-color: var(--color-white);
+  border: 1px solid var(--color-light-gray);
+  border-radius: 8px;
+  padding: var(--space-md);
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.variable-checkboxes .form-check {
+  padding: var(--space-sm) 0;
+  border-radius: 6px;
+  transition: var(--transition-fast);
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-sm);
+}
+
+.variable-checkboxes .form-check:hover {
+  background-color: var(--color-pale-green);
+  padding-left: var(--space-sm);
+  padding-right: var(--space-sm);
+}
+
+.variable-checkboxes .form-check-input {
+  width: 1.1em;
+  height: 1.1em;
+  margin-top: 0.2em;
+  border: 2px solid var(--color-medium-gray);
+  transition: var(--transition-fast);
+  flex-shrink: 0;
+}
+
+.variable-checkboxes .form-check-input:checked {
+  background-color: var(--color-natural-green);
+  border-color: var(--color-natural-green);
+}
+
+.variable-checkboxes .form-check-label {
+  cursor: pointer;
+  user-select: none;
+  line-height: 1.4;
+  margin: 0;
+  flex-grow: 1;
+}
+
+.variable-checkboxes .form-check-label .text-muted {
+  color: var(--color-medium-gray);
+  font-size: var(--text-body-sm);
+  font-family: var(--font-mono);
+  background-color: var(--color-pale-green);
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-left: var(--space-sm);
+}
+
 /* 12. Mobile Responsiveness
 ------------------------------------------- */
 .mobile-menu-toggle {

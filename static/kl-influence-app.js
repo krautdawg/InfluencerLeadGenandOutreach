@@ -2170,11 +2170,11 @@ function updateVariablesList() {
     // Create checkboxes for each variable
     variables.forEach(variable => {
         const div = document.createElement('div');
-        div.className = 'form-check';
+        div.className = 'form-check mb-2';
         div.innerHTML = `
-            <input class="form-check-input" type="checkbox" id="var_${variable.value}" disabled checked>
-            <label class="form-check-label" for="var_${variable.value}">
-                ${variable.name}
+            <input class="form-check-input" type="checkbox" id="var_${variable.value}" checked>
+            <label class="form-check-label" for="var_${variable.value}" style="margin-left: 8px; font-weight: 500;">
+                ${variable.name} <small class="text-muted">${variable.value}</small>
             </label>
         `;
         variablesList.appendChild(div);
