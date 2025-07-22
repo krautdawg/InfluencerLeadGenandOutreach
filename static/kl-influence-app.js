@@ -1172,29 +1172,27 @@ async function generateEmailContent(username) {
     button.disabled = true;
     
     try {
-        // First, update the lead's product with the current default selection
+        // Only apply default product if lead doesn't already have a manually assigned product
         const defaultProductSelect = document.getElementById('defaultProductSelect');
-        const selectedProductId = defaultProductSelect ? defaultProductSelect.value : null;
+        const defaultProductId = defaultProductSelect ? defaultProductSelect.value : null;
         
-        if (defaultProductSelect) {
-            // Update product in backend
+        // Check if lead already has a product assigned (respect manual selections)
+        const hasExistingProduct = lead.selectedProductId || lead.selected_product_id;
+        
+        if (defaultProductSelect && !hasExistingProduct && defaultProductId) {
+            // Only apply default product if no product is currently assigned
             await fetch(`/api/leads/${username}/product`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ product_id: selectedProductId || null })
+                body: JSON.stringify({ product_id: defaultProductId })
             });
             
-            // Update local lead data
-            if (selectedProductId) {
-                lead.selected_product_id = parseInt(selectedProductId);
-                const selectedProduct = products.find(p => p.id == selectedProductId);
-                if (selectedProduct) {
-                    lead.selected_product = selectedProduct;
-                }
-            } else {
-                // Clear product if none selected
-                lead.selected_product_id = null;
-                lead.selected_product = null;
+            // Update local lead data with default product
+            lead.selected_product_id = parseInt(defaultProductId);
+            lead.selectedProductId = parseInt(defaultProductId);
+            const selectedProduct = products.find(p => p.id == defaultProductId);
+            if (selectedProduct) {
+                lead.selected_product = selectedProduct;
             }
         }
         
@@ -1206,20 +1204,21 @@ async function generateEmailContent(username) {
             lead.subject = result.subject;
             lead.email_body = result.body;
             
-            // Update the selectedProductId field for table display consistency
-            if (selectedProductId) {
-                lead.selectedProductId = parseInt(selectedProductId);
-            } else {
-                lead.selectedProductId = null;
+            // Preserve existing product assignment - don't overwrite with default
+            // Only update if we actually applied a default product (for leads that had no product)
+            if (!hasExistingProduct && defaultProductId) {
+                lead.selectedProductId = parseInt(defaultProductId);
             }
+            // If lead already had a product, keep it unchanged
             
-            // Update the table display to show the product that was used for email generation
+            // Update the table display to show the current product state
             displayResults(leads);
             
-            // Update the specific product cell to reflect the product used for this email
+            // Update the specific product cell to reflect the current product assignment
             const productCell = document.getElementById(`product-cell-${username}`);
             if (productCell) {
-                const productName = selectedProductId ? getProductNameById(selectedProductId) : null;
+                const currentProductId = lead.selectedProductId || lead.selected_product_id;
+                const productName = currentProductId ? getProductNameById(currentProductId) : null;
                 productCell.innerHTML = productName || '<span style="color: var(--color-light-gray);">Kein Produkt</span>';
             }
             
