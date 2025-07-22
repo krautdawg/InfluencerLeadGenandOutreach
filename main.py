@@ -50,69 +50,10 @@ openai_client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
 with app.app_context():
     db.create_all()
 
-    # Initialize default system prompts and email templates
-    def initialize_default_prompts():
-        """Initialize default system prompts and email templates if they don't exist"""
+    # Initialize default variable settings (all enabled by default)
+    def initialize_variable_settings():
+        """Initialize variable settings if they don't exist"""
         try:
-            # Default system prompts with conditional markup
-            default_system_prompts = {
-                'with_product': {
-                    'subject': 'Schreibe in DU-Form eine persönliche Betreffzeile mit freundlichen Hook für eine Influencer Kooperation mit Kasimir + Liselotte. [IF username_enabled]Nutze ihren Username[/IF][IF bio_enabled] und BIO[/IF][IF hashtag_enabled] sowie Hashtag-Kontext[/IF], sprich sie direkt in DU-Form an. [IF product_name_enabled]Erwähne das Produkt subtil in der Betreffzeile[/IF].',
-                    'body': 'Erstelle eine personalisierte, professionelle deutsche E-Mail, ohne die Betreffzeile, für potenzielle Instagram Influencer Kooperationen. Die E-Mail kommt von Kasimir vom Store KasimirLieselotte. Verwende einen höflichen, professionellen Ton auf Deutsch aber in DU-Form um es casual im Instagram feel zu bleiben. [IF username_enabled]Sprich den Influencer mit dem Username an[/IF]. [IF bio_enabled]Beziehe dich auf ihre Bio und Interessen[/IF]. [IF product_name_enabled]WICHTIG: Integriere folgende Elemente: 1) Erwähne das Produkt namentlich[/IF][IF product_url_enabled], 2) Füge den direkten Produktlink ein[/IF][IF product_description_enabled], 3) Erkläre die Produkteigenschaften[/IF][IF bio_enabled], 4) Beziehe das Produkt auf ihre Bio/Interessen[/IF]. [IF product_url_enabled]Bette den Produktlink natürlich in den Text ein[/IF]. Füge am Ende die Signatur mit der Website https://www.kasimirlieselotte.de/ hinzu.'
-                },
-                'without_product': {
-                    'subject': 'Schreibe in DU-Form eine persönliche Betreffzeile mit freundlichen Hook für eine Influencer Kooperation mit Kasimir + Liselotte. [IF username_enabled]Nutze ihren Username[/IF][IF bio_enabled] und BIO[/IF][IF hashtag_enabled] sowie Hashtag-Kontext[/IF], sprich sie direkt in DU-Form an. Fokussiere dich auf ihre Interessen und ihren Content.',
-                    'body': 'Erstelle eine personalisierte, professionelle deutsche E-Mail, ohne die Betreffzeile, für potenzielle Instagram Influencer Kooperationen. Die E-Mail kommt von Kasimir vom Store KasimirLieselotte. Verwende einen höflichen, professionellen Ton auf Deutsch aber in DU-Form um es casual im Instagram feel zu bleiben. [IF username_enabled]Sprich den Influencer mit dem Username an[/IF]. [IF bio_enabled]Erwähne deine Begeisterung für ihren Content basierend auf ihrer Bio[/IF][IF hashtag_enabled] und Hashtag-Aktivitäten[/IF]. Schlage eine allgemeine Kooperationsanfrage vor, die auf ihre Interessen eingeht. Füge am Ende die Signatur mit der Website https://www.kasimirlieselotte.de/ hinzu.'
-                }
-            }
-            
-            # Initialize system prompts for each combination (without user-specific prompts)
-            for has_product, prompts in [(True, default_system_prompts['with_product']), 
-                                         (False, default_system_prompts['without_product'])]:
-                for prompt_type, message in prompts.items():
-                    existing = SystemPrompt.query.filter_by(
-                        prompt_type=prompt_type,
-                        has_product=has_product
-                    ).first()
-                    
-                    if not existing:
-                        system_prompt = SystemPrompt(
-                            prompt_type=prompt_type,
-                            has_product=has_product,
-                            system_message=message
-                        )
-                        db.session.add(system_prompt)
-            
-            # Default user prompts/templates with conditional markup
-            default_user_prompts = {
-                'with_product': {
-                    'subject': '[IF product_name_enabled]Kooperation mit {product_name}[/IF][IF username_enabled] @{username}[/IF]',
-                    'body': 'Profil: [IF username_enabled]@{username}[/IF][IF full_name_enabled], Name: {full_name}[/IF][IF bio_enabled], Bio: {bio}[/IF][IF hashtag_enabled], Hashtag: {hashtag}[/IF][IF caption_enabled], Beitragstext: {caption}[/IF][IF product_name_enabled]\n\nAusgewähltes Produkt: {product_name}[/IF][IF product_url_enabled]\nProdukt-URL: {product_url}[/IF][IF product_description_enabled]\nBeschreibung: {product_description}[/IF]'
-                },
-                'without_product': {
-                    'subject': '[IF username_enabled], Username {username} [/IF]',
-                    'body': 'Profil: [IF username_enabled]@{username}[/IF][IF full_name_enabled], Name: {full_name}[/IF][IF bio_enabled], Bio: {bio}[/IF][IF hashtag_enabled], Hashtag: {hashtag}[/IF][IF caption_enabled], Beitragstext: {caption}[/IF]'
-                }
-            }
-            
-            # Initialize user prompts for each combination
-            for has_product, prompts in [(True, default_user_prompts['with_product']), 
-                                         (False, default_user_prompts['without_product'])]:
-                for prompt_type, message in prompts.items():
-                    existing = UserPrompt.query.filter_by(
-                        prompt_type=prompt_type,
-                        has_product=has_product
-                    ).first()
-                    
-                    if not existing:
-                        user_prompt = UserPrompt(
-                            prompt_type=prompt_type,
-                            has_product=has_product,
-                            user_message=message
-                        )
-                        db.session.add(user_prompt)
-            
-            # Initialize default variable settings (all enabled by default)
             default_variables = {
                 'without_product': ['username', 'full_name', 'bio', 'hashtag', 'caption'],
                 'with_product': ['username', 'full_name', 'bio', 'hashtag', 'caption', 'product_name', 'product_url', 'product_description']
@@ -140,12 +81,14 @@ with app.app_context():
                             db.session.add(variable_setting)
 
             db.session.commit()
-            logger.info("System prompts, email templates, and variable settings initialized successfully")
+            logger.info("Variable settings initialized successfully")
         except Exception as e:
-            logger.error(f"Failed to initialize prompts: {e}")
+            logger.error(f"Failed to initialize variable settings: {e}")
             db.session.rollback()
 
-    initialize_default_prompts()
+    initialize_variable_settings()
+
+
 
     # Initialize default products if they don't exist
     def initialize_default_products():
@@ -2054,9 +1997,9 @@ def build_dynamic_prompt_content(lead, prompt_type, has_product):
             has_product=has_product
         ).first()
         
-        if not user_prompt:
-            # Fallback to simple profile building if no template exists
-            return build_fallback_content(lead, enabled_vars, has_product)
+        if not user_prompt or not user_prompt.user_message:
+            # Return empty string when no template exists - this is intentional
+            return ""
         
         # Parse the template to remove disabled variable sections
         filtered_template = parse_prompt_template(user_prompt.user_message, enabled_vars)
@@ -2103,49 +2046,12 @@ def build_dynamic_prompt_content(lead, prompt_type, has_product):
         return final_content
         
     except Exception as e:
-        logger.warning(f"Error building dynamic prompt content: {e}")
-        # Fallback to simple method
-        return build_fallback_content(lead, enabled_vars if 'enabled_vars' in locals() else {}, has_product)
+        logger.error(f"Error building dynamic prompt content: {e}")
+        # Return empty string on error - no fallbacks
+        return ""
 
 
-def build_fallback_content(lead, enabled_vars, has_product):
-    """Fallback content builder for when template system fails"""
-    profile_parts = []
-    
-    if enabled_vars.get('username', True):
-        profile_parts.append(f"@{lead.username}")
-        
-    if enabled_vars.get('full_name', True) and lead.full_name:
-        profile_parts.append(f"Name: {lead.full_name}")
-        
-    if enabled_vars.get('bio', True) and lead.bio:
-        profile_parts.append(f"Bio: {lead.bio}")
-        
-    if enabled_vars.get('hashtag', True):
-        profile_parts.append(f"Hashtag: {lead.hashtag}")
-        
-    if enabled_vars.get('caption', True) and lead.beitragstext:
-        profile_parts.append(f"Beitragstext: {lead.beitragstext[:200]}...")
-    
-    profile_content = "Profil: " + ", ".join(profile_parts) if profile_parts else "Profil: " + lead.username
-    
-    # Add product information if enabled and available
-    if has_product and lead.selected_product:
-        product_parts = []
-        
-        if enabled_vars.get('product_name', True):
-            product_parts.append(f"Ausgewähltes Produkt: {lead.selected_product.name}")
-            
-        if enabled_vars.get('product_url', True):
-            product_parts.append(f"Produkt-URL: {lead.selected_product.url}")
-            
-        if enabled_vars.get('product_description', True) and lead.selected_product.description:
-            product_parts.append(f"Beschreibung: {lead.selected_product.description}")
-        
-        if product_parts:
-            profile_content += "\n\n" + "\n".join(product_parts)
-    
-    return profile_content
+
 
 
 @app.route('/draft-email/<username>', methods=['GET'])
@@ -2172,15 +2078,7 @@ def draft_email(username):
             has_product=has_product
         ).first()
         
-        # Use system prompts if available, otherwise use defaults
-        if has_product:
-            # With product defaults
-            default_subject = 'Schreibe in DU-Form eine persönliche Betreffzeile mit freundlichen Hook für eine Influencer Kooperation mit Kasimir + Liselotte. Nutze persönliche Infos (z.B. Username, BIO, Interessen), sprich sie direkt in DU-Form. Falls ein Produkt ausgewählt ist, erwähne es subtil in der Betreffzeile.'
-            default_body = 'Erstelle eine personalisierte, professionelle deutsche E-Mail, ohne die Betreffzeile, für potenzielle Instagram Influencer Kooperationen. Die E-Mail kommt von Kasimir vom Store KasimirLieselotte. Verwende einen höflichen, professionellen Ton auf Deutsch aber in DU-Form um es casual im Instagram feel zu bleiben. WICHTIG: Falls ein Produkt ausgewählt ist, integriere unbedingt folgende Elemente in die E-Mail: 1) Erwähne das Produkt namentlich, 2) Füge den direkten Link zum Produkt ein (Produkt-URL), 3) Erkläre kurz die Produkteigenschaften basierend auf der Beschreibung, 4) Beziehe das Produkt auf die Bio/Interessen des Influencers. Die E-Mail sollte den Produktlink natürlich in den Text einbetten. Füge am Ende die Signatur mit der Website https://www.kasimirlieselotte.de/ hinzu.'
-        else:
-            # Without product defaults
-            default_subject = 'Schreibe in DU-Form eine persönliche Betreffzeile mit freundlichen Hook für eine Influencer Kooperation mit Kasimir + Liselotte. Nutze persönliche Infos (z.B. Username, BIO, Interessen), sprich sie direkt in DU-Form. Fokussiere dich auf die Interessen und den Content des Influencers.'
-            default_body = 'Erstelle eine personalisierte, professionelle deutsche E-Mail, ohne die Betreffzeile, für potenzielle Instagram Influencer Kooperationen. Die E-Mail kommt von Kasimir vom Store KasimirLieselotte. Verwende einen höflichen, professionellen Ton auf Deutsch aber in DU-Form um es casual im Instagram feel zu bleiben. Fokussiere dich auf eine allgemeine Kooperationsanfrage, die auf die Interessen und den Content des Influencers eingeht. Erwähne deine Begeisterung für ihren Content und schlage eine mögliche Zusammenarbeit vor, ohne spezifische Produkte zu erwähnen. Füge am Ende die Signatur mit der Website https://www.kasimirlieselotte.de/ hinzu.'
+
         
         # Get variable settings for dynamic system prompt filtering
         subject_var_settings = VariableSettings.query.filter_by(
@@ -2196,8 +2094,8 @@ def draft_email(username):
         body_enabled_vars = {setting.variable_name: setting.is_enabled for setting in body_var_settings}
         
         # Apply template parsing to system prompts
-        raw_subject_prompt = subject_prompt_obj.system_message if subject_prompt_obj else default_subject
-        raw_body_prompt = body_prompt_obj.system_message if body_prompt_obj else default_body
+        raw_subject_prompt = subject_prompt_obj.system_message if subject_prompt_obj else ""
+        raw_body_prompt = body_prompt_obj.system_message if body_prompt_obj else ""
         
         final_subject_prompt = parse_prompt_template(raw_subject_prompt, subject_enabled_vars)
         final_body_prompt = parse_prompt_template(raw_body_prompt, body_enabled_vars)
