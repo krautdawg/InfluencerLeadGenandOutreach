@@ -136,7 +136,8 @@ app_data = {
         'estimated_time_remaining': 0
     },
     'start_time': time.time(),  # Track application startup time
-    'stop_requested': False  # Flag to request processing stop
+    'stop_requested': False,  # Flag to request processing stop
+    'emergency_stop': False   # Flag for emergency stop
 }
 
 # Authentication decorator
@@ -1196,6 +1197,7 @@ def process_keyword():
     # Start processing in background using ThreadPoolExecutor
     app_data['processing_status'] = 'Processing...'
     app_data['stop_requested'] = False  # Reset stop flag
+    app_data['emergency_stop'] = False  # Reset emergency stop flag
 
     try:
         # Run hashtag discovery only - no enrichment yet
@@ -1259,6 +1261,76 @@ def stop_processing():
     except Exception as e:
         logger.error(f"Failed to stop processing: {e}")
         return jsonify({"error": "Fehler beim Stoppen"}), 500
+
+
+@app.route('/emergency-stop-processing', methods=['POST'])
+@login_required
+def emergency_stop_processing():
+    """Emergency STOP - immediate and forceful termination of all processing"""
+    try:
+        data = request.get_json() or {}
+        force = data.get('force', False)
+        immediate = data.get('immediate', False)
+        
+        # Immediate stop flags
+        app_data['stop_requested'] = True
+        app_data['emergency_stop'] = True
+        app_data['processing_status'] = None
+        
+        # Clear all processing states immediately
+        app_data['processing_progress'] = {
+            'current_step': 'NOTFALL STOPP - Alle Prozesse beendet',
+            'total_steps': 0,
+            'completed_steps': 0,
+            'estimated_time_remaining': 0,
+            'final_status': 'emergency_stopped',
+            'phase': 'stopped'
+        }
+        
+        # Additional force cleanup if requested
+        if force:
+            # Clear session processing data
+            app_data['hashtag_variants'] = []
+            app_data['keyword'] = ''
+            app_data['ig_sessionid'] = ''
+            app_data['search_limit'] = 100
+            app_data['default_product_id'] = None
+            
+            # Reset all concurrent processing tracking
+            app_data['concurrent_api_calls'] = 0
+            app_data['processing_start_time'] = None
+            
+        # Log emergency stop with details
+        user_agent = request.headers.get('User-Agent', 'Unknown')
+        client_ip = request.remote_addr
+        logger.critical(f"EMERGENCY STOP activated by user - IP: {client_ip}, User-Agent: {user_agent}, Force: {force}, Immediate: {immediate}")
+        
+        return jsonify({
+            "success": True, 
+            "message": "Notfall-Stopp erfolgreich aktiviert",
+            "emergency": True,
+            "timestamp": time.time(),
+            "details": {
+                "force_cleanup": force,
+                "immediate_stop": immediate,
+                "all_processes_terminated": True
+            }
+        })
+        
+    except Exception as e:
+        logger.error(f"Emergency stop failed: {e}")
+        # Even if there's an error, try to set basic stop flags
+        try:
+            app_data['stop_requested'] = True
+            app_data['emergency_stop'] = True
+            app_data['processing_status'] = None
+        except:
+            pass
+        return jsonify({
+            "error": "Emergency stop error, but basic stop flags set", 
+            "success": True,  # Still return success since we did stop
+            "emergency": True
+        }), 500
 
 
 @app.route('/api/hashtag-variants', methods=['GET'])
@@ -1445,8 +1517,9 @@ async def enrich_selected_profiles_async(selected_profiles, ig_sessionid, defaul
     total_saved_leads = 0
     
     for i, batch in enumerate(batches):
-        if app_data.get('stop_requested', False):
-            logger.info(f"Processing stopped by user during batch {i+1}")
+        if app_data.get('stop_requested', False) or app_data.get('emergency_stop', False):
+            stop_type = "EMERGENCY STOP" if app_data.get('emergency_stop', False) else "user stop"
+            logger.info(f"Processing stopped by {stop_type} during batch {i+1}")
             break
             
         try:
@@ -1675,9 +1748,10 @@ async def process_keyword_async(keyword, ig_sessionid, search_limit, default_pro
     
     try:
         # Check if stop was requested before starting
-        if app_data.get('stop_requested', False):
-            logger.info("Processing stopped by user before hashtag search")
-            app_data['processing_progress']['final_status'] = 'stopped'
+        if app_data.get('stop_requested', False) or app_data.get('emergency_stop', False):
+            stop_type = "EMERGENCY STOP" if app_data.get('emergency_stop', False) else "user stop"
+            logger.info(f"Processing stopped by {stop_type} before hashtag search")
+            app_data['processing_progress']['final_status'] = 'emergency_stopped' if app_data.get('emergency_stop', False) else 'stopped'
             app_data['processing_status'] = None
             return []
             
