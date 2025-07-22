@@ -693,12 +693,45 @@ select:focus {
   padding: var(--space-lg);
   border-bottom: 1px solid var(--color-light-gray);
   background-color: var(--color-pale-green);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .modal-title {
   font-size: var(--text-h1);
   font-weight: 600;
   color: var(--color-charcoal);
+  margin: 0;
+}
+
+.modal-header .close {
+  background: none;
+  border: none;
+  font-size: 24px;
+  font-weight: 300;
+  line-height: 1;
+  color: var(--color-charcoal);
+  cursor: pointer;
+  padding: 0;
+  margin: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: var(--transition-fast);
+}
+
+.modal-header .close:hover {
+  background-color: rgba(0, 0, 0, 0.1);
+  color: var(--color-charcoal);
+}
+
+.modal-header .close:focus {
+  outline: 2px solid var(--color-sage-green);
+  outline-offset: 2px;
 }
 
 .modal-body {
