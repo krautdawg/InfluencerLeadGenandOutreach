@@ -13,6 +13,28 @@ K+L Influence is a Flask-based Instagram lead generation and outreach automation
 
 ## Recent Changes
 
+### 2025-07-22: Dynamic Prompt Template System with Conditional Variable Filtering (COMPLETED)
+- **Feature**: Implemented sophisticated dynamic prompt template system where unchecked variables are completely excluded from AI prompts
+- **Root Issue**: Variables were being sent to AI as empty data rather than being excluded from prompt instructions entirely
+- **Solution Implemented**:
+  - **Template Parser**: Created `parse_prompt_template()` function with conditional markup `[IF variable_enabled]content[/IF]`
+  - **Dynamic System Prompts**: System prompts now filter out instruction sections for disabled variables
+  - **Dynamic User Prompts**: User prompts exclude disabled variable data entirely from profile content
+  - **Template Markup**: Both system and user prompts use conditional sections that get removed when variables are disabled
+  - **Variable Settings Integration**: Checkbox states control which template sections remain active
+- **Technical Implementation**:
+  - **Template Syntax**: Uses `[IF variable_name_enabled]content[/IF]` conditional markup in all prompts
+  - **System Prompt Filtering**: `parse_prompt_template()` removes instruction sections for unchecked variables
+  - **User Content Building**: `build_dynamic_prompt_content()` creates contextually appropriate profile data
+  - **Fallback Logic**: Robust fallback system ensures essential data (username) always included
+  - **Default Templates**: Updated all default prompts with conditional markup for complete variable control
+- **Benefits**:
+  - **Clean AI Instructions**: AI never receives confusing references to disabled variables
+  - **Contextual Prompts**: Instructions focus only on available data fields
+  - **Dynamic Filtering**: Real-time template parsing based on checkbox selections
+  - **Professional Output**: No empty classifiers or incomplete variable references sent to AI
+- **Status**: Dynamic template system fully implemented - unchecked variables completely excluded from both system instructions and user data
+
 ### 2025-07-22: Connected Prompt Settings to Email Generation and Removed EmailTemplate Table (COMPLETED)
 - **Issue**: Email generation was using EmailTemplate table while Prompt Settings updated SystemPrompt table - no connection between them
 - **Root Cause**: Two separate database tables were being used for the same purpose without any integration
