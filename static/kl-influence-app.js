@@ -108,8 +108,7 @@ function initializeEventListeners() {
     // Run button
     document.getElementById('runButton')?.addEventListener('click', processKeyword);
     
-    // Stop button
-    document.getElementById('stopButton')?.addEventListener('click', stopProcessing);
+    // Removed regular stop button - only emergency stop available
     
     // Emergency STOP button
     document.getElementById('emergencyStopButton')?.addEventListener('click', emergencyStopProcessing);
@@ -676,7 +675,6 @@ async function fetchAndDisplayAllLeadsOnStartup() {
 function updateUIState() {
     // Lead Generation UI elements
     const runButton = document.getElementById('runButton');
-    const stopButton = document.getElementById('stopButton');
     const keywordInput = document.getElementById('keywordInput');
     const searchLimitInput = document.getElementById('searchLimitInput');
     
