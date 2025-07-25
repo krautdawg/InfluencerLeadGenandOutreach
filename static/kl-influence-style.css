@@ -274,7 +274,10 @@ a:hover {
 }
 
 .app-layout.sidebar-collapsed .sidebar-toggle:hover {
-  transform: translateY(-50%) translateX(2px);
+  position: fixed;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
 }
 
 .sidebar-toggle:active {
@@ -283,8 +286,11 @@ a:hover {
 }
 
 .app-layout.sidebar-collapsed .sidebar-toggle:active {
+  position: fixed;
+  left: 11px;
+  top: 50%;
   background-color: var(--color-pale-green);
-  transform: translateY(-50%) translateX(1px);
+  transform: translateY(-50%);
 }
 
 .sidebar-toggle i {
@@ -299,10 +305,13 @@ a:hover {
 }
 
 .app-layout.sidebar-collapsed .sidebar-toggle {
+  position: fixed;
   left: 10px;
+  top: 50%;
   right: auto;
   transform: translateY(-50%);
   border-radius: 0 20px 20px 0;
+  z-index: 2000;
 }
 
 .app-layout.sidebar-collapsed .sidebar-toggle i {
