@@ -699,7 +699,7 @@ select:focus {
 
 /* Filter Row */
 .filter-row th {
-  background-color: var(--color-white);
+  background-color: var(--color-white) !important;
   padding: var(--space-sm);
   border-bottom: 1px solid var(--color-light-gray);
   word-wrap: break-word;
@@ -789,6 +789,7 @@ select:focus {
   position: sticky;
   top: 48px; /* Height of main header row */
   z-index: 9;
+  background-color: var(--color-white);
 }
 
 /* 9. Modals & Overlays
