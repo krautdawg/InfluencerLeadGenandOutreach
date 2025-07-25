@@ -239,6 +239,68 @@ a:hover {
   padding: var(--space-lg);
   overflow-y: auto;
   border-right: 1px solid var(--color-light-gray);
+  transition: transform 350ms cubic-bezier(0.4, 0.0, 0.2, 1),
+              opacity 350ms cubic-bezier(0.4, 0.0, 0.2, 1);
+  z-index: 100;
+  box-shadow: 2px 0 8px rgba(45, 91, 45, 0.08);
+}
+
+/* Sidebar Toggle Button */
+.sidebar-toggle {
+  position: absolute;
+  right: -20px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 40px;
+  height: 80px;
+  background-color: rgba(255, 255, 255, 0.95);
+  border: 1px solid var(--color-light-gray);
+  border-radius: 0 20px 20px 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 350ms cubic-bezier(0.4, 0.0, 0.2, 1);
+  box-shadow: 2px 0 8px rgba(45, 91, 45, 0.08);
+  z-index: 101;
+}
+
+.sidebar-toggle:hover {
+  background-color: var(--color-white);
+  box-shadow: 3px 0 12px rgba(45, 91, 45, 0.12);
+  transform: translateY(-50%) translateX(2px);
+}
+
+.sidebar-toggle i {
+  color: var(--color-natural-green);
+  transition: transform 350ms cubic-bezier(0.4, 0.0, 0.2, 1);
+  font-size: 16px;
+}
+
+/* Collapsed State */
+.app-layout.sidebar-collapsed .sidebar-nav {
+  transform: translateX(-100%);
+}
+
+.app-layout.sidebar-collapsed .sidebar-toggle {
+  right: -40px;
+}
+
+.app-layout.sidebar-collapsed .sidebar-toggle i {
+  transform: rotate(180deg);
+}
+
+/* Sidebar content fade animation */
+.sidebar-nav > * {
+  transition: opacity 175ms ease;
+}
+
+.app-layout.sidebar-transitioning .sidebar-nav > * {
+  opacity: 0;
+}
+
+.app-layout.sidebar-collapsed .sidebar-nav > *:not(.sidebar-toggle) {
+  opacity: 0;
 }
 
 .sidebar-section {
@@ -261,6 +323,14 @@ a:hover {
   padding: var(--space-xl);
   width: calc(100% - var(--sidebar-width));
   background-color: var(--color-cream);
+  transition: margin-left 350ms cubic-bezier(0.4, 0.0, 0.2, 1),
+              width 350ms cubic-bezier(0.4, 0.0, 0.2, 1);
+}
+
+/* Main content in collapsed sidebar state */
+.app-layout.sidebar-collapsed .main-content {
+  margin-left: 0;
+  width: 100%;
 }
 
 /* 5. Forms & Inputs
@@ -1138,6 +1208,38 @@ select:focus {
     width: 120px;
     color: var(--color-medium-gray);
   }
+}
+
+/* Mobile menu toggle button */
+.mobile-menu-toggle {
+  display: none;
+  background: transparent;
+  border: none;
+  color: var(--color-white);
+  font-size: 24px;
+  cursor: pointer;
+  padding: var(--space-sm);
+  margin-right: var(--space-md);
+  transition: var(--transition-fast);
+}
+
+.mobile-menu-toggle:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+}
+
+/* Sidebar backdrop for mobile */
+.sidebar-backdrop {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 99;
+  opacity: 0;
+  transition: opacity 350ms ease;
 }
 
 /* 13. Utility Classes

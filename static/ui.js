@@ -8,6 +8,7 @@ document.addEventListener('DOMContentLoaded', function() {
     initializeEventListeners();
     checkSessionId();
     initializeTableFilters();
+    initializeSidebar();
     
     // Load existing leads data if available
     if (window.leadsData && window.leadsData.length > 0) {
@@ -43,6 +44,131 @@ function initializeEventListeners() {
             processKeyword();
         }
     });
+    
+    // Mobile menu toggle
+    const mobileMenuToggle = document.getElementById('mobileMenuToggle');
+    mobileMenuToggle?.addEventListener('click', function() {
+        toggleMobileSidebar();
+    });
+}
+
+// Initialize sidebar functionality
+function initializeSidebar() {
+    const sidebarToggle = document.getElementById('sidebarToggle');
+    const appLayout = document.getElementById('appLayout');
+    const toggleIcon = document.getElementById('toggleIcon');
+    
+    // Check localStorage for saved state
+    const savedState = localStorage.getItem('sidebar-collapsed');
+    if (savedState === 'true') {
+        appLayout.classList.add('sidebar-collapsed');
+        sidebarToggle.setAttribute('aria-expanded', 'false');
+    }
+    
+    // Toggle button click handler
+    sidebarToggle?.addEventListener('click', function() {
+        toggleSidebar();
+    });
+    
+    // Keyboard shortcut (Ctrl/Cmd + B)
+    document.addEventListener('keydown', function(e) {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'b') {
+            e.preventDefault();
+            toggleSidebar();
+        }
+    });
+    
+    // Auto-collapse on mobile/tablet
+    checkResponsiveSidebar();
+    window.addEventListener('resize', debounce(checkResponsiveSidebar, 250));
+}
+
+// Toggle sidebar state
+function toggleSidebar() {
+    const appLayout = document.getElementById('appLayout');
+    const sidebarToggle = document.getElementById('sidebarToggle');
+    const sidebarNav = document.getElementById('sidebarNav');
+    
+    // Add transitioning class for fade effect
+    appLayout.classList.add('sidebar-transitioning');
+    
+    // Toggle collapsed state
+    const isCollapsed = appLayout.classList.toggle('sidebar-collapsed');
+    
+    // Update ARIA attribute
+    sidebarToggle.setAttribute('aria-expanded', !isCollapsed);
+    
+    // Save state to localStorage
+    localStorage.setItem('sidebar-collapsed', isCollapsed);
+    
+    // Remove transitioning class after animation
+    setTimeout(() => {
+        appLayout.classList.remove('sidebar-transitioning');
+    }, 350);
+}
+
+// Check and handle responsive sidebar behavior
+function checkResponsiveSidebar() {
+    const appLayout = document.getElementById('appLayout');
+    const windowWidth = window.innerWidth;
+    
+    // Auto-collapse on tablet and smaller
+    if (windowWidth <= 1024 && !appLayout.classList.contains('sidebar-collapsed')) {
+        // Only auto-collapse if not manually expanded
+        const savedState = localStorage.getItem('sidebar-collapsed');
+        if (savedState !== 'false') {
+            appLayout.classList.add('sidebar-collapsed');
+            document.getElementById('sidebarToggle')?.setAttribute('aria-expanded', 'false');
+        }
+    }
+}
+
+// Toggle mobile sidebar (overlay mode)
+function toggleMobileSidebar() {
+    const sidebarNav = document.getElementById('sidebarNav');
+    const isOpen = sidebarNav.classList.toggle('open');
+    
+    // Create or update backdrop
+    let backdrop = document.querySelector('.sidebar-backdrop');
+    if (!backdrop) {
+        backdrop = document.createElement('div');
+        backdrop.className = 'sidebar-backdrop';
+        document.body.appendChild(backdrop);
+    }
+    
+    if (isOpen) {
+        // Show backdrop
+        backdrop.style.display = 'block';
+        setTimeout(() => backdrop.style.opacity = '1', 10);
+        
+        // Close on backdrop click
+        backdrop.addEventListener('click', function() {
+            toggleMobileSidebar();
+        });
+        
+        // Prevent body scroll
+        document.body.style.overflow = 'hidden';
+    } else {
+        // Hide backdrop
+        backdrop.style.opacity = '0';
+        setTimeout(() => backdrop.style.display = 'none', 350);
+        
+        // Re-enable body scroll
+        document.body.style.overflow = '';
+    }
+}
+
+// Utility function to debounce resize events
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
 }
 
 function initializeTableFilters() {
