@@ -1,0 +1,43 @@
+This “Publish to community” modal is doing a lot of heavy lifting for the user’s flow—here’s how it shapes and guides their experience:
+
+1. **Focus and Context‑Switching**
+
+   * **Modal overlay**: Dims the background and brings the form to the front, so the user’s full attention is on completing the “share your project” task.
+   * **Context cues**: The faded Projects sidebar and blurred cards remind the user where they were, without letting stray elements steal focus.
+
+2. **Clear, Stepwise Data Collection**
+
+   * **Logical field order**:
+
+     1. **Title** – immediately establishes the core identity of the template.
+     2. **Description** – gives room to explain purpose and audience.
+     3. **Categories** – helps tag and surface the template later.
+     4. **Contributors** – credits everyone involved.
+     5. **Thumbnail** – (presumably) for visual discovery.
+   * **Asterisks on required fields** drive completion and reduce form abandonment.
+
+3. **Guidance & Constraints**
+
+   * **Placeholder text & labels** (e.g. “Add labels, comma separated”) and the little “Learn more” link offer gentle hand‑holding without overwhelming.
+   * **Tag chips** for categories enforce consistent taxonomy over freeform text (good for searchability).
+
+4. **Primary & Secondary Actions**
+
+   * **“Submit for review”** in a high‑contrast purple anchors the user’s next step, while “Cancel” sits in plain text to avoid accidental clicks.
+   * Keeping both options visible lets the user back out at any time, reducing anxiety.
+
+5. **Social Proof & Motivation**
+
+   * The header (“Share your project so that people all over the world can learn from how you do research”) reminds the user of purpose and impact—encouraging them to contribute.
+   * Seeing their own project title auto‑populated (“Improving Mobbin”) fosters ownership.
+
+---
+
+### Overall Impact on the User
+
+* **Reduces Cognitive Load**: By chunking the form into clear, bite‑sized fields and visually isolating it, users can focus on one thing at a time.
+* **Fosters Confidence**: Guidance, required‑field markers, and a clear CTA reassure users that they know exactly what’s needed to share their work.
+* **Encourages Contribution**: The motivational header and streamlined workflow lower barriers to participation, making it feel quick and worthwhile.
+* **Risk of Friction**: If users aren’t sure which categories to choose or forget to add a thumbnail, they may hesitate—so adding inline validation or examples could smooth that last mile.
+
+All told, this modal balances clarity and simplicity with enough scaffolding to make sharing a research template feel intuitive and rewarding.
