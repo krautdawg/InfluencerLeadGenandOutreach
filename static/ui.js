@@ -58,22 +58,50 @@ function initializeSidebar() {
     const appLayout = document.getElementById('appLayout');
     const toggleIcon = document.getElementById('toggleIcon');
     
+    console.log('Initializing sidebar...', { sidebarToggle, appLayout });
+    
     // Check localStorage for saved state
     const savedState = localStorage.getItem('sidebar-collapsed');
     if (savedState === 'true') {
-        appLayout.classList.add('sidebar-collapsed');
-        sidebarToggle.setAttribute('aria-expanded', 'false');
+        appLayout?.classList.add('sidebar-collapsed');
+        sidebarToggle?.setAttribute('aria-expanded', 'false');
     }
     
-    // Toggle button click handler
-    sidebarToggle?.addEventListener('click', function() {
-        toggleSidebar();
-    });
+    // Toggle button click handler with debugging
+    if (sidebarToggle) {
+        sidebarToggle.addEventListener('click', function(e) {
+            console.log('Sidebar toggle clicked!', e);
+            e.preventDefault();
+            e.stopPropagation();
+            toggleSidebar();
+        });
+        
+        // Add mouseover event for testing
+        sidebarToggle.addEventListener('mouseover', function() {
+            console.log('Mouse over toggle button');
+        });
+        
+        console.log('Sidebar toggle event listener added');
+        
+        // Test if button is visible and clickable
+        const rect = sidebarToggle.getBoundingClientRect();
+        console.log('Toggle button position:', rect);
+        console.log('Toggle button visible:', rect.width > 0 && rect.height > 0);
+        
+        // Add a global test function
+        window.testSidebarToggle = function() {
+            console.log('Manual test function called');
+            toggleSidebar();
+        };
+    } else {
+        console.error('Sidebar toggle button not found!');
+    }
     
     // Keyboard shortcut (Ctrl/Cmd + B)
     document.addEventListener('keydown', function(e) {
         if ((e.ctrlKey || e.metaKey) && e.key === 'b') {
             e.preventDefault();
+            console.log('Keyboard shortcut triggered');
             toggleSidebar();
         }
     });
@@ -85,18 +113,27 @@ function initializeSidebar() {
 
 // Toggle sidebar state
 function toggleSidebar() {
+    console.log('toggleSidebar called');
     const appLayout = document.getElementById('appLayout');
     const sidebarToggle = document.getElementById('sidebarToggle');
     const sidebarNav = document.getElementById('sidebarNav');
+    
+    if (!appLayout) {
+        console.error('appLayout not found');
+        return;
+    }
     
     // Add transitioning class for fade effect
     appLayout.classList.add('sidebar-transitioning');
     
     // Toggle collapsed state
     const isCollapsed = appLayout.classList.toggle('sidebar-collapsed');
+    console.log('Sidebar collapsed:', isCollapsed);
     
     // Update ARIA attribute
-    sidebarToggle.setAttribute('aria-expanded', !isCollapsed);
+    if (sidebarToggle) {
+        sidebarToggle.setAttribute('aria-expanded', !isCollapsed);
+    }
     
     // Save state to localStorage
     localStorage.setItem('sidebar-collapsed', isCollapsed);
