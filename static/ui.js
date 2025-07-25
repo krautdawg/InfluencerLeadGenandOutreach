@@ -1069,18 +1069,22 @@ async function generateEmailSubject() {
             await fetch(`/api/leads/${username}/product`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
                 body: JSON.stringify({ product_id: productId })
             });
         }
         
-        const response = await fetch(`/draft-email/${username}`);
+        const response = await fetch(`/draft-email/${username}`, {
+            credentials: 'include'
+        });
         
         if (response.ok) {
             const data = await response.json();
             document.getElementById('emailCampaignSubject').value = data.subject || '';
             updateCharacterCounts();
         } else {
-            throw new Error('Failed to generate subject');
+            const errorText = await response.text();
+            throw new Error(`Failed to generate subject: ${errorText}`);
         }
     } catch (error) {
         console.error('Error generating email subject:', error);
@@ -1098,18 +1102,22 @@ async function generateEmailContent() {
             await fetch(`/api/leads/${username}/product`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
                 body: JSON.stringify({ product_id: productId })
             });
         }
         
-        const response = await fetch(`/draft-email/${username}`);
+        const response = await fetch(`/draft-email/${username}`, {
+            credentials: 'include'
+        });
         
         if (response.ok) {
             const data = await response.json();
             document.getElementById('emailCampaignContent').value = data.body || data.email_body || '';
             updateCharacterCounts();
         } else {
-            throw new Error('Failed to generate content');
+            const errorText = await response.text();
+            throw new Error(`Failed to generate content: ${errorText}`);
         }
     } catch (error) {
         console.error('Error generating email content:', error);
