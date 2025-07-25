@@ -937,7 +937,7 @@ window.openEmailCampaignModal = openEmailCampaignModal;
 
 function populateProductsDropdown() {
     const select = document.getElementById('emailCampaignProductSelect');
-    select.innerHTML = '<option value="">-- Produkt auswählen --</option>';
+    select.innerHTML = '<option value="">Kein Produkt</option>';
     
     if (window.productsData && window.productsData.length > 0) {
         window.productsData.forEach(product => {
