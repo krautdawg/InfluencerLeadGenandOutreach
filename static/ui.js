@@ -972,11 +972,9 @@ function setupEmailCampaignEventListeners() {
     subjectInput.addEventListener('input', updateCharacterCounts);
     contentTextarea.addEventListener('input', updateCharacterCounts);
     
-    // AI generation buttons
-    document.getElementById('generateSubjectBtn').removeEventListener('click', generateEmailSubject);
-    document.getElementById('generateContentBtn').removeEventListener('click', generateEmailContent);
-    document.getElementById('generateSubjectBtn').addEventListener('click', generateEmailSubject);
-    document.getElementById('generateContentBtn').addEventListener('click', generateEmailContent);
+    // Single AI generation button
+    document.getElementById('generateEmailBtn').removeEventListener('click', generateFullEmail);
+    document.getElementById('generateEmailBtn').addEventListener('click', generateFullEmail);
     
     // Variables toggle
     document.getElementById('insertVariablesBtn').removeEventListener('click', toggleVariablesSection);
@@ -1030,11 +1028,162 @@ function toggleVariablesSection() {
     const isVisible = section.style.display !== 'none';
     section.style.display = isVisible ? 'none' : 'block';
     
+    // Populate variable checkboxes if first time opening
+    if (!isVisible) {
+        populateVariableCheckboxes();
+    }
+    
     // Update button text
     const button = document.getElementById('insertVariablesBtn');
     button.innerHTML = isVisible ? 
-        '<i class="fas fa-code"></i> Variablen' : 
+        '<i class="fas fa-cog"></i> Variablen' : 
         '<i class="fas fa-times"></i> Schließen';
+}
+
+function populateVariableCheckboxes() {
+    const container = document.getElementById('variableCheckboxContainer');
+    if (!container) return;
+    
+    // Define available variables
+    const variables = [
+        { key: 'username', name: 'Instagram Benutzername', value: '{username}', enabled: true },
+        { key: 'full_name', name: 'Vollständiger Name', value: '{full_name}', enabled: true },
+        { key: 'bio', name: 'Profil-Bio', value: '{bio}', enabled: false },
+        { key: 'hashtag', name: 'Hashtag', value: '{hashtag}', enabled: true },
+        { key: 'followers', name: 'Follower-Anzahl', value: '{followers}', enabled: false },
+        { key: 'caption', name: 'Beitragstext', value: '{caption}', enabled: false },
+        { key: 'product_name', name: 'Produktname', value: '{product_name}', enabled: true },
+        { key: 'product_url', name: 'Produkt-URL', value: '{product_url}', enabled: true },
+        { key: 'product_description', name: 'Produktbeschreibung', value: '{product_description}', enabled: false }
+    ];
+    
+    container.innerHTML = '';
+    
+    variables.forEach(variable => {
+        const colDiv = document.createElement('div');
+        colDiv.className = 'col-md-6 mb-2';
+        
+        colDiv.innerHTML = `
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="var_${variable.key}" 
+                       data-variable="${variable.key}" ${variable.enabled ? 'checked' : ''}>
+                <label class="form-check-label" for="var_${variable.key}">
+                    <strong>${variable.name}</strong>
+                    <br><small class="text-muted">${variable.value}</small>
+                </label>
+            </div>
+        `;
+        
+        container.appendChild(colDiv);
+    });
+}
+
+function generateFullEmail() {
+    console.log('Generating full email with AI...');
+    
+    // Get selected variables
+    const selectedVariables = getSelectedVariables();
+    const username = document.getElementById('emailCampaignUsername').value;
+    const productId = document.getElementById('emailCampaignProductSelect').value;
+    
+    if (!username) {
+        showToast('Fehler: Kein Benutzername gefunden', 'error');
+        return;
+    }
+    
+    // Show loading state
+    const generateBtn = document.getElementById('generateEmailBtn');
+    const originalText = generateBtn.innerHTML;
+    generateBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generiere...';
+    generateBtn.disabled = true;
+    
+    // Generate both subject and content
+    Promise.all([
+        generateEmailSubject(selectedVariables),
+        generateEmailContent(selectedVariables)
+    ]).then(() => {
+        showToast('Email erfolgreich generiert!', 'success');
+    }).catch(error => {
+        console.error('Error generating email:', error);
+        showToast('Fehler beim Generieren der Email', 'error');
+    }).finally(() => {
+        // Restore button
+        generateBtn.innerHTML = originalText;
+        generateBtn.disabled = false;
+    });
+}
+
+function getSelectedVariables() {
+    const checkboxes = document.querySelectorAll('#variableCheckboxContainer input[type="checkbox"]:checked');
+    return Array.from(checkboxes).map(cb => cb.dataset.variable);
+}
+
+async function generateEmailSubject(selectedVariables = null) {
+    const username = document.getElementById('emailCampaignUsername').value;
+    const productId = document.getElementById('emailCampaignProductSelect').value;
+    
+    if (!selectedVariables) {
+        selectedVariables = getSelectedVariables();
+    }
+    
+    try {
+        const response = await fetch(`/draft-email/${username}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                type: 'subject',
+                product_id: productId,
+                variables: selectedVariables
+            })
+        });
+        
+        if (response.ok) {
+            const data = await response.json();
+            document.getElementById('emailCampaignSubject').value = data.subject || '';
+            updateCharacterCounts();
+        } else {
+            throw new Error('Failed to generate subject');
+        }
+    } catch (error) {
+        console.error('Error generating email subject:', error);
+        throw error;
+    }
+}
+
+async function generateEmailContent(selectedVariables = null) {
+    const username = document.getElementById('emailCampaignUsername').value;
+    const productId = document.getElementById('emailCampaignProductSelect').value;
+    
+    if (!selectedVariables) {
+        selectedVariables = getSelectedVariables();
+    }
+    
+    try {
+        const response = await fetch(`/draft-email/${username}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                type: 'content',
+                product_id: productId,
+                variables: selectedVariables
+            })
+        });
+        
+        if (response.ok) {
+            const data = await response.json();
+            document.getElementById('emailCampaignContent').value = data.email_body || '';
+            updateCharacterCounts();
+        } else {
+            throw new Error('Failed to generate content');
+        }
+    } catch (error) {
+        console.error('Error generating email content:', error);
+        throw error;
+    }
 }
 
 async function generateEmailSubject() {

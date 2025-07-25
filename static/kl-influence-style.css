@@ -800,13 +800,31 @@ select:focus {
   width: 100%;
   height: 100%;
   background-color: rgba(0, 0, 0, 0.5);
-  display: flex;
+  display: none;
   align-items: center;
   justify-content: center;
   z-index: 2000;
-  opacity: 0;
-  visibility: hidden;
   transition: var(--transition-medium);
+}
+
+.modal.show {
+  display: flex;
+  opacity: 1;
+  visibility: visible;
+}
+
+.modal-dialog {
+  background-color: var(--color-white);
+  border-radius: 8px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.15);
+  max-width: 90vw;
+  max-height: 90vh;
+  overflow-y: auto;
+  margin: 1rem;
+}
+
+.modal-lg {
+  max-width: 800px;
 }
 
 .modal.show {
@@ -1488,6 +1506,41 @@ select:focus {
 
 #emailCampaignModal .card:hover {
   border-color: var(--color-sage-green);
+}
+
+#emailCampaignModal .form-check {
+  margin-bottom: var(--space-sm);
+}
+
+#emailCampaignModal .form-check-label {
+  margin-left: var(--space-sm);
+  cursor: pointer;
+}
+
+#emailCampaignModal .form-check-label small {
+  display: block;
+  margin-top: 2px;
+  font-family: var(--font-mono);
+  color: var(--color-medium-gray);
+}
+
+#generateEmailBtn {
+  background-color: var(--color-natural-green);
+  border-color: var(--color-natural-green);
+  color: var(--color-white);
+  font-weight: 600;
+  padding: var(--space-sm) var(--space-lg);
+}
+
+#generateEmailBtn:hover {
+  background-color: var(--color-forest-green);
+  border-color: var(--color-forest-green);
+}
+
+#generateEmailBtn:disabled {
+  background-color: var(--color-light-gray);
+  border-color: var(--color-light-gray);
+  color: var(--color-medium-gray);
 }
 
 .variable-item {
