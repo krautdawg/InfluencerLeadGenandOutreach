@@ -172,6 +172,44 @@ function initializeTableFilters() {
             applyFilters();
         });
     }
+    
+    // Set up post date filter
+    const postDateSelect = document.getElementById('filterPostDate');
+    const postDateCustom = document.getElementById('filterPostDateCustom');
+    const customDateRange = document.getElementById('customDateRange');
+    const postDateStart = document.getElementById('filterPostDateStart');
+    const postDateEnd = document.getElementById('filterPostDateEnd');
+    
+    if (postDateSelect) {
+        postDateSelect.addEventListener('change', function() {
+            const selectedValue = this.value;
+            console.log('Post date filter selected:', selectedValue);
+            
+            // Hide all custom inputs first
+            if (postDateCustom) postDateCustom.style.display = 'none';
+            if (customDateRange) customDateRange.style.display = 'none';
+            
+            // Show appropriate custom input based on selection
+            if (selectedValue === 'alter-als' && postDateCustom) {
+                postDateCustom.style.display = 'block';
+            } else if (selectedValue === 'benutzerdefiniert' && customDateRange) {
+                customDateRange.style.display = 'block';
+            }
+            
+            applyFilters();
+        });
+    }
+    
+    // Set up custom date inputs
+    if (postDateCustom) {
+        postDateCustom.addEventListener('change', applyFilters);
+    }
+    if (postDateStart) {
+        postDateStart.addEventListener('change', applyFilters);
+    }
+    if (postDateEnd) {
+        postDateEnd.addEventListener('change', applyFilters);
+    }
 }
 
 // Optimize mobile input fields
@@ -229,8 +267,7 @@ function applyFilters() {
         personalOnly: document.getElementById('filterPersonalOnly')?.checked || false,
         email: document.getElementById('filterEmail')?.value.toLowerCase() || '',
         website: document.getElementById('filterWebsite')?.value.toLowerCase() || '',
-        postTime: document.getElementById('filterPostTime')?.value.toLowerCase() || '',
-        postLink: document.getElementById('filterPostLink')?.value.toLowerCase() || '',
+        postDate: document.getElementById('filterPostDate')?.value || '',
         product: document.getElementById('filterProduct')?.value.toLowerCase() || '',
         subject: document.getElementById('filterSubject')?.value.toLowerCase() || '',
         emailBody: document.getElementById('filterEmailBody')?.value.toLowerCase() || ''
@@ -250,11 +287,10 @@ function applyFilters() {
         const followers = parseFollowerCount(followersText);
         const email = cells[5]?.textContent.toLowerCase() || '';
         const website = cells[6]?.textContent.toLowerCase() || '';
-        const postTime = cells[7]?.textContent.toLowerCase() || '';
-        const postLink = cells[8]?.textContent.toLowerCase() || '';
-        const product = cells[9]?.textContent.toLowerCase() || '';
-        const subject = cells[10]?.textContent.toLowerCase() || '';
-        const emailBody = cells[11]?.textContent.toLowerCase() || '';
+        const postDate = cells[7]?.textContent.toLowerCase() || '';
+        const product = cells[8]?.textContent.toLowerCase() || '';
+        const subject = cells[9]?.textContent.toLowerCase() || '';
+        const emailBody = cells[10]?.textContent.toLowerCase() || '';
         
         let show = true;
         
@@ -264,8 +300,6 @@ function applyFilters() {
         if (filters.fullName && !fullName.includes(filters.fullName)) show = false;
         if (filters.email && !email.includes(filters.email)) show = false;
         if (filters.website && !website.includes(filters.website)) show = false;
-        if (filters.postTime && !postTime.includes(filters.postTime)) show = false;
-        if (filters.postLink && !postLink.includes(filters.postLink)) show = false;
         if (filters.product && !product.includes(filters.product)) show = false;
         if (filters.subject && !subject.includes(filters.subject)) show = false;
         if (filters.emailBody && !emailBody.includes(filters.emailBody)) show = false;
@@ -276,6 +310,71 @@ function applyFilters() {
             const leadIndex = parseInt(cells[0]?.textContent) - 1;
             if (leadIndex >= 0 && leads && leads[leadIndex] && leads[leadIndex].isBusiness) {
                 show = false; // Hide business accounts when "Nur Personal" is checked
+            }
+        }
+        
+        // Date filter
+        if (filters.postDate) {
+            const leadIndex = parseInt(cells[0]?.textContent) - 1;
+            if (leadIndex >= 0 && leads && leads[leadIndex]) {
+                const lead = leads[leadIndex];
+                if (lead.sourceTimestamp) {
+                    const postDate = new Date(lead.sourceTimestamp);
+                    const now = new Date();
+                    
+                    switch (filters.postDate) {
+                        case 'letzte-woche':
+                            // Previous Monday to Sunday
+                            const lastMonday = new Date(now);
+                            const daysSinceMonday = (now.getDay() + 6) % 7; // 0=Sunday, 1=Monday, etc.
+                            lastMonday.setDate(now.getDate() - daysSinceMonday - 7);
+                            lastMonday.setHours(0, 0, 0, 0);
+                            
+                            const lastSunday = new Date(lastMonday);
+                            lastSunday.setDate(lastMonday.getDate() + 6);
+                            lastSunday.setHours(23, 59, 59, 999);
+                            
+                            if (postDate < lastMonday || postDate > lastSunday) show = false;
+                            break;
+                            
+                        case 'letzten-monat':
+                            // Previous calendar month
+                            const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+                            const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
+                            if (postDate < lastMonth || postDate > lastMonthEnd) show = false;
+                            break;
+                            
+                        case 'dieses-jahr':
+                            // January 1 of current year to today
+                            const yearStart = new Date(now.getFullYear(), 0, 1);
+                            if (postDate < yearStart || postDate > now) show = false;
+                            break;
+                            
+                        case 'alter-als':
+                            // Older than custom date
+                            const customDate = document.getElementById('filterPostDateCustom')?.value;
+                            if (customDate) {
+                                const targetDate = new Date(customDate);
+                                if (postDate >= targetDate) show = false;
+                            }
+                            break;
+                            
+                        case 'benutzerdefiniert':
+                            // Custom date range
+                            const startDate = document.getElementById('filterPostDateStart')?.value;
+                            const endDate = document.getElementById('filterPostDateEnd')?.value;
+                            if (startDate && endDate) {
+                                const start = new Date(startDate);
+                                const end = new Date(endDate);
+                                end.setHours(23, 59, 59, 999); // Include full end date
+                                if (postDate < start || postDate > end) show = false;
+                            }
+                            break;
+                    }
+                } else {
+                    // No post date - hide when any date filter is active
+                    show = false;
+                }
             }
         }
         
@@ -346,6 +445,30 @@ function clearFilters() {
     const personalOnlyCheckbox = document.getElementById('filterPersonalOnly');
     if (personalOnlyCheckbox) {
         personalOnlyCheckbox.checked = true;
+    }
+    
+    // Reset post date filter
+    const postDateSelect = document.getElementById('filterPostDate');
+    const postDateCustom = document.getElementById('filterPostDateCustom');
+    const customDateRange = document.getElementById('customDateRange');
+    const postDateStart = document.getElementById('filterPostDateStart');
+    const postDateEnd = document.getElementById('filterPostDateEnd');
+    
+    if (postDateSelect) {
+        postDateSelect.value = '';
+    }
+    if (postDateCustom) {
+        postDateCustom.style.display = 'none';
+        postDateCustom.value = '';
+    }
+    if (customDateRange) {
+        customDateRange.style.display = 'none';
+    }
+    if (postDateStart) {
+        postDateStart.value = '';
+    }
+    if (postDateEnd) {
+        postDateEnd.value = '';
     }
     
     applyFilters();
@@ -994,11 +1117,11 @@ function createLeadRow(lead, index) {
         <td data-label="Website" class="editable-cell" onclick="startInlineEdit(this, '${lead.username}', 'website')">
             ${lead.website ? `<a href="${lead.website}" target="_blank" style="color: var(--color-natural-green);">${lead.website}</a>` : '<span style="color: var(--color-light-gray);">Klicken zum Hinzufügen</span>'}
         </td>
-        <td data-label="Post Zeit">
-            ${lead.sourceTimestamp ? formatGermanDate(lead.sourceTimestamp) : '<span style="color: var(--color-light-gray);">-</span>'}
-        </td>
-        <td data-label="Post Link">
-            ${lead.sourcePostUrl ? `<a href="${lead.sourcePostUrl}" target="_blank" style="color: var(--color-natural-green);" title="Instagram Post öffnen"><i class="fab fa-instagram"></i> Zum Post</a>` : '<span style="color: var(--color-light-gray);">-</span>'}
+        <td data-label="Post Datum">
+            ${lead.sourcePostUrl && lead.sourceTimestamp ? 
+                `<a href="${lead.sourcePostUrl}" target="_blank" style="color: var(--color-natural-green);" title="Instagram Post öffnen">${formatGermanDateOnly(lead.sourceTimestamp)}</a>` : 
+                (lead.sourceTimestamp ? formatGermanDateOnly(lead.sourceTimestamp) : '<span style="color: var(--color-light-gray);">-</span>')
+            }
         </td>
         <td data-label="Product" class="editable-cell" id="product-cell-${lead.username}" onclick="editProductSelection('${lead.username}')">
             ${getProductNameById(lead.selectedProductId) || '<span style="color: var(--color-light-gray);">Kein Produkt</span>'}
@@ -1619,6 +1742,23 @@ function formatGermanDate(isoString) {
         });
     } catch (error) {
         console.error('Error formatting German date:', error);
+        return '';
+    }
+}
+
+// Format German date only (no time)
+function formatGermanDateOnly(isoString) {
+    if (!isoString) return '';
+    
+    try {
+        const date = new Date(isoString);
+        return date.toLocaleDateString('de-DE', { 
+            day: '2-digit', 
+            month: '2-digit', 
+            year: 'numeric'
+        });
+    } catch (error) {
+        console.error('Error formatting German date only:', error);
         return '';
     }
 }

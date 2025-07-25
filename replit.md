@@ -13,6 +13,37 @@ K+L Influence is a Flask-based Instagram lead generation and outreach automation
 
 ## Recent Changes
 
+### 2025-07-25: Post Date Column Enhancement and Advanced Date Filtering (COMPLETED)
+- **Feature**: Removed PostLink column and enhanced PostZeit column with clickable dates and comprehensive date filtering
+- **Column Changes**:
+  - **Removed PostLink Column**: Eliminated separate post link column from table structure
+  - **Enhanced Post Datum**: PostZeit renamed to "Post Datum" and made clickable to link directly to Instagram posts
+  - **Date Format**: Post dates now display in German format (DD.MM.YYYY) without time information
+  - **Clickable Links**: Post dates link directly to Instagram posts when available
+- **Advanced Date Filtering System**:
+  - **Letzte Woche**: Filters posts from Monday to Sunday of the previous calendar week
+  - **Letzten Monat**: Shows posts from the 1st to last day of the previous calendar month
+  - **Dieses Jahr**: Displays posts from January 1 of current year to today
+  - **Älter als...**: Custom date threshold with HTML5 date picker for "older than" filtering
+  - **Benutzerdefiniert**: Full date range picker with start and end date selection
+- **Technical Implementation**:
+  - **HTML Structure**: Updated table headers and filter row with date dropdown and custom inputs
+  - **JavaScript Logic**: Added comprehensive date filtering with precise calendar calculations
+  - **Date Functions**: Created `formatGermanDateOnly()` for date-only display formatting
+  - **Filter Integration**: Date filters work alongside existing filters without conflicts
+  - **UI Controls**: Smart show/hide logic for custom date inputs based on selection
+- **User Experience**:
+  - **Intuitive Interface**: Dropdown-based date filtering with familiar German labels
+  - **Flexible Options**: Multiple preset ranges plus custom date selection capabilities
+  - **Direct Access**: Click on post dates to view original Instagram posts
+  - **Clean Display**: Date-only format reduces visual clutter while maintaining functionality
+- **Benefits**:
+  - **Space Efficiency**: Removed redundant PostLink column while preserving functionality
+  - **Enhanced Navigation**: Direct post access through clickable dates
+  - **Powerful Filtering**: Industry-standard date range options for lead analysis
+  - **Professional Format**: German date formatting matches local conventions
+- **Status**: Post date enhancements and advanced date filtering fully implemented and operational
+
 ### 2025-07-25: Collapsible Left Navigation Sidebar Implementation (COMPLETED)
 - **Feature**: Implemented Option 3 Push/Squeeze Content Pattern for collapsible left navigation sidebar
 - **UI Enhancement**: Added toggle button with smooth animations and visual feedback for expanding/collapsing sidebar

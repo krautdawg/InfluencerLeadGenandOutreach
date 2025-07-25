@@ -164,30 +164,26 @@
                                         <div class="resize-handle" data-column="7"></div>
                                     </th>
                                     <th onclick="sortTable(7)" class="sortable">
-                                        Post Zeit<span class="sort-indicator">↕</span>
+                                        Post Datum<span class="sort-indicator">↕</span>
                                         <div class="resize-handle" data-column="8"></div>
                                     </th>
                                     <th onclick="sortTable(8)" class="sortable">
-                                        Post Link<span class="sort-indicator">↕</span>
+                                        Produkt<span class="sort-indicator">↕</span>
                                         <div class="resize-handle" data-column="9"></div>
                                     </th>
                                     <th onclick="sortTable(9)" class="sortable">
-                                        Produkt<span class="sort-indicator">↕</span>
+                                        Betreff<span class="sort-indicator">↕</span>
                                         <div class="resize-handle" data-column="10"></div>
                                     </th>
                                     <th onclick="sortTable(10)" class="sortable">
-                                        Betreff<span class="sort-indicator">↕</span>
+                                        Email-Inhalt<span class="sort-indicator">↕</span>
                                         <div class="resize-handle" data-column="11"></div>
                                     </th>
                                     <th onclick="sortTable(11)" class="sortable">
-                                        Email-Inhalt<span class="sort-indicator">↕</span>
+                                        Status<span class="sort-indicator">↕</span>
                                         <div class="resize-handle" data-column="12"></div>
                                     </th>
-                                    <th onclick="sortTable(12)" class="sortable">
-                                        Status<span class="sort-indicator">↕</span>
-                                        <div class="resize-handle" data-column="13"></div>
-                                    </th>
-                                    <th>Aktionen<div class="resize-handle" data-column="14"></div></th>
+                                    <th>Aktionen<div class="resize-handle" data-column="13"></div></th>
                                 </tr>
                                 <tr class="filter-row">
                                     <th></th>
@@ -211,12 +207,25 @@
                                     </th>
                                     <th><input type="text" class="filter-input" id="filterEmail" data-column="5" placeholder="Filtern..."></th>
                                     <th><input type="text" class="filter-input" id="filterWebsite" data-column="6" placeholder="Filtern..."></th>
-                                    <th><input type="text" class="filter-input" id="filterPostTime" data-column="7" placeholder="Filtern..."></th>
-                                    <th><input type="text" class="filter-input" id="filterPostLink" data-column="8" placeholder="Filtern..."></th>
-                                    <th><input type="text" class="filter-input" id="filterProduct" data-column="9" placeholder="Filtern..."></th>
-                                    <th><input type="text" class="filter-input" id="filterSubject" data-column="10" placeholder="Filtern..."></th>
-                                    <th><input type="text" class="filter-input" id="filterEmailBody" data-column="11" placeholder="Filtern..."></th>
-                                    <th><input type="text" class="filter-input" id="filterStatus" data-column="12" placeholder="Filtern..."></th>
+                                    <th>
+                                        <select class="form-control filter-select" id="filterPostDate">
+                                            <option value="">Alle Daten</option>
+                                            <option value="letzte-woche">Letzte Woche</option>
+                                            <option value="letzten-monat">Letzten Monat</option>
+                                            <option value="dieses-jahr">Dieses Jahr</option>
+                                            <option value="alter-als">Älter als...</option>
+                                            <option value="benutzerdefiniert">Benutzerdefiniert</option>
+                                        </select>
+                                        <input type="date" class="filter-input" id="filterPostDateCustom" style="display: none; margin-top: 5px;" placeholder="Älter als Datum">
+                                        <div id="customDateRange" style="display: none; margin-top: 5px;">
+                                            <input type="date" class="filter-input" id="filterPostDateStart" placeholder="Von" style="margin-bottom: 3px;">
+                                            <input type="date" class="filter-input" id="filterPostDateEnd" placeholder="Bis">
+                                        </div>
+                                    </th>
+                                    <th><input type="text" class="filter-input" id="filterProduct" data-column="8" placeholder="Filtern..."></th>
+                                    <th><input type="text" class="filter-input" id="filterSubject" data-column="9" placeholder="Filtern..."></th>
+                                    <th><input type="text" class="filter-input" id="filterEmailBody" data-column="10" placeholder="Filtern..."></th>
+                                    <th><input type="text" class="filter-input" id="filterStatus" data-column="11" placeholder="Filtern..."></th>
                                     <th></th>
                                 </tr>
                             </thead>
