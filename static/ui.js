@@ -81,23 +81,7 @@ function initializeSidebar() {
             toggleSidebar();
         });
         
-        // Add mouseover event for testing
-        sidebarToggle.addEventListener('mouseover', function() {
-            console.log('Mouse over toggle button');
-        });
-        
         console.log('Sidebar toggle event listener added');
-        
-        // Test if button is visible and clickable
-        const rect = sidebarToggle.getBoundingClientRect();
-        console.log('Toggle button position:', rect);
-        console.log('Toggle button visible:', rect.width > 0 && rect.height > 0);
-        
-        // Add a global test function
-        window.testSidebarToggle = function() {
-            console.log('Manual test function called');
-            toggleSidebar();
-        };
     } else {
         console.error('Sidebar toggle button not found!');
     }
@@ -118,10 +102,8 @@ function initializeSidebar() {
 
 // Toggle sidebar state
 function toggleSidebar() {
-    console.log('toggleSidebar called');
     const appLayout = document.getElementById('appLayout');
     const sidebarToggle = document.getElementById('sidebarToggle');
-    const sidebarNav = document.getElementById('sidebarNav');
     
     if (!appLayout) {
         console.error('appLayout not found');
@@ -133,7 +115,6 @@ function toggleSidebar() {
     
     // Toggle collapsed state
     const isCollapsed = appLayout.classList.toggle('sidebar-collapsed');
-    console.log('Sidebar collapsed:', isCollapsed);
     
     // Update ARIA attribute
     if (sidebarToggle) {
