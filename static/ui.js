@@ -953,7 +953,7 @@ function loadExistingEmailData(lead) {
     // Pre-select product if already assigned
     if (lead.product_id) {
         document.getElementById('emailCampaignProductSelect').value = lead.product_id;
-        updateProductPreview(lead.product_id);
+        // Product preview removed
     }
     
     // Load existing subject and content
@@ -991,31 +991,7 @@ function setupEmailCampaignEventListeners() {
 }
 
 function handleProductChange() {
-    const productId = document.getElementById('emailCampaignProductSelect').value;
-    updateProductPreview(productId);
-}
-
-function updateProductPreview(productId) {
-    const preview = document.getElementById('emailCampaignProductPreview');
-    
-    if (!productId || !window.productsData) {
-        preview.style.display = 'none';
-        return;
-    }
-    
-    const product = window.productsData.find(p => p.id == productId);
-    if (!product) {
-        preview.style.display = 'none';
-        return;
-    }
-    
-    // Update preview elements
-    document.getElementById('emailCampaignProductImage').src = product.image_url || '/static/placeholder.png';
-    document.getElementById('emailCampaignProductName').textContent = product.name;
-    document.getElementById('emailCampaignProductDescription').textContent = product.description || 'Keine Beschreibung verfügbar';
-    document.getElementById('emailCampaignProductPrice').textContent = product.price || '';
-    
-    preview.style.display = 'block';
+    // Product preview removed - no action needed
 }
 
 function updateCharacterCounts() {
@@ -1177,18 +1153,26 @@ async function saveEmailDraft() {
     const subject = document.getElementById('emailCampaignSubject').value.trim();
     const content = document.getElementById('emailCampaignContent').value.trim();
     
-    if (!productId || !subject || !content) {
-        showToast('Bitte fülle alle Pflichtfelder aus', 'warning');
+    if (!subject || !content) {
+        showToast('Bitte fülle Betreff und Inhalt aus', 'warning');
         return;
     }
     
     try {
-        const response = await fetch('/save-email-draft', {
+        // First update the product if selected
+        if (productId) {
+            await fetch(`/api/leads/${username}/product`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ product_id: productId })
+            });
+        }
+        
+        // Save subject and email body using existing update endpoint
+        const response = await fetch(`/update-lead/${username}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                username: username,
-                product_id: productId,
                 subject: subject,
                 email_body: content
             })
@@ -1202,9 +1186,10 @@ async function saveEmailDraft() {
             // Update local lead data
             const lead = window.leadsData.find(l => l.username === username);
             if (lead) {
-                lead.product_id = productId;
+                lead.selectedProductId = productId;
                 lead.subject = subject;
                 lead.email_body = content;
+                lead.emailBody = content; // Both formats for compatibility
             }
             
             // Close modal and refresh table
