@@ -1026,7 +1026,7 @@ function updateCharacterCounts() {
     document.getElementById('contentCharCount').textContent = contentTextarea.value.length;
 }
 
-function generateFullEmail() {
+async function generateFullEmail() {
     console.log('Generating full email with AI...');
     
     const username = document.getElementById('emailCampaignUsername').value;
@@ -1043,87 +1043,49 @@ function generateFullEmail() {
     generateBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generiere...';
     generateBtn.disabled = true;
     
-    // Generate both subject and content
-    Promise.all([
-        generateEmailSubject(),
-        generateEmailContent()
-    ]).then(() => {
-        showToast('Email erfolgreich generiert!', 'success');
-    }).catch(error => {
+    try {
+        // Update product if needed before generating (same as working implementation)
+        if (productId) {
+            const productResponse = await fetch(`/api/leads/${username}/product`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ product_id: productId })
+            });
+            
+            if (!productResponse.ok) {
+                throw new Error('Failed to update product');
+            }
+        }
+        
+        // Use the same approach as the working email generation in table
+        const response = await fetch(`/draft-email/${username}`);
+        
+        if (response.ok) {
+            const result = await response.json();
+            
+            // Update modal fields with generated content
+            document.getElementById('emailCampaignSubject').value = result.subject || '';
+            document.getElementById('emailCampaignContent').value = result.body || result.email_body || '';
+            updateCharacterCounts();
+            
+            showToast('Email erfolgreich generiert!', 'success');
+        } else {
+            const errorText = await response.text();
+            console.error('Response error:', errorText);
+            throw new Error(`Server error: ${response.status}`);
+        }
+    } catch (error) {
         console.error('Error generating email:', error);
         showToast('Fehler beim Generieren der Email', 'error');
-    }).finally(() => {
+    } finally {
         // Restore button
         generateBtn.innerHTML = originalText;
         generateBtn.disabled = false;
-    });
-}
-
-async function generateEmailSubject() {
-    const username = document.getElementById('emailCampaignUsername').value;
-    const productId = document.getElementById('emailCampaignProductSelect').value;
-    
-    try {
-        // Update product if needed before generating
-        if (productId) {
-            await fetch(`/api/leads/${username}/product`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'include',
-                body: JSON.stringify({ product_id: productId })
-            });
-        }
-        
-        const response = await fetch(`/draft-email/${username}`, {
-            credentials: 'include'
-        });
-        
-        if (response.ok) {
-            const data = await response.json();
-            document.getElementById('emailCampaignSubject').value = data.subject || '';
-            updateCharacterCounts();
-        } else {
-            const errorText = await response.text();
-            throw new Error(`Failed to generate subject: ${errorText}`);
-        }
-    } catch (error) {
-        console.error('Error generating email subject:', error);
-        throw error;
     }
 }
 
-async function generateEmailContent() {
-    const username = document.getElementById('emailCampaignUsername').value;
-    const productId = document.getElementById('emailCampaignProductSelect').value;
-    
-    try {
-        // Update product if needed before generating
-        if (productId) {
-            await fetch(`/api/leads/${username}/product`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'include',
-                body: JSON.stringify({ product_id: productId })
-            });
-        }
-        
-        const response = await fetch(`/draft-email/${username}`, {
-            credentials: 'include'
-        });
-        
-        if (response.ok) {
-            const data = await response.json();
-            document.getElementById('emailCampaignContent').value = data.body || data.email_body || '';
-            updateCharacterCounts();
-        } else {
-            const errorText = await response.text();
-            throw new Error(`Failed to generate content: ${errorText}`);
-        }
-    } catch (error) {
-        console.error('Error generating email content:', error);
-        throw error;
-    }
-}
+// Note: generateEmailSubject and generateEmailContent are now integrated into generateFullEmail above
+// This eliminates the separate Promise.all approach and uses the same pattern as the working table buttons
 
 async function generateEmailSubject() {
     const button = document.getElementById('generateSubjectBtn');
