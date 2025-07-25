@@ -27,12 +27,7 @@ const TEMPLATE_PROMPTS = {
 document.addEventListener('DOMContentLoaded', function() {
     initializeEventListeners();
     checkSessionId();
-    
-    // Initialize new filter bar instead of old table filters
-    if (typeof initializeFilterBar === 'function') {
-        initializeFilterBar();
-    }
-    
+    initializeTableFilters();
     initializeColumnResizing();
     
     // Load products data from the server or fetch from API
@@ -142,8 +137,41 @@ function initializeEventListeners() {
 
 // Initialize table filters
 function initializeTableFilters() {
-    // Legacy table filter initialization - replaced by new filter bar
-    console.log('Legacy table filters disabled - using new filter bar');
+    const filterInputs = document.querySelectorAll('.filter-input');
+    filterInputs.forEach(input => {
+        input.addEventListener('input', debounce(applyFilters, 300));
+    });
+    
+    // Set up follower range filter
+    const followerRangeSelect = document.getElementById('filterFollowersRange');
+    const followerCustomInput = document.getElementById('filterFollowers');
+    
+    if (followerRangeSelect) {
+        followerRangeSelect.addEventListener('change', function() {
+            const selectedValue = this.value;
+            console.log('Follower range selected:', selectedValue);
+            
+            if (selectedValue === 'custom') {
+                // Show custom input for advanced users
+                followerCustomInput.style.display = 'block';
+                followerCustomInput.focus();
+            } else {
+                // Hide custom input
+                followerCustomInput.style.display = 'none';
+                followerCustomInput.value = '';
+            }
+            applyFilters();
+        });
+    }
+    
+    // Set up business account filter
+    const businessAccountSelect = document.getElementById('filterBusinessAccount');
+    if (businessAccountSelect) {
+        businessAccountSelect.addEventListener('change', function() {
+            console.log('Business account filter selected:', this.value);
+            applyFilters();
+        });
+    }
 }
 
 // Optimize mobile input fields
@@ -182,19 +210,144 @@ function optimizeMobileInputs() {
 
 // Apply filters to table
 function applyFilters() {
-    // Legacy apply filters - replaced by new filter bar
-    // The new filter bar handles all filtering through filters.js
-    if (typeof applyTableFilters === 'function') {
-        applyTableFilters();
+    const followerRangeSelect = document.getElementById('filterFollowersRange');
+    const followerCustomInput = document.getElementById('filterFollowers');
+    
+    // Get follower filter value from range select or custom input
+    let followerFilter = '';
+    if (followerRangeSelect && followerRangeSelect.value !== 'custom' && followerRangeSelect.value !== '') {
+        followerFilter = followerRangeSelect.value;
+    } else if (followerCustomInput && followerCustomInput.value !== '') {
+        followerFilter = followerCustomInput.value;
     }
+    
+    const filters = {
+        username: document.getElementById('filterUsername')?.value.toLowerCase() || '',
+        hashtag: document.getElementById('filterHashtag')?.value.toLowerCase() || '',
+        fullName: document.getElementById('filterFullName')?.value.toLowerCase() || '',
+        followers: followerFilter,
+        businessAccount: document.getElementById('filterBusinessAccount')?.value || '',
+        email: document.getElementById('filterEmail')?.value.toLowerCase() || '',
+        website: document.getElementById('filterWebsite')?.value.toLowerCase() || '',
+        postTime: document.getElementById('filterPostTime')?.value.toLowerCase() || '',
+        postLink: document.getElementById('filterPostLink')?.value.toLowerCase() || '',
+        product: document.getElementById('filterProduct')?.value.toLowerCase() || '',
+        subject: document.getElementById('filterSubject')?.value.toLowerCase() || '',
+        emailBody: document.getElementById('filterEmailBody')?.value.toLowerCase() || ''
+    };
+    
+    const tbody = document.getElementById('resultsBody');
+    const rows = tbody.querySelectorAll('tr');
+    
+    rows.forEach(row => {
+        const cells = row.querySelectorAll('td');
+        if (cells.length === 0) return;
+        
+        const username = cells[1]?.textContent.toLowerCase() || '';
+        const hashtag = cells[2]?.textContent.toLowerCase() || '';
+        const fullName = cells[3]?.textContent.toLowerCase() || '';
+        const followersText = cells[4]?.textContent || '0';
+        const followers = parseFollowerCount(followersText);
+        const businessIcon = cells[5]?.innerHTML || '';
+        const isBusiness = businessIcon.includes('fa-building');
+        const email = cells[6]?.textContent.toLowerCase() || '';
+        const website = cells[7]?.textContent.toLowerCase() || '';
+        const postTime = cells[8]?.textContent.toLowerCase() || '';
+        const postLink = cells[9]?.textContent.toLowerCase() || '';
+        const product = cells[10]?.textContent.toLowerCase() || '';
+        const subject = cells[11]?.textContent.toLowerCase() || '';
+        const emailBody = cells[12]?.textContent.toLowerCase() || '';
+        
+        let show = true;
+        
+        // Text filters
+        if (filters.username && !username.includes(filters.username)) show = false;
+        if (filters.hashtag && !hashtag.includes(filters.hashtag)) show = false;
+        if (filters.fullName && !fullName.includes(filters.fullName)) show = false;
+        if (filters.email && !email.includes(filters.email)) show = false;
+        if (filters.website && !website.includes(filters.website)) show = false;
+        if (filters.postTime && !postTime.includes(filters.postTime)) show = false;
+        if (filters.postLink && !postLink.includes(filters.postLink)) show = false;
+        if (filters.product && !product.includes(filters.product)) show = false;
+        if (filters.subject && !subject.includes(filters.subject)) show = false;
+        if (filters.emailBody && !emailBody.includes(filters.emailBody)) show = false;
+        
+        // Business account filter
+        if (filters.businessAccount) {
+            if (filters.businessAccount === 'business' && !isBusiness) show = false;
+            if (filters.businessAccount === 'personal' && isBusiness) show = false;
+        }
+        
+        // Numeric filter for followers
+        if (filters.followers) {
+            console.log('Filtering followers:', followersText, 'parsed to:', followers, 'filter:', filters.followers);
+            
+            // Check if it's a range filter (e.g., "1000-10000")
+            if (filters.followers.includes('-') && !filters.followers.startsWith('-')) {
+                const [minStr, maxStr] = filters.followers.split('-');
+                const minValue = parseInt(minStr);
+                const maxValue = parseInt(maxStr);
+                
+                console.log('Range filter:', minValue, '<=', followers, '<=', maxValue);
+                
+                if (followers < minValue || followers > maxValue) {
+                    show = false;
+                }
+            } else {
+                // Original comparison operators for custom input
+                const match = filters.followers.match(/([<>=]+)?\s*(\d+)/);
+                if (match) {
+                    const operator = match[1] || '=';
+                    const value = parseInt(match[2]);
+                    
+                    switch(operator) {
+                        case '>':
+                            if (followers <= value) show = false;
+                            break;
+                        case '<':
+                            if (followers >= value) show = false;
+                            break;
+                        case '>=':
+                            if (followers < value) show = false;
+                            break;
+                        case '<=':
+                            if (followers > value) show = false;
+                            break;
+                        default:
+                            if (followers !== value) show = false;
+                    }
+                }
+            }
+        }
+        
+        row.style.display = show ? '' : 'none';
+    });
 }
 
 // Clear all filters
 function clearFilters() {
-    // Legacy clear filters - replaced by new filter bar
-    if (typeof clearAllFilters === 'function') {
-        clearAllFilters();
+    document.querySelectorAll('.filter-input').forEach(input => {
+        input.value = '';
+    });
+    
+    // Reset follower range filter
+    const followerRangeSelect = document.getElementById('filterFollowersRange');
+    const followerCustomInput = document.getElementById('filterFollowers');
+    if (followerRangeSelect) {
+        followerRangeSelect.value = '';
     }
+    if (followerCustomInput) {
+        followerCustomInput.style.display = 'none';
+        followerCustomInput.value = '';
+    }
+    
+    // Reset business account filter
+    const businessAccountSelect = document.getElementById('filterBusinessAccount');
+    if (businessAccountSelect) {
+        businessAccountSelect.value = '';
+    }
+    
+    applyFilters();
 }
 
 // Check session ID
@@ -792,7 +945,6 @@ async function refreshLeadsTable(keyword) {
 // Display results in table
 function displayResults(leadsData) {
     leads = leadsData;
-    window.leadsData = leadsData; // Update window data for filters
     const tbody = document.getElementById('resultsBody');
     tbody.innerHTML = '';
     
@@ -804,10 +956,8 @@ function displayResults(leadsData) {
     document.getElementById('resultsSection').style.display = 'block';
     document.getElementById('emptyState').style.display = 'none';
     
-    // Update filter options with new data
-    if (typeof populateFilterOptions === 'function') {
-        populateFilterOptions();
-    }
+    // Apply any existing filters
+    applyFilters();
     
     // Initialize column resizing for the table (if not already done)
     initializeColumnResizing();
@@ -819,168 +969,64 @@ function displayResults(leadsData) {
     updateUIState();
 }
 
-// Create lead row with grouped columns
+// Create lead row
 function createLeadRow(lead, index) {
     const row = document.createElement('tr');
-    row.dataset.leadUsername = lead.username;
-    
     if (lead.is_duplicate) {
         row.style.backgroundColor = 'rgba(255, 165, 0, 0.1)';
     }
     
-    // User Info Cell (Username, Full Name, Followers, Business/Personal)
-    const userInfoHTML = `
-        <td class="user-info-cell">
-            <a href="https://instagram.com/${lead.username}" target="_blank" class="user-info-username">
+    // Mobile data attributes
+    row.innerHTML = `
+        <td data-label="#">${index + 1}</td>
+        <td data-label="Username">
+            <a href="https://instagram.com/${lead.username}" target="_blank" style="color: var(--color-natural-green);">
                 @${lead.username}
             </a>
-            <div class="user-info-fullname">${lead.full_name || '-'}</div>
-            <div class="user-info-stats">
-                <span class="user-info-followers">
-                    <i class="fas fa-users" style="font-size: 12px;"></i>
-                    ${formatNumber(lead.followersCount || 0)}
-                </span>
-                <span class="business-indicator ${lead.isBusiness ? 'business' : 'personal'}">
-                    <i class="fas fa-${lead.isBusiness ? 'building' : 'user'}" style="font-size: 10px;"></i>
-                    ${lead.isBusiness ? 'Business' : 'Personal'}
-                </span>
-            </div>
         </td>
-    `;
-    
-    // Hashtag Cell
-    const hashtagHTML = `
-        <td data-hashtag="${lead.hashtag || ''}">${lead.hashtag ? '#' + lead.hashtag : '-'}</td>
-    `;
-    
-    // Post Date & Link Cell
-    const postDate = lead.sourceTimestamp ? formatGermanDate(lead.sourceTimestamp) : '-';
-    const postDateLinkHTML = `
-        <td class="post-date-link-cell" data-post-date="${lead.sourceTimestamp || ''}">
-            <span class="post-date">${postDate}</span>
-            ${lead.sourcePostUrl ? 
-                `<a href="${lead.sourcePostUrl}" target="_blank" class="post-link" title="Instagram Post öffnen">
-                    <i class="fas fa-external-link-alt"></i>
-                </a>` : ''
-            }
+        <td data-label="Hashtag">${lead.hashtag || ''}</td>
+        <td data-label="Full Name">${lead.full_name || ''}</td>
+        <td data-label="Followers">${formatNumber(lead.followersCount || 0)}</td>
+        <td data-label="Business">
+            ${lead.isBusiness ? '<i class="fas fa-building" style="color: var(--color-natural-green);" title="Business Account"></i>' : '<i class="fas fa-user" style="color: var(--color-medium-gray);" title="Personal Account"></i>'}
         </td>
-    `;
-    
-    // Product Cell (with inline edit)
-    const productHTML = `
-        <td class="editable-cell" data-product="${lead.selectedProductId || ''}" onclick="editProductSelection('${lead.username}')">
+        <td data-label="Email" class="editable-cell" onclick="startInlineEdit(this, '${lead.username}', 'email')">
+            ${lead.email || '<span style="color: var(--color-light-gray);">Klicken zum Hinzufügen</span>'}
+        </td>
+        <td data-label="Website" class="editable-cell" onclick="startInlineEdit(this, '${lead.username}', 'website')">
+            ${lead.website ? `<a href="${lead.website}" target="_blank" style="color: var(--color-natural-green);">${lead.website}</a>` : '<span style="color: var(--color-light-gray);">Klicken zum Hinzufügen</span>'}
+        </td>
+        <td data-label="Post Zeit">
+            ${lead.sourceTimestamp ? formatGermanDate(lead.sourceTimestamp) : '<span style="color: var(--color-light-gray);">-</span>'}
+        </td>
+        <td data-label="Post Link">
+            ${lead.sourcePostUrl ? `<a href="${lead.sourcePostUrl}" target="_blank" style="color: var(--color-natural-green);" title="Instagram Post öffnen"><i class="fab fa-instagram"></i> Zum Post</a>` : '<span style="color: var(--color-light-gray);">-</span>'}
+        </td>
+        <td data-label="Product" class="editable-cell" id="product-cell-${lead.username}" onclick="editProductSelection('${lead.username}')">
             ${getProductNameById(lead.selectedProductId) || '<span style="color: var(--color-light-gray);">Kein Produkt</span>'}
         </td>
-    `;
-    
-    // Email Action Cell (Accordion)
-    const emailStatus = lead.sent ? 'sent' : 'draft';
-    const emailActionHTML = `
-        <td class="email-action-cell">
-            <div class="email-accordion" id="email-accordion-${lead.username}">
-                <div class="email-accordion-header" onclick="toggleEmailAccordion('${lead.username}')">
-                    <span class="email-status ${emailStatus}">
-                        ${lead.sent ? 
-                            `<i class="fas fa-check-circle"></i> Gesendet` : 
-                            `<i class="fas fa-edit"></i> Entwurf`
-                        }
-                    </span>
-                    <button class="email-accordion-toggle" onclick="event.stopPropagation(); toggleEmailAccordion('${lead.username}')">
-                        Bearbeiten
-                    </button>
-                </div>
-                <div class="email-accordion-content">
-                    <div class="email-form-group">
-                        <label>Produkt</label>
-                        <select class="email-form-control" id="email-product-${lead.username}" onchange="updateEmailProduct('${lead.username}', this.value)">
-                            <option value="">Kein Produkt</option>
-                            ${window.productsData ? window.productsData.map(p => 
-                                `<option value="${p.id}" ${lead.selectedProductId == p.id ? 'selected' : ''}>${p.name}</option>`
-                            ).join('') : ''}
-                        </select>
-                    </div>
-                    <div class="email-form-group">
-                        <label>Betreff</label>
-                        <input type="text" class="email-form-control" id="email-subject-${lead.username}" 
-                               value="${lead.subject || ''}" 
-                               placeholder="Email-Betreff eingeben..."
-                               onblur="updateEmailField('${lead.username}', 'subject', this.value)">
-                    </div>
-                    <div class="email-form-group">
-                        <label>E-Mail Text</label>
-                        <textarea class="email-form-control textarea" id="email-body-${lead.username}" 
-                                  placeholder="Email-Text eingeben..."
-                                  onblur="updateEmailField('${lead.username}', 'email_body', this.value)">${lead.email_body || ''}</textarea>
-                    </div>
-                    <div class="email-action-buttons">
-                        <button class="email-action-btn generate" onclick="generateEmailContent('${lead.username}')">
-                            <i class="fas fa-magic"></i> Generieren
-                        </button>
-                        <button class="email-action-btn send" onclick="sendEmail('${lead.username}')" ${lead.sent ? '' : ''}>
-                            <i class="fas fa-paper-plane"></i> Senden
-                        </button>
-                    </div>
-                </div>
+        <td data-label="Subject" class="editable-cell" data-username="${lead.username}" data-field="subject" onclick="editField(this)">
+            ${lead.subject || '<span style="color: var(--color-light-gray);">Klicken zum Hinzufügen</span>'}
+        </td>
+        <td data-label="Email Body" class="editable-cell" data-username="${lead.username}" data-field="email_body" onclick="editField(this)">
+            ${(lead.email_body || '').substring(0, 50)}${(lead.email_body || '').length > 50 ? '...' : ''}${!lead.email_body ? '<span style="color: var(--color-light-gray);">Klicken zum Hinzufügen</span>' : ''}
+        </td>
+        <td data-label="Status">
+            ${lead.sent ? `<span style="color: var(--color-natural-green); font-weight: 500;"><i class="fas fa-check-circle"></i> Gesendet<br><small style="color: var(--color-medium-gray); font-weight: normal;">${formatDateTime(lead.sentAt)}</small></span>` : '<span style="color: var(--color-medium-gray);">Entwurf</span>'}
+        </td>
+        <td data-label="Actions">
+            <div class="d-flex gap-1">
+                <button class="btn btn-secondary btn-sm" onclick="generateEmailContent('${lead.username}')" title="Email generieren">
+                    <i class="fas fa-envelope"></i> Email
+                </button>
+                <button class="btn btn-tertiary btn-sm send-btn" id="send-btn-${lead.username}" onclick="sendEmail('${lead.username}')" title="Email senden">
+                    <i class="fas fa-paper-plane"></i> Senden
+                </button>
             </div>
         </td>
     `;
     
-    // Status Cell
-    const statusHTML = `
-        <td class="status-cell ${emailStatus}" data-status="${emailStatus}">
-            ${lead.sent ? 
-                `Gesendet<br><small>${formatDateTime(lead.sentAt)}</small>` : 
-                'Entwurf'
-            }
-        </td>
-    `;
-    
-    // Set row data attributes for filtering
-    row.dataset.followers = lead.followersCount || 0;
-    row.dataset.business = lead.isBusiness ? 'true' : 'false';
-    
-    // Combine all cells
-    row.innerHTML = userInfoHTML + hashtagHTML + postDateLinkHTML + productHTML + emailActionHTML + statusHTML;
-    
     return row;
-}
-
-// Toggle email accordion
-function toggleEmailAccordion(username) {
-    const accordion = document.getElementById(`email-accordion-${username}`);
-    if (accordion) {
-        accordion.classList.toggle('expanded');
-    }
-}
-
-// Update email product selection
-function updateEmailProduct(username, productId) {
-    // Update the product in the lead data
-    const lead = leads.find(l => l.username === username);
-    if (lead) {
-        lead.selectedProductId = productId;
-        
-        // Update the product cell in the table
-        const productCell = document.querySelector(`tr[data-lead-username="${username}"] td[data-product]`);
-        if (productCell) {
-            productCell.dataset.product = productId || '';
-            productCell.innerHTML = getProductNameById(productId) || '<span style="color: var(--color-light-gray);">Kein Produkt</span>';
-        }
-        
-        // Save to backend
-        updateLeadField(username, 'selected_product_id', productId);
-    }
-}
-
-// Update email field (subject or body)
-function updateEmailField(username, field, value) {
-    const lead = leads.find(l => l.username === username);
-    if (lead) {
-        lead[field] = value;
-        
-        // Save to backend
-        updateLeadField(username, field, value);
-    }
 }
 
 // Edit field handler (for both inline and modal editing)

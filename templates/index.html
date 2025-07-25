@@ -130,29 +130,99 @@
                             <thead>
                                 <tr>
                                     <th onclick="sortTable(0)" class="sortable">
-                                        User Info<span class="sort-indicator">↕</span>
+                                        #<span class="sort-indicator">↕</span>
                                         <div class="resize-handle" data-column="1"></div>
                                     </th>
                                     <th onclick="sortTable(1)" class="sortable">
-                                        Hashtag<span class="sort-indicator">↕</span>
+                                        Benutzername<span class="sort-indicator">↕</span>
                                         <div class="resize-handle" data-column="2"></div>
                                     </th>
                                     <th onclick="sortTable(2)" class="sortable">
-                                        Post Datum & Link<span class="sort-indicator">↕</span>
+                                        hashtag<span class="sort-indicator">↕</span>
                                         <div class="resize-handle" data-column="3"></div>
                                     </th>
                                     <th onclick="sortTable(3)" class="sortable">
-                                        Produkt<span class="sort-indicator">↕</span>
+                                        Vollständiger Name<span class="sort-indicator">↕</span>
                                         <div class="resize-handle" data-column="4"></div>
                                     </th>
-                                    <th>
-                                        E-Mail Action
+                                    <th onclick="sortTable(4)" class="sortable">
+                                        Follower<span class="sort-indicator">↕</span>
                                         <div class="resize-handle" data-column="5"></div>
                                     </th>
                                     <th onclick="sortTable(5)" class="sortable">
-                                        Status<span class="sort-indicator">↕</span>
+                                        Business<span class="sort-indicator">↕</span>
                                         <div class="resize-handle" data-column="6"></div>
                                     </th>
+                                    <th onclick="sortTable(6)" class="sortable">
+                                        Email<span class="sort-indicator">↕</span>
+                                        <div class="resize-handle" data-column="7"></div>
+                                    </th>
+                                    <th onclick="sortTable(7)" class="sortable">
+                                        Website<span class="sort-indicator">↕</span>
+                                        <div class="resize-handle" data-column="8"></div>
+                                    </th>
+                                    <th onclick="sortTable(8)" class="sortable">
+                                        Post Zeit<span class="sort-indicator">↕</span>
+                                        <div class="resize-handle" data-column="9"></div>
+                                    </th>
+                                    <th onclick="sortTable(9)" class="sortable">
+                                        Post Link<span class="sort-indicator">↕</span>
+                                        <div class="resize-handle" data-column="10"></div>
+                                    </th>
+                                    <th onclick="sortTable(10)" class="sortable">
+                                        Produkt<span class="sort-indicator">↕</span>
+                                        <div class="resize-handle" data-column="11"></div>
+                                    </th>
+                                    <th onclick="sortTable(11)" class="sortable">
+                                        Betreff<span class="sort-indicator">↕</span>
+                                        <div class="resize-handle" data-column="12"></div>
+                                    </th>
+                                    <th onclick="sortTable(12)" class="sortable">
+                                        Email-Inhalt<span class="sort-indicator">↕</span>
+                                        <div class="resize-handle" data-column="13"></div>
+                                    </th>
+                                    <th onclick="sortTable(13)" class="sortable">
+                                        Status<span class="sort-indicator">↕</span>
+                                        <div class="resize-handle" data-column="14"></div>
+                                    </th>
+                                    <th>Aktionen<div class="resize-handle" data-column="15"></div></th>
+                                </tr>
+                                <tr class="filter-row">
+                                    <th></th>
+                                    <th><input type="text" class="filter-input" id="filterUsername" data-column="1" placeholder="Filtern..."></th>
+                                    <th><input type="text" class="filter-input" id="filterHashtag" data-column="2" placeholder="Filtern..."></th>
+                                    <th><input type="text" class="filter-input" id="filterFullName" data-column="3" placeholder="Filtern..."></th>
+                                    <th>
+                                        <select class="form-control filter-select" id="filterFollowersRange">
+                                            <option value="">Alle Follower</option>
+                                            <option value="1-100">1 - 100</option>
+                                            <option value="100-1000">100 - 1K</option>
+                                            <option value="1000-10000">1K - 10K</option>
+                                            <option value="10000-50000">10K - 50K</option>
+                                            <option value="50000-100000">50K - 100K</option>
+                                            <option value="100000-500000">100K - 500K</option>
+                                            <option value="500000-1000000">500K - 1M</option>
+                                            <option value="1000000-999999999">1M+</option>
+                                            <option value="custom">Benutzerdefiniert...</option>
+                                        </select>
+                                        <input type="text" class="filter-input" id="filterFollowers" data-column="4" placeholder="> < = 1000" style="display: none; margin-top: 5px;">
+                                    </th>
+                                    <th>
+                                        <select class="form-control filter-select" id="filterBusinessAccount" data-column="5">
+                                            <option value="">Alle</option>
+                                            <option value="business">Nur Business</option>
+                                            <option value="personal">Nur Personal</option>
+                                        </select>
+                                    </th>
+                                    <th><input type="text" class="filter-input" id="filterEmail" data-column="6" placeholder="Filtern..."></th>
+                                    <th><input type="text" class="filter-input" id="filterWebsite" data-column="7" placeholder="Filtern..."></th>
+                                    <th><input type="text" class="filter-input" id="filterPostTime" data-column="8" placeholder="Filtern..."></th>
+                                    <th><input type="text" class="filter-input" id="filterPostLink" data-column="9" placeholder="Filtern..."></th>
+                                    <th><input type="text" class="filter-input" id="filterProduct" data-column="10" placeholder="Filtern..."></th>
+                                    <th><input type="text" class="filter-input" id="filterSubject" data-column="11" placeholder="Filtern..."></th>
+                                    <th><input type="text" class="filter-input" id="filterEmailBody" data-column="12" placeholder="Filtern..."></th>
+                                    <th><input type="text" class="filter-input" id="filterStatus" data-column="13" placeholder="Filtern..."></th>
+                                    <th></th>
                                 </tr>
                             </thead>
                             <tbody id="resultsBody">
@@ -347,7 +417,6 @@
 
     <!-- JavaScript -->
     <script src="{{ url_for('static', filename='ui.js') }}"></script>
-    <script src="{{ url_for('static', filename='filters.js') }}"></script>
     <script src="{{ url_for('static', filename='kl-influence-app.js') }}"></script>
 </body>
 </html>
