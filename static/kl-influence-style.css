@@ -573,6 +573,9 @@ select:focus {
   cursor: pointer;
   user-select: none;
   overflow: hidden;
+  word-wrap: break-word;
+  word-break: break-word;
+  white-space: normal;
 }
 
 /* Column Resize Handle */
@@ -633,12 +636,42 @@ select:focus {
 .data-table td {
   padding: var(--space-md);
   vertical-align: middle;
+  word-wrap: break-word;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  white-space: normal;
+  hyphens: auto;
+  max-width: 0; /* Force text wrapping within column constraints */
+}
+
+/* Ensure links within table cells also wrap properly */
+.data-table td a {
+  word-wrap: break-word;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  white-space: normal;
+  display: inline-block;
+  max-width: 100%;
+}
+
+/* Ensure text within spans also wraps */
+.data-table td span {
+  word-wrap: break-word;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  white-space: normal;
+  display: inline-block;
+  max-width: 100%;
 }
 
 /* Inline Editing */
 .editable-cell {
   cursor: pointer;
   position: relative;
+  word-wrap: break-word;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  white-space: normal;
 }
 
 .editable-cell:hover {
@@ -656,6 +689,8 @@ select:focus {
   border-radius: 4px;
   font-family: var(--font-primary);
   font-size: var(--text-body-sm);
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 /* Sort Indicators */
@@ -670,6 +705,8 @@ select:focus {
   background-color: var(--color-white);
   padding: var(--space-sm);
   border-bottom: 1px solid var(--color-light-gray);
+  word-wrap: break-word;
+  white-space: normal;
 }
 
 .filter-input {
@@ -678,6 +715,8 @@ select:focus {
   font-size: var(--text-body-sm);
   border: 1px solid var(--color-light-gray);
   border-radius: 4px;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 .filter-select {
