@@ -131,6 +131,33 @@
 
                     <!-- Table Container -->
                     <div class="table-container">
+                        <!-- Pagination Controls Top -->
+                        <div class="pagination-controls-top" id="paginationControlsTop" style="display: none;">
+                            <div class="pagination-info">
+                                <span id="resultsInfo">Zeige 0-0 von 0 Ergebnissen</span>
+                            </div>
+                            <div class="pagination-navigation">
+                                <button class="btn btn-sm" id="firstPageBtn">Erste</button>
+                                <button class="btn btn-sm" id="prevPageBtn">Zurück</button>
+                                <span id="pageInfo">Seite 1 von 1</span>
+                                <div class="page-numbers" id="pageNumbers">
+                                    <!-- Page numbers will be inserted here -->
+                                </div>
+                                <button class="btn btn-sm" id="nextPageBtn">Weiter</button>
+                                <button class="btn btn-sm" id="lastPageBtn">Letzte</button>
+                            </div>
+                            <div class="pagination-size">
+                                <label for="pageSizeSelect">Zeige:</label>
+                                <select id="pageSizeSelect">
+                                    <option value="10">10</option>
+                                    <option value="25" selected>25</option>
+                                    <option value="50">50</option>
+                                    <option value="100">100</option>
+                                    <option value="200">200</option>
+                                    <option value="all">Alle</option>
+                                </select>
+                            </div>
+                        </div>
                     <div class="table-wrapper" id="tableWrapper">
                         <table class="data-table" id="resultsTable">
                             <thead>
@@ -229,6 +256,33 @@
                             </tbody>
                         </table>
                     </div>
+                        <!-- Pagination Controls Bottom -->
+                        <div class="pagination-controls-bottom" id="paginationControlsBottom" style="display: none;">
+                            <div class="pagination-info">
+                                <span id="resultsInfoBottom">Zeige 0-0 von 0 Ergebnissen</span>
+                            </div>
+                            <div class="pagination-navigation">
+                                <button class="btn btn-sm" id="firstPageBtnBottom">Erste</button>
+                                <button class="btn btn-sm" id="prevPageBtnBottom">Zurück</button>
+                                <span id="pageInfoBottom">Seite 1 von 1</span>
+                                <div class="page-numbers" id="pageNumbersBottom">
+                                    <!-- Page numbers will be inserted here -->
+                                </div>
+                                <button class="btn btn-sm" id="nextPageBtnBottom">Weiter</button>
+                                <button class="btn btn-sm" id="lastPageBtnBottom">Letzte</button>
+                            </div>
+                            <div class="pagination-size">
+                                <label for="pageSizeSelectBottom">Zeige:</label>
+                                <select id="pageSizeSelectBottom">
+                                    <option value="10">10</option>
+                                    <option value="25" selected>25</option>
+                                    <option value="50">50</option>
+                                    <option value="100">100</option>
+                                    <option value="200">200</option>
+                                    <option value="all">Alle</option>
+                                </select>
+                            </div>
+                        </div>
                 </div>
                 </div>
 

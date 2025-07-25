@@ -1346,3 +1346,132 @@ select:focus {
   outline: 2px solid var(--color-natural-green);
   outline-offset: 2px;
 }
+
+/* 14. Pagination Controls
+------------------------------------------- */
+.pagination-controls-top,
+.pagination-controls-bottom {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 0;
+    border-bottom: 1px solid var(--color-border-light);
+    background: var(--color-background-white);
+}
+
+.pagination-controls-bottom {
+    border-bottom: none;
+    border-top: 1px solid var(--color-border-light);
+}
+
+.pagination-info {
+    color: var(--color-medium-gray);
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.pagination-size {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.pagination-size label {
+    color: var(--color-medium-gray);
+    font-size: 0.875rem;
+    font-weight: 500;
+    margin: 0;
+}
+
+.pagination-size select {
+    min-width: 80px;
+    border: 1px solid var(--color-border);
+    border-radius: 4px;
+    font-size: 0.875rem;
+    padding: 0.25rem 0.5rem;
+}
+
+.pagination-navigation {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.pagination-navigation .btn {
+    border: 1px solid var(--color-border);
+    background: var(--color-background-white);
+    color: var(--color-text-dark);
+    font-size: 0.875rem;
+    padding: 0.375rem 0.75rem;
+    transition: all 0.2s ease;
+}
+
+.pagination-navigation .btn:hover:not(:disabled) {
+    background: var(--color-natural-green);
+    color: white;
+    border-color: var(--color-natural-green);
+}
+
+.pagination-navigation .btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.page-numbers {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    margin: 0 0.5rem;
+}
+
+.page-numbers .btn {
+    min-width: 2.5rem;
+    padding: 0.375rem 0.5rem;
+    border: 1px solid var(--color-border);
+    background: var(--color-background-white);
+    color: var(--color-text-dark);
+    font-size: 0.875rem;
+    transition: all 0.2s ease;
+}
+
+.page-numbers .btn:hover {
+    background: var(--color-natural-green);
+    color: white;
+    border-color: var(--color-natural-green);
+}
+
+.page-numbers .btn.active {
+    background: var(--color-natural-green);
+    color: white;
+    border-color: var(--color-natural-green);
+    font-weight: 600;
+}
+
+.page-numbers .page-ellipsis {
+    padding: 0.375rem 0.5rem;
+    color: var(--color-medium-gray);
+    font-size: 0.875rem;
+}
+
+/* Responsive pagination for mobile */
+@media (max-width: 768px) {
+    .pagination-controls-top,
+    .pagination-controls-bottom {
+        flex-direction: column;
+        gap: 1rem;
+        align-items: stretch;
+    }
+    
+    .pagination-navigation {
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+    
+    .page-numbers {
+        margin: 0;
+    }
+    
+    .pagination-size {
+        justify-content: center;
+    }
+}

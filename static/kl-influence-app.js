@@ -11,6 +11,13 @@ let products = [];
 let defaultProductId = null;
 let lastNotificationTime = 0;
 
+// Pagination variables
+let currentPage = 1;
+let pageSize = 25;
+let totalRows = 0;
+let filteredRows = [];
+let allRows = [];
+
 // Template prompts for different scenarios
 const TEMPLATE_PROMPTS = {
     withProduct: {
@@ -67,6 +74,9 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Initialize Prompt Settings
     initializePromptSettings();
+    
+    // Initialize pagination
+    initializePagination();
 });
 
 // Initialize all event listeners
@@ -275,6 +285,10 @@ function applyFilters() {
     const tbody = document.getElementById('resultsBody');
     const rows = tbody.querySelectorAll('tr');
     
+    // Clear the filtered rows array and reset to page 1
+    currentPage = 1;
+    filteredRows = [];
+    
     rows.forEach(row => {
         const cells = row.querySelectorAll('td');
         if (cells.length === 0) return;
@@ -420,8 +434,15 @@ function applyFilters() {
             }
         }
         
-        row.style.display = show ? '' : 'none';
+        // Add to filtered rows if it should be shown
+        if (show) {
+            filteredRows.push(row);
+        }
     });
+    
+    // Update pagination after filtering
+    currentPage = 1; // Reset to first page
+    updatePagination();
 }
 
 // Clear all filters
@@ -1072,15 +1093,20 @@ function displayResults(leadsData) {
     const tbody = document.getElementById('resultsBody');
     tbody.innerHTML = '';
     
+    // Store all rows for pagination
+    allRows = [];
+    filteredRows = [];
+    
     leads.forEach((lead, index) => {
         const row = createLeadRow(lead, index);
         tbody.appendChild(row);
+        allRows.push(row);
     });
     
     document.getElementById('resultsSection').style.display = 'block';
     document.getElementById('emptyState').style.display = 'none';
     
-    // Apply any existing filters
+    // Apply any existing filters (this will populate filteredRows)
     applyFilters();
     
     // Initialize column resizing for the table (if not already done)
@@ -1439,9 +1465,6 @@ async function sendEmail(username) {
 
 // Table sorting
 function sortTable(columnIndex) {
-    const tbody = document.getElementById('resultsBody');
-    const rows = Array.from(tbody.querySelectorAll('tr'));
-    
     // Determine sort direction
     if (currentSortColumn === columnIndex) {
         currentSortDirection = currentSortDirection === 'asc' ? 'desc' : 'asc';
@@ -1450,8 +1473,8 @@ function sortTable(columnIndex) {
         currentSortColumn = columnIndex;
     }
     
-    // Sort rows
-    rows.sort((a, b) => {
+    // Sort all rows
+    allRows.sort((a, b) => {
         const aValue = a.cells[columnIndex].textContent;
         const bValue = b.cells[columnIndex].textContent;
         
@@ -1468,13 +1491,15 @@ function sortTable(columnIndex) {
             : bValue.localeCompare(aValue);
     });
     
-    // Re-append sorted rows
-    rows.forEach(row => tbody.appendChild(row));
+    // Re-append sorted rows to tbody
+    const tbody = document.getElementById('resultsBody');
+    tbody.innerHTML = '';
+    allRows.forEach(row => tbody.appendChild(row));
     
     // Update sort indicators
     updateSortIndicators(columnIndex, currentSortDirection);
     
-    // Re-apply filters
+    // Re-apply filters and pagination
     applyFilters();
 }
 
@@ -2899,5 +2924,228 @@ function hideDeleteButton() {
     const deleteBtn = document.getElementById('deleteProductBtn');
     if (deleteBtn) {
         deleteBtn.style.display = 'none';
+    }
+}
+
+// Pagination Functions
+function initializePagination() {
+    // Load saved page size from localStorage
+    const savedPageSize = localStorage.getItem('pageSize');
+    if (savedPageSize && savedPageSize !== 'null') {
+        pageSize = savedPageSize === 'all' ? 'all' : parseInt(savedPageSize);
+        const pageSizeSelect = document.getElementById('pageSizeSelect');
+        const pageSizeSelectBottom = document.getElementById('pageSizeSelectBottom');
+        if (pageSizeSelect) {
+            pageSizeSelect.value = savedPageSize;
+        }
+        if (pageSizeSelectBottom) {
+            pageSizeSelectBottom.value = savedPageSize;
+        }
+    }
+    
+    // Set up page size selectors (both top and bottom)
+    const pageSizeSelect = document.getElementById('pageSizeSelect');
+    const pageSizeSelectBottom = document.getElementById('pageSizeSelectBottom');
+    
+    const handlePageSizeChange = function() {
+        const newPageSize = this.value;
+        pageSize = newPageSize === 'all' ? 'all' : parseInt(newPageSize);
+        localStorage.setItem('pageSize', newPageSize);
+        currentPage = 1;
+        
+        // Sync both selectors
+        if (pageSizeSelect) pageSizeSelect.value = newPageSize;
+        if (pageSizeSelectBottom) pageSizeSelectBottom.value = newPageSize;
+        
+        updatePagination();
+    };
+    
+    if (pageSizeSelect) {
+        pageSizeSelect.addEventListener('change', handlePageSizeChange);
+    }
+    if (pageSizeSelectBottom) {
+        pageSizeSelectBottom.addEventListener('change', handlePageSizeChange);
+    }
+    
+    // Set up navigation buttons (top controls)
+    document.getElementById('firstPageBtn')?.addEventListener('click', () => goToPage(1));
+    document.getElementById('prevPageBtn')?.addEventListener('click', () => goToPage(currentPage - 1));
+    document.getElementById('nextPageBtn')?.addEventListener('click', () => goToPage(currentPage + 1));
+    document.getElementById('lastPageBtn')?.addEventListener('click', () => {
+        const totalPages = getTotalPages();
+        goToPage(totalPages);
+    });
+    
+    // Set up navigation buttons (bottom controls)
+    document.getElementById('firstPageBtnBottom')?.addEventListener('click', () => goToPage(1));
+    document.getElementById('prevPageBtnBottom')?.addEventListener('click', () => goToPage(currentPage - 1));
+    document.getElementById('nextPageBtnBottom')?.addEventListener('click', () => goToPage(currentPage + 1));
+    document.getElementById('lastPageBtnBottom')?.addEventListener('click', () => {
+        const totalPages = getTotalPages();
+        goToPage(totalPages);
+    });
+}
+
+function getTotalPages() {
+    if (pageSize === 'all') return 1;
+    return Math.ceil(filteredRows.length / pageSize);
+}
+
+function updatePagination() {
+    const totalPages = getTotalPages();
+    const showPagination = filteredRows.length > 0 && pageSize !== 'all' && totalPages > 1;
+    
+    // Show/hide pagination controls
+    const paginationTop = document.getElementById('paginationControlsTop');
+    const paginationBottom = document.getElementById('paginationControlsBottom');
+    
+    if (showPagination) {
+        if (paginationTop) paginationTop.style.display = 'flex';
+        if (paginationBottom) paginationBottom.style.display = 'flex';
+    } else {
+        if (paginationTop) paginationTop.style.display = 'none';
+        if (paginationBottom) paginationBottom.style.display = 'none';
+    }
+    
+    if (!showPagination) return;
+    
+    // Update results info (both top and bottom)
+    const startResult = ((currentPage - 1) * pageSize) + 1;
+    const endResult = Math.min(currentPage * pageSize, filteredRows.length);
+    const resultsInfo = document.getElementById('resultsInfo');
+    const resultsInfoBottom = document.getElementById('resultsInfoBottom');
+    const infoText = `Zeige ${startResult}-${endResult} von ${filteredRows.length} Ergebnissen`;
+    
+    if (resultsInfo) resultsInfo.textContent = infoText;
+    if (resultsInfoBottom) resultsInfoBottom.textContent = infoText;
+    
+    // Update page info (both top and bottom)
+    const pageInfo = document.getElementById('pageInfo');
+    const pageInfoBottom = document.getElementById('pageInfoBottom');
+    const pageText = `Seite ${currentPage} von ${totalPages}`;
+    
+    if (pageInfo) pageInfo.textContent = pageText;
+    if (pageInfoBottom) pageInfoBottom.textContent = pageText;
+    
+    // Update navigation buttons (top)
+    const firstBtn = document.getElementById('firstPageBtn');
+    const prevBtn = document.getElementById('prevPageBtn');
+    const nextBtn = document.getElementById('nextPageBtn');
+    const lastBtn = document.getElementById('lastPageBtn');
+    
+    if (firstBtn) firstBtn.disabled = currentPage === 1;
+    if (prevBtn) prevBtn.disabled = currentPage === 1;
+    if (nextBtn) nextBtn.disabled = currentPage >= totalPages;
+    if (lastBtn) lastBtn.disabled = currentPage >= totalPages;
+    
+    // Update navigation buttons (bottom)
+    const firstBtnBottom = document.getElementById('firstPageBtnBottom');
+    const prevBtnBottom = document.getElementById('prevPageBtnBottom');
+    const nextBtnBottom = document.getElementById('nextPageBtnBottom');
+    const lastBtnBottom = document.getElementById('lastPageBtnBottom');
+    
+    if (firstBtnBottom) firstBtnBottom.disabled = currentPage === 1;
+    if (prevBtnBottom) prevBtnBottom.disabled = currentPage === 1;
+    if (nextBtnBottom) nextBtnBottom.disabled = currentPage >= totalPages;
+    if (lastBtnBottom) lastBtnBottom.disabled = currentPage >= totalPages;
+    
+    // Update page numbers (both top and bottom)
+    updatePageNumbers();
+    
+    // Show only current page rows
+    showCurrentPageRows();
+}
+
+function updatePageNumbers() {
+    const pageNumbers = document.getElementById('pageNumbers');
+    const pageNumbersBottom = document.getElementById('pageNumbersBottom');
+    
+    const totalPages = getTotalPages();
+    
+    // Update top page numbers
+    if (pageNumbers) {
+        pageNumbers.innerHTML = '';
+        createPageNumbersForContainer(pageNumbers, totalPages);
+    }
+    
+    // Update bottom page numbers
+    if (pageNumbersBottom) {
+        pageNumbersBottom.innerHTML = '';
+        createPageNumbersForContainer(pageNumbersBottom, totalPages);
+    }
+}
+
+function createPageNumbersForContainer(container, totalPages) {
+    if (totalPages <= 7) {
+        // Show all page numbers if 7 or fewer pages
+        for (let i = 1; i <= totalPages; i++) {
+            createPageButton(i, container);
+        }
+    } else {
+        // Smart pagination with ellipsis
+        createPageButton(1, container);
+        
+        if (currentPage > 4) {
+            createEllipsis(container);
+        }
+        
+        const startPage = Math.max(2, currentPage - 2);
+        const endPage = Math.min(totalPages - 1, currentPage + 2);
+        
+        for (let i = startPage; i <= endPage; i++) {
+            createPageButton(i, container);
+        }
+        
+        if (currentPage < totalPages - 3) {
+            createEllipsis(container);
+        }
+        
+        if (totalPages > 1) {
+            createPageButton(totalPages, container);
+        }
+    }
+}
+
+function createPageButton(pageNum, container) {
+    const button = document.createElement('button');
+    button.className = `btn btn-sm${pageNum === currentPage ? ' active' : ''}`;
+    button.textContent = pageNum;
+    button.addEventListener('click', () => goToPage(pageNum));
+    container.appendChild(button);
+}
+
+function createEllipsis(container) {
+    const ellipsis = document.createElement('span');
+    ellipsis.className = 'page-ellipsis';
+    ellipsis.textContent = '...';
+    container.appendChild(ellipsis);
+}
+
+function goToPage(page) {
+    const totalPages = getTotalPages();
+    if (page < 1 || page > totalPages) return;
+    
+    currentPage = page;
+    updatePagination();
+}
+
+function showCurrentPageRows() {
+    const tbody = document.getElementById('resultsBody');
+    if (!tbody) return;
+    
+    // Hide all rows first
+    const allTableRows = tbody.querySelectorAll('tr');
+    allTableRows.forEach(row => row.style.display = 'none');
+    
+    if (pageSize === 'all') {
+        // Show all filtered rows
+        filteredRows.forEach(row => row.style.display = '');
+    } else {
+        // Show only current page rows
+        const startIndex = (currentPage - 1) * pageSize;
+        const endIndex = startIndex + pageSize;
+        const currentPageRows = filteredRows.slice(startIndex, endIndex);
+        
+        currentPageRows.forEach(row => row.style.display = '');
     }
 }
