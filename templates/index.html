@@ -110,7 +110,13 @@
                     <!-- Action Bar -->
                     <div class="d-flex justify-content-between align-items-center mb-4">
                         <h2 class="mb-0">Lead Ergebnisse</h2>
-                        <div class="d-flex gap-2">
+                        <div class="d-flex gap-2 align-items-center">
+                            <div class="form-check me-3">
+                                <input class="form-check-input" type="checkbox" id="filterPersonalOnly" checked>
+                                <label class="form-check-label" for="filterPersonalOnly" style="font-size: 14px; color: var(--color-medium-gray);">
+                                    Nur Personal
+                                </label>
+                            </div>
                             <button type="button" class="btn btn-secondary btn-sm" onclick="clearFilters()">
                                 <i class="fas fa-filter"></i> Filter löschen
                             </button>
@@ -150,42 +156,38 @@
                                         <div class="resize-handle" data-column="5"></div>
                                     </th>
                                     <th onclick="sortTable(5)" class="sortable">
-                                        Business<span class="sort-indicator">↕</span>
+                                        Email<span class="sort-indicator">↕</span>
                                         <div class="resize-handle" data-column="6"></div>
                                     </th>
                                     <th onclick="sortTable(6)" class="sortable">
-                                        Email<span class="sort-indicator">↕</span>
+                                        Website<span class="sort-indicator">↕</span>
                                         <div class="resize-handle" data-column="7"></div>
                                     </th>
                                     <th onclick="sortTable(7)" class="sortable">
-                                        Website<span class="sort-indicator">↕</span>
+                                        Post Zeit<span class="sort-indicator">↕</span>
                                         <div class="resize-handle" data-column="8"></div>
                                     </th>
                                     <th onclick="sortTable(8)" class="sortable">
-                                        Post Zeit<span class="sort-indicator">↕</span>
+                                        Post Link<span class="sort-indicator">↕</span>
                                         <div class="resize-handle" data-column="9"></div>
                                     </th>
                                     <th onclick="sortTable(9)" class="sortable">
-                                        Post Link<span class="sort-indicator">↕</span>
+                                        Produkt<span class="sort-indicator">↕</span>
                                         <div class="resize-handle" data-column="10"></div>
                                     </th>
                                     <th onclick="sortTable(10)" class="sortable">
-                                        Produkt<span class="sort-indicator">↕</span>
+                                        Betreff<span class="sort-indicator">↕</span>
                                         <div class="resize-handle" data-column="11"></div>
                                     </th>
                                     <th onclick="sortTable(11)" class="sortable">
-                                        Betreff<span class="sort-indicator">↕</span>
+                                        Email-Inhalt<span class="sort-indicator">↕</span>
                                         <div class="resize-handle" data-column="12"></div>
                                     </th>
                                     <th onclick="sortTable(12)" class="sortable">
-                                        Email-Inhalt<span class="sort-indicator">↕</span>
+                                        Status<span class="sort-indicator">↕</span>
                                         <div class="resize-handle" data-column="13"></div>
                                     </th>
-                                    <th onclick="sortTable(13)" class="sortable">
-                                        Status<span class="sort-indicator">↕</span>
-                                        <div class="resize-handle" data-column="14"></div>
-                                    </th>
-                                    <th>Aktionen<div class="resize-handle" data-column="15"></div></th>
+                                    <th>Aktionen<div class="resize-handle" data-column="14"></div></th>
                                 </tr>
                                 <tr class="filter-row">
                                     <th></th>
@@ -207,21 +209,14 @@
                                         </select>
                                         <input type="text" class="filter-input" id="filterFollowers" data-column="4" placeholder="> < = 1000" style="display: none; margin-top: 5px;">
                                     </th>
-                                    <th>
-                                        <select class="form-control filter-select" id="filterBusinessAccount" data-column="5">
-                                            <option value="">Alle</option>
-                                            <option value="business">Nur Business</option>
-                                            <option value="personal">Nur Personal</option>
-                                        </select>
-                                    </th>
-                                    <th><input type="text" class="filter-input" id="filterEmail" data-column="6" placeholder="Filtern..."></th>
-                                    <th><input type="text" class="filter-input" id="filterWebsite" data-column="7" placeholder="Filtern..."></th>
-                                    <th><input type="text" class="filter-input" id="filterPostTime" data-column="8" placeholder="Filtern..."></th>
-                                    <th><input type="text" class="filter-input" id="filterPostLink" data-column="9" placeholder="Filtern..."></th>
-                                    <th><input type="text" class="filter-input" id="filterProduct" data-column="10" placeholder="Filtern..."></th>
-                                    <th><input type="text" class="filter-input" id="filterSubject" data-column="11" placeholder="Filtern..."></th>
-                                    <th><input type="text" class="filter-input" id="filterEmailBody" data-column="12" placeholder="Filtern..."></th>
-                                    <th><input type="text" class="filter-input" id="filterStatus" data-column="13" placeholder="Filtern..."></th>
+                                    <th><input type="text" class="filter-input" id="filterEmail" data-column="5" placeholder="Filtern..."></th>
+                                    <th><input type="text" class="filter-input" id="filterWebsite" data-column="6" placeholder="Filtern..."></th>
+                                    <th><input type="text" class="filter-input" id="filterPostTime" data-column="7" placeholder="Filtern..."></th>
+                                    <th><input type="text" class="filter-input" id="filterPostLink" data-column="8" placeholder="Filtern..."></th>
+                                    <th><input type="text" class="filter-input" id="filterProduct" data-column="9" placeholder="Filtern..."></th>
+                                    <th><input type="text" class="filter-input" id="filterSubject" data-column="10" placeholder="Filtern..."></th>
+                                    <th><input type="text" class="filter-input" id="filterEmailBody" data-column="11" placeholder="Filtern..."></th>
+                                    <th><input type="text" class="filter-input" id="filterStatus" data-column="12" placeholder="Filtern..."></th>
                                     <th></th>
                                 </tr>
                             </thead>
