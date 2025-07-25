@@ -2068,7 +2068,8 @@ def draft_email(username):
             logger.error(f"Lead not found: {username}")
             return {"error": "Lead not found"}, 404
 
-        # Determine if product is selected
+        # Determine if product is selected - check both lead.selected_product and request parameters
+        # For modal generation, check if product_id was provided in the URL or if lead has selected_product
         has_product = lead.selected_product is not None
         
         logger.info(f"Generating email for {username}, has_product: {has_product}")
@@ -2198,6 +2199,12 @@ def update_lead(username):
             lead.phone = data['phone']
         if 'website' in data:
             lead.website = data['website']
+        if 'product_id' in data:
+            # Handle product assignment - empty string means no product
+            if data['product_id'] == '' or data['product_id'] is None:
+                lead.selected_product_id = None
+            else:
+                lead.selected_product_id = data['product_id']
 
         lead.updated_at = datetime.now()
 

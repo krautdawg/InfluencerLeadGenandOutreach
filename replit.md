@@ -13,6 +13,37 @@ K+L Influence is a Flask-based Instagram lead generation and outreach automation
 
 ## Recent Changes
 
+### 2025-07-25: "Kein Produkt" Option with has_product=FALSE Prompts Implementation (COMPLETED)
+- **Feature**: Added "Kein Produkt" option to email campaign modal with full integration to database prompt system
+- **Product Selection Enhancement**:
+  - **Default "Kein Produkt"**: Changed default option from "-- Produkt auswählen --" to "Kein Produkt" 
+  - **No Required Field**: Removed asterisk (*) from product selection - now optional
+  - **Clear Instructions**: Updated help text to explain "Kein Produkt" usage for general cooperation requests
+- **Backend Integration**:
+  - **Database Prompt Selection**: System now queries SystemPrompt and UserPrompt tables with `has_product=FALSE` when no product selected
+  - **Product Assignment Logic**: Empty string or null values properly set `lead.selected_product_id = None`
+  - **Dynamic Template System**: Existing `parse_prompt_template()` and `build_dynamic_prompt_content()` work with both scenarios
+- **Frontend Logic Updates**:
+  - **No Product Validation**: Removed product selection requirement from save and send functions
+  - **Unified Update Endpoint**: Both draft saving and AI generation use `/update-lead/<username>` with product_id field
+  - **Empty String Handling**: Product selection properly handles empty string for "Kein Produkt" option
+- **Email Generation Modes**:
+  - **With Product** (`has_product=TRUE`): Uses sophisticated German prompts including product information
+  - **Without Product** (`has_product=FALSE`): Uses general cooperation prompts without product references
+  - **Automatic Selection**: System automatically chooses appropriate prompt set based on product assignment
+- **Technical Implementation**:
+  - **Database Field Update**: `/update-lead/<username>` endpoint handles `product_id` field with null/empty string support
+  - **AI Generation Update**: Product assignment happens before email generation to ensure correct prompt selection
+  - **Local Data Sync**: Frontend properly updates local lead data with product selection changes
+- **Benefits**:
+  - **Flexible Outreach**: Users can choose between product-specific and general cooperation emails
+  - **Sophisticated Prompts**: Both modes use configured German prompts from Prompt Settings modal
+  - **Streamlined Workflow**: Single modal handles both email types without separate interfaces
+  - **Database Integrity**: Proper handling of product assignment with null values for "no product" scenarios
+- **Status**: "Kein Produkt" functionality fully implemented with complete database prompt system integration
+
+## Recent Changes
+
 ### 2025-07-25: Comprehensive Client-Side Pagination System Implementation (COMPLETED)
 - **Feature**: Implemented complete pagination system with user-configurable page sizes and persistent preferences
 - **Pagination Controls**: 

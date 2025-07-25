@@ -1020,17 +1020,15 @@ async function generateFullEmail() {
     generateBtn.disabled = true;
     
     try {
-        // Update product if needed before generating (same as working implementation)
-        if (productId) {
-            const productResponse = await fetch(`/api/leads/${username}/product`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ product_id: productId })
-            });
-            
-            if (!productResponse.ok) {
-                throw new Error('Failed to update product');
-            }
+        // Update product before generating (handles both product selection and "Kein Produkt")
+        const productResponse = await fetch(`/update-lead/${username}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ product_id: productId || '' })
+        });
+        
+        if (!productResponse.ok) {
+            throw new Error('Failed to update product');
         }
         
         // Use the same approach as the working email generation in table
@@ -1159,22 +1157,14 @@ async function saveEmailDraft() {
     }
     
     try {
-        // First update the product if selected
-        if (productId) {
-            await fetch(`/api/leads/${username}/product`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ product_id: productId })
-            });
-        }
-        
-        // Save subject and email body using existing update endpoint
+        // Save all data including product selection using update endpoint
         const response = await fetch(`/update-lead/${username}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 subject: subject,
-                email_body: content
+                email_body: content,
+                product_id: productId || '' // Empty string for "Kein Produkt"
             })
         });
         
@@ -1186,7 +1176,7 @@ async function saveEmailDraft() {
             // Update local lead data
             const lead = window.leadsData.find(l => l.username === username);
             if (lead) {
-                lead.selectedProductId = productId;
+                lead.selectedProductId = productId || null;
                 lead.subject = subject;
                 lead.email_body = content;
                 lead.emailBody = content; // Both formats for compatibility
