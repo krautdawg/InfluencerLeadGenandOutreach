@@ -805,7 +805,6 @@ select:focus {
   justify-content: center;
   z-index: 2000;
   transition: var(--transition-medium);
-  padding: 20px;
 }
 
 .modal.show {
@@ -821,14 +820,11 @@ select:focus {
   max-width: 90vw;
   max-height: 90vh;
   overflow-y: auto;
-  margin: 0 auto;
-  position: relative;
-  transform: translateY(0);
+  margin: 1rem;
 }
 
 .modal-lg {
   max-width: 800px;
-  width: 100%;
 }
 
 
@@ -1478,19 +1474,6 @@ select:focus {
 
 /* 15. Email Campaign Modal Specific Styles
 ------------------------------------------- */
-/* Perfect centering for email campaign modal */
-#emailCampaignModal {
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-}
-
-#emailCampaignModal .modal-dialog {
-  margin: 0;
-  transform: none;
-  position: static;
-}
-
 #emailCampaignModal .alert-info {
   background-color: rgba(45, 91, 45, 0.1);
   border-color: var(--color-sage-green);
