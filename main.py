@@ -2068,55 +2068,73 @@ def draft_email(username):
             logger.error(f"Lead not found: {username}")
             return {"error": "Lead not found"}, 404
 
-        logger.info(f"Generating email for {username}, has_product: {lead.selected_product is not None}")
-
-        # Create simple, effective prompts
-        product_info = ""
-        if lead.selected_product:
-            product_info = f"\nProduct: {lead.selected_product.name}\nProduct URL: {lead.selected_product.url}\nProduct Description: {lead.selected_product.description}"
-
-        # Simple subject prompt
-        subject_prompt = f"""You are a professional marketing assistant writing email subjects for influencer outreach.
-Write a compelling email subject line in German for reaching out to Instagram influencer @{lead.username}.
-The subject should be professional, personal, and enticing. Keep it under 50 characters.
-{product_info}"""
-
-        # Simple body prompt  
-        body_prompt = f"""You are a professional marketing assistant writing influencer outreach emails in German.
-Write a personalized email to Instagram influencer @{lead.username} from Kasimir at "Kasimir + Liselotte".
-Be professional, friendly, and specific about collaboration opportunities.
-Include their hashtag #{lead.hashtag} if available.
-Keep the email under 200 words.
-{product_info}"""
-
-        # User content for context
-        user_content = f"""Instagram Username: @{lead.username}
-Full Name: {lead.full_name or 'Not provided'}
-Hashtag: #{lead.hashtag or 'Not provided'}
-Followers: {lead.followers_count or lead.followersCount or 'Unknown'}
-Bio: {lead.bio or 'Not provided'}"""
+        # Determine if product is selected
+        has_product = lead.selected_product is not None
+        
+        logger.info(f"Generating email for {username}, has_product: {has_product}")
+        
+        # Get system prompts from database based on product selection
+        subject_prompt_obj = SystemPrompt.query.filter_by(
+            prompt_type='subject', 
+            has_product=has_product
+        ).first()
+        
+        body_prompt_obj = SystemPrompt.query.filter_by(
+            prompt_type='body', 
+            has_product=has_product
+        ).first()
+        
+        # Get variable settings for dynamic system prompt filtering
+        subject_var_settings = VariableSettings.query.filter_by(
+            prompt_type='subject',
+            has_product=has_product
+        ).all()
+        body_var_settings = VariableSettings.query.filter_by(
+            prompt_type='body', 
+            has_product=has_product
+        ).all()
+        
+        subject_enabled_vars = {setting.variable_name: setting.is_enabled for setting in subject_var_settings}
+        body_enabled_vars = {setting.variable_name: setting.is_enabled for setting in body_var_settings}
+        
+        # Apply template parsing to system prompts
+        raw_subject_prompt = subject_prompt_obj.system_message if subject_prompt_obj else ""
+        raw_body_prompt = body_prompt_obj.system_message if body_prompt_obj else ""
+        
+        final_subject_prompt = parse_prompt_template(raw_subject_prompt, subject_enabled_vars)
+        final_body_prompt = parse_prompt_template(raw_body_prompt, body_enabled_vars)
+        
+        # Build profile content using dynamic template system
+        subject_profile_content = build_dynamic_prompt_content(lead, 'subject', has_product)
+        body_profile_content = build_dynamic_prompt_content(lead, 'body', has_product)
 
         logger.info(f"Making OpenAI API calls for {username}")
 
-        # Generate subject
+        # Generate subject using appropriate prompt
         subject_response = openai_client.chat.completions.create(
             model="gpt-4o",
-            messages=[
-                {"role": "system", "content": subject_prompt},
-                {"role": "user", "content": user_content}
-            ],
-            max_tokens=50,
+            messages=[{
+                "role": "system",
+                "content": final_subject_prompt
+            }, {
+                "role": "user",
+                "content": subject_profile_content
+            }],
+            max_tokens=100,
             temperature=0.7
         )
 
-        # Generate body
+        # Generate body using appropriate prompt
         body_response = openai_client.chat.completions.create(
-            model="gpt-4o", 
-            messages=[
-                {"role": "system", "content": body_prompt},
-                {"role": "user", "content": user_content}
-            ],
-            max_tokens=300,
+            model="gpt-4o",
+            messages=[{
+                "role": "system",
+                "content": final_body_prompt
+            }, {
+                "role": "user",
+                "content": body_profile_content
+            }],
+            max_tokens=500,
             temperature=0.7
         )
 
