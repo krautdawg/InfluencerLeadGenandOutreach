@@ -5,6 +5,9 @@ let filterValues = {};
 
 // Initialize application
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM Content Loaded - UI.js started');
+    console.log('DOM ready state:', document.readyState);
+    
     initializeEventListeners();
     checkSessionId();
     initializeTableFilters();
@@ -15,6 +18,8 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('Loading existing leads data:', window.leadsData.length, 'leads');
         displayResults(window.leadsData);
     }
+    
+    console.log('UI.js initialization complete');
 });
 
 // Global error handler for unhandled promise rejections
