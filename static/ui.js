@@ -16,8 +16,16 @@ document.addEventListener('DOMContentLoaded', function() {
     // Load existing leads data if available
     if (window.leadsData && window.leadsData.length > 0) {
         console.log('Loading existing leads data:', window.leadsData.length, 'leads');
+        console.log('Sample lead data:', window.leadsData[0]);
         displayResults(window.leadsData);
     }
+    
+    // Test modal button functionality
+    setTimeout(() => {
+        console.log('Testing if openEmailCampaignModal is globally available:', typeof window.openEmailCampaignModal);
+        const modal = document.getElementById('emailCampaignModal');
+        console.log('Email campaign modal element found:', !!modal);
+    }, 1000);
     
     console.log('UI.js initialization complete');
 });
@@ -884,6 +892,7 @@ function openEmailCampaignModal(username) {
     // Find the lead data
     const lead = window.leadsData.find(l => l.username === username);
     if (!lead) {
+        console.error('Lead not found for username:', username, 'Available leads:', window.leadsData);
         showToast('Lead-Daten nicht gefunden', 'error');
         return;
     }
@@ -893,7 +902,8 @@ function openEmailCampaignModal(username) {
     
     // Populate lead context
     document.getElementById('emailCampaignLeadName').textContent = lead.full_name || lead.name || username;
-    document.getElementById('emailCampaignLeadInfo').textContent = `@${username} • ${formatNumber(lead.followers)} Follower`;
+    const followers = lead.followers || lead.followers_count || lead.followersCount || 0;
+    document.getElementById('emailCampaignLeadInfo').textContent = `@${username} • ${formatNumber(followers)} Follower`;
     
     // Populate products dropdown
     populateProductsDropdown();
@@ -906,9 +916,17 @@ function openEmailCampaignModal(username) {
     
     // Show the modal
     const modal = document.getElementById('emailCampaignModal');
-    modal.style.display = 'block';
-    modal.classList.add('show');
+    if (modal) {
+        modal.style.display = 'block';
+        modal.classList.add('show');
+        console.log('Modal should be visible now');
+    } else {
+        console.error('Modal element not found: emailCampaignModal');
+    }
 }
+
+// Make function globally available
+window.openEmailCampaignModal = openEmailCampaignModal;
 
 function populateProductsDropdown() {
     const select = document.getElementById('emailCampaignProductSelect');

@@ -1159,7 +1159,7 @@ function createLeadRow(lead, index) {
             </span>
         </td>
         <td data-label="Aktionen">
-            <button class="btn btn-email-setup" onclick="openEmailCampaignModal('${lead.username}')" title="Email Campaign Setup">
+            <button class="btn btn-email-setup" onclick="console.log('Button clicked for:', '${lead.username}'); openEmailCampaignModal('${lead.username}')" title="Email Campaign Setup">
                 <i class="fas fa-envelope-open-text"></i> Email Setup
             </button>
         </td>
