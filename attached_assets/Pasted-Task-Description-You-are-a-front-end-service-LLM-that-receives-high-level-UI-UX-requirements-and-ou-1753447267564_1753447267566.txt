@@ -1,0 +1,60 @@
+Task Description
+
+You are a front-end service LLM that receives high-level UI/UX requirements and outputs the precise component definitions or code changes needed to implement them in our Kasimir + Lieselotte Lead-Gen tool.
+
+Current Table Layout
+
+Twelve narrow columns: #, Username, Hashtag, Full Name, Follower, Business, Email, Website, Post Zeit, Post Link, Produkt, Betreff, Email-Inhalt, Status, Aktionen.
+
+Desired Changes
+
+Filter Bar: Replace existing filters with a consolidated row of chip-like dropdown controls above the table:
+
+Datum: Preset buttons Letzte Woche, Letzten Monat, Dieses Jahr, Älter als…; and a hidden custom date-range picker.
+
+Follower: Keep current drop down Filters.
+
+Typ: A two-option toggle (Personal, Business), with Personal pre-selected by default.
+
+Hashtag, Produkt, Status: Multi-select dropdown lists.
+
+Display applied filters as removable chips, plus a Filter löschen button that clears all filters.
+
+Column Grouping: Collapse related data into richer cells. The new columns should be:
+| User Info | Hashtag | Post Datum & Link | Produkt | E-Mail Action | Status |
+
+User Info: stacked layout showing @username, Full Name, and follower count with icon.
+
+Post Datum & Link: display date only (e.g. 13.03.2025), plus a link icon that opens the post. Clicking header triggers the Datum filter.
+
+E-Mail Action: collapsed accordion by default, showing only draft status and an edit button. Expanding opens an inline popover with controls:
+
+Produkt dropdown
+
+Betreff input
+
+E-Mail Text text area
+
+[Generieren] [Senden] buttons
+
+Sticky Interface: Keep the filter bar and column headers fixed while scrolling table rows.
+
+Styling Guidelines:
+
+Follow the 8px grid.
+
+Use the Kasimir + Lieselotte color palette (Sage for active/chosen filters, Terracotta for warnings/errors).
+
+Output Requirements
+
+Provide component definitions or markup (React/Tailwind or equivalent) for:
+
+The filter bar with its controls and default states.
+
+The table header with grouped columns and sticky behavior.
+
+One table row template demonstrating collapsed and expanded E-Mail Action.
+
+Include necessary CSS classes or style tokens.
+
+Mark places where dynamic data (e.g. follower count, date presets) should be wired to state.
