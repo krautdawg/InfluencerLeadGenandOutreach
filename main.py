@@ -2093,7 +2093,7 @@ Keep the email under 200 words.
         user_content = f"""Instagram Username: @{lead.username}
 Full Name: {lead.full_name or 'Not provided'}
 Hashtag: #{lead.hashtag or 'Not provided'}
-Followers: {lead.followers or 'Unknown'}
+Followers: {lead.followers_count or lead.followersCount or 'Unknown'}
 Bio: {lead.bio or 'Not provided'}"""
 
         logger.info(f"Making OpenAI API calls for {username}")
