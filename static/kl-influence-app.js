@@ -260,9 +260,8 @@ function applyFilters() {
     }
     
     const filters = {
-        username: document.getElementById('filterUsername')?.value.toLowerCase() || '',
+        nameUsername: document.getElementById('filterNameUsername')?.value.toLowerCase() || '',
         hashtag: document.getElementById('filterHashtag')?.value.toLowerCase() || '',
-        fullName: document.getElementById('filterFullName')?.value.toLowerCase() || '',
         followers: followerFilter,
         personalOnly: document.getElementById('filterPersonalOnly')?.checked || false,
         email: document.getElementById('filterEmail')?.value.toLowerCase() || '',
@@ -282,22 +281,23 @@ function applyFilters() {
         
         const username = cells[1]?.textContent.toLowerCase() || '';
         const hashtag = cells[2]?.textContent.toLowerCase() || '';
-        const fullName = cells[3]?.textContent.toLowerCase() || '';
-        const followersText = cells[4]?.textContent || '0';
+        const followersText = cells[3]?.textContent || '0';
         const followers = parseFollowerCount(followersText);
-        const email = cells[5]?.textContent.toLowerCase() || '';
-        const website = cells[6]?.textContent.toLowerCase() || '';
-        const postDate = cells[7]?.textContent.toLowerCase() || '';
-        const product = cells[8]?.textContent.toLowerCase() || '';
-        const subject = cells[9]?.textContent.toLowerCase() || '';
-        const emailBody = cells[10]?.textContent.toLowerCase() || '';
+        const email = cells[4]?.textContent.toLowerCase() || '';
+        const website = cells[5]?.textContent.toLowerCase() || '';
+        const postDate = cells[6]?.textContent.toLowerCase() || '';
+        const product = cells[7]?.textContent.toLowerCase() || '';
+        const subject = cells[8]?.textContent.toLowerCase() || '';
+        const emailBody = cells[9]?.textContent.toLowerCase() || '';
         
         let show = true;
         
-        // Text filters
-        if (filters.username && !username.includes(filters.username)) show = false;
+        // Text filters - combined name/username filter
+        if (filters.nameUsername) {
+            const nameUsernameText = cells[1]?.textContent.toLowerCase() || '';
+            if (!nameUsernameText.includes(filters.nameUsername)) show = false;
+        }
         if (filters.hashtag && !hashtag.includes(filters.hashtag)) show = false;
-        if (filters.fullName && !fullName.includes(filters.fullName)) show = false;
         if (filters.email && !email.includes(filters.email)) show = false;
         if (filters.website && !website.includes(filters.website)) show = false;
         if (filters.product && !product.includes(filters.product)) show = false;
@@ -1103,13 +1103,14 @@ function createLeadRow(lead, index) {
     // Mobile data attributes
     row.innerHTML = `
         <td data-label="#">${index + 1}</td>
-        <td data-label="Username">
+        <td data-label="Name/Username">
+            ${lead.full_name ? `${lead.full_name} (` : ''}
             <a href="https://instagram.com/${lead.username}" target="_blank" style="color: var(--color-natural-green);">
                 @${lead.username}
             </a>
+            ${lead.full_name ? ')' : ''}
         </td>
         <td data-label="Hashtag">${lead.hashtag || ''}</td>
-        <td data-label="Full Name">${lead.full_name || ''}</td>
         <td data-label="Followers">${formatNumber(lead.followersCount || 0)}</td>
         <td data-label="Email" class="editable-cell" onclick="startInlineEdit(this, '${lead.username}', 'email')">
             ${lead.email || '<span style="color: var(--color-light-gray);">Klicken zum Hinzufügen</span>'}
@@ -1455,7 +1456,7 @@ function sortTable(columnIndex) {
         const bValue = b.cells[columnIndex].textContent;
         
         // Handle numeric columns
-        if (columnIndex === 0 || columnIndex === 4) {
+        if (columnIndex === 0 || columnIndex === 3) {
             const aNum = parseNumber(aValue);
             const bNum = parseNumber(bValue);
             return currentSortDirection === 'asc' ? aNum - bNum : bNum - aNum;

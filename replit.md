@@ -13,6 +13,35 @@ K+L Influence is a Flask-based Instagram lead generation and outreach automation
 
 ## Recent Changes
 
+### 2025-07-25: Username and Full Name Column Merge Implementation (COMPLETED)
+- **Feature**: Merged Username and Full Name columns into single "Name/Benutzername" display column while maintaining separate backend data structure
+- **Display Format**: Shows "Full Name (@username)" when full name exists, otherwise shows "@username" only
+- **Column Changes**:
+  - **Removed Vollständiger Name Column**: Eliminated separate Full Name column from table structure
+  - **Enhanced Name/Username Column**: Combined display format with clickable Instagram links
+  - **Preserved Backend Integrity**: Maintains separate username and fullName fields in data structure
+  - **Updated Column Indices**: Adjusted all subsequent column references after removing Full Name column
+- **Filtering Enhancement**:
+  - **Unified Filter**: Single filter input searches both username and full name content
+  - **Smart Placeholder**: "Name oder @benutzername..." provides clear guidance
+  - **Combined Search**: Filter searches through combined display text for better user experience
+- **Technical Implementation**:
+  - **HTML Structure**: Updated table headers and filter row with merged column layout
+  - **JavaScript Logic**: Modified createLeadRow function to display combined format
+  - **Sorting Support**: Updated sortTable function with corrected column indices
+  - **Filter Integration**: Enhanced applyFilters function to search combined name/username text
+- **User Experience**:
+  - **Space Efficiency**: Reduced horizontal table width while maintaining all information
+  - **Logical Grouping**: Name and username naturally belong together as identity information
+  - **Preserved Functionality**: All existing sorting, filtering, and editing capabilities maintained
+  - **Visual Clarity**: Clear separation between full name and username with parentheses format
+- **Benefits**:
+  - **Improved Layout**: More compact table design with better screen space utilization
+  - **Enhanced Readability**: Related identity information grouped in single logical column
+  - **Maintained Data Integrity**: Backend data structure unchanged for API compatibility
+  - **Simplified Filtering**: Single filter input covers both name variations
+- **Status**: Username/Full Name column merge fully implemented with preserved functionality
+
 ### 2025-07-25: Post Date Column Enhancement and Advanced Date Filtering (COMPLETED)
 - **Feature**: Removed PostLink column and enhanced PostZeit column with clickable dates and comprehensive date filtering
 - **Column Changes**:

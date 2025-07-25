@@ -140,7 +140,7 @@
                                         <div class="resize-handle" data-column="1"></div>
                                     </th>
                                     <th onclick="sortTable(1)" class="sortable">
-                                        Benutzername<span class="sort-indicator">↕</span>
+                                        Name/Benutzername<span class="sort-indicator">↕</span>
                                         <div class="resize-handle" data-column="2"></div>
                                     </th>
                                     <th onclick="sortTable(2)" class="sortable">
@@ -148,48 +148,43 @@
                                         <div class="resize-handle" data-column="3"></div>
                                     </th>
                                     <th onclick="sortTable(3)" class="sortable">
-                                        Vollständiger Name<span class="sort-indicator">↕</span>
+                                        Follower<span class="sort-indicator">↕</span>
                                         <div class="resize-handle" data-column="4"></div>
                                     </th>
                                     <th onclick="sortTable(4)" class="sortable">
-                                        Follower<span class="sort-indicator">↕</span>
+                                        Email<span class="sort-indicator">↕</span>
                                         <div class="resize-handle" data-column="5"></div>
                                     </th>
                                     <th onclick="sortTable(5)" class="sortable">
-                                        Email<span class="sort-indicator">↕</span>
+                                        Website<span class="sort-indicator">↕</span>
                                         <div class="resize-handle" data-column="6"></div>
                                     </th>
                                     <th onclick="sortTable(6)" class="sortable">
-                                        Website<span class="sort-indicator">↕</span>
+                                        Post Datum<span class="sort-indicator">↕</span>
                                         <div class="resize-handle" data-column="7"></div>
                                     </th>
                                     <th onclick="sortTable(7)" class="sortable">
-                                        Post Datum<span class="sort-indicator">↕</span>
+                                        Produkt<span class="sort-indicator">↕</span>
                                         <div class="resize-handle" data-column="8"></div>
                                     </th>
                                     <th onclick="sortTable(8)" class="sortable">
-                                        Produkt<span class="sort-indicator">↕</span>
+                                        Betreff<span class="sort-indicator">↕</span>
                                         <div class="resize-handle" data-column="9"></div>
                                     </th>
                                     <th onclick="sortTable(9)" class="sortable">
-                                        Betreff<span class="sort-indicator">↕</span>
+                                        Email-Inhalt<span class="sort-indicator">↕</span>
                                         <div class="resize-handle" data-column="10"></div>
                                     </th>
                                     <th onclick="sortTable(10)" class="sortable">
-                                        Email-Inhalt<span class="sort-indicator">↕</span>
+                                        Status<span class="sort-indicator">↕</span>
                                         <div class="resize-handle" data-column="11"></div>
                                     </th>
-                                    <th onclick="sortTable(11)" class="sortable">
-                                        Status<span class="sort-indicator">↕</span>
-                                        <div class="resize-handle" data-column="12"></div>
-                                    </th>
-                                    <th>Aktionen<div class="resize-handle" data-column="13"></div></th>
+                                    <th>Aktionen<div class="resize-handle" data-column="12"></div></th>
                                 </tr>
                                 <tr class="filter-row">
                                     <th></th>
-                                    <th><input type="text" class="filter-input" id="filterUsername" data-column="1" placeholder="Filtern..."></th>
+                                    <th><input type="text" class="filter-input" id="filterNameUsername" data-column="1" placeholder="Name oder @benutzername..."></th>
                                     <th><input type="text" class="filter-input" id="filterHashtag" data-column="2" placeholder="Filtern..."></th>
-                                    <th><input type="text" class="filter-input" id="filterFullName" data-column="3" placeholder="Filtern..."></th>
                                     <th>
                                         <select class="form-control filter-select" id="filterFollowersRange">
                                             <option value="">Alle Follower</option>
@@ -203,10 +198,10 @@
                                             <option value="1000000-999999999">1M+</option>
                                             <option value="custom">Benutzerdefiniert...</option>
                                         </select>
-                                        <input type="text" class="filter-input" id="filterFollowers" data-column="4" placeholder="> < = 1000" style="display: none; margin-top: 5px;">
+                                        <input type="text" class="filter-input" id="filterFollowers" data-column="3" placeholder="> < = 1000" style="display: none; margin-top: 5px;">
                                     </th>
-                                    <th><input type="text" class="filter-input" id="filterEmail" data-column="5" placeholder="Filtern..."></th>
-                                    <th><input type="text" class="filter-input" id="filterWebsite" data-column="6" placeholder="Filtern..."></th>
+                                    <th><input type="text" class="filter-input" id="filterEmail" data-column="4" placeholder="Filtern..."></th>
+                                    <th><input type="text" class="filter-input" id="filterWebsite" data-column="5" placeholder="Filtern..."></th>
                                     <th>
                                         <select class="form-control filter-select" id="filterPostDate">
                                             <option value="">Alle Daten</option>
@@ -222,10 +217,10 @@
                                             <input type="date" class="filter-input" id="filterPostDateEnd" placeholder="Bis">
                                         </div>
                                     </th>
-                                    <th><input type="text" class="filter-input" id="filterProduct" data-column="8" placeholder="Filtern..."></th>
-                                    <th><input type="text" class="filter-input" id="filterSubject" data-column="9" placeholder="Filtern..."></th>
-                                    <th><input type="text" class="filter-input" id="filterEmailBody" data-column="10" placeholder="Filtern..."></th>
-                                    <th><input type="text" class="filter-input" id="filterStatus" data-column="11" placeholder="Filtern..."></th>
+                                    <th><input type="text" class="filter-input" id="filterProduct" data-column="7" placeholder="Filtern..."></th>
+                                    <th><input type="text" class="filter-input" id="filterSubject" data-column="8" placeholder="Filtern..."></th>
+                                    <th><input type="text" class="filter-input" id="filterEmailBody" data-column="9" placeholder="Filtern..."></th>
+                                    <th><input type="text" class="filter-input" id="filterStatus" data-column="10" placeholder="Filtern..."></th>
                                     <th></th>
                                 </tr>
                             </thead>
