@@ -911,6 +911,13 @@ function openEmailCampaignModal(username) {
     // Load existing email data if available
     loadExistingEmailData(lead);
     
+    // Prefill product dropdown with lead's selected product
+    if (lead.selected_product_id && lead.selected_product_id !== null) {
+        const productSelect = document.getElementById('emailCampaignProductSelect');
+        productSelect.value = lead.selected_product_id;
+        handleProductChange(); // Trigger product preview update
+    }
+    
     // Setup event listeners for the modal
     setupEmailCampaignEventListeners();
     
@@ -976,10 +983,6 @@ function setupEmailCampaignEventListeners() {
     document.getElementById('generateEmailBtn').removeEventListener('click', generateFullEmail);
     document.getElementById('generateEmailBtn').addEventListener('click', generateFullEmail);
     
-    // Variables toggle
-    document.getElementById('insertVariablesBtn').removeEventListener('click', toggleVariablesSection);
-    document.getElementById('insertVariablesBtn').addEventListener('click', toggleVariablesSection);
-    
     // Action buttons
     document.getElementById('saveDraftBtn').removeEventListener('click', saveEmailDraft);
     document.getElementById('sendEmailFromModalBtn').removeEventListener('click', sendEmailFromModal);
@@ -1023,66 +1026,9 @@ function updateCharacterCounts() {
     document.getElementById('contentCharCount').textContent = contentTextarea.value.length;
 }
 
-function toggleVariablesSection() {
-    const section = document.getElementById('emailVariablesSection');
-    const isVisible = section.style.display !== 'none';
-    section.style.display = isVisible ? 'none' : 'block';
-    
-    // Populate variable checkboxes if first time opening
-    if (!isVisible) {
-        populateVariableCheckboxes();
-    }
-    
-    // Update button text
-    const button = document.getElementById('insertVariablesBtn');
-    button.innerHTML = isVisible ? 
-        '<i class="fas fa-cog"></i> Variablen' : 
-        '<i class="fas fa-times"></i> Schließen';
-}
-
-function populateVariableCheckboxes() {
-    const container = document.getElementById('variableCheckboxContainer');
-    if (!container) return;
-    
-    // Define available variables
-    const variables = [
-        { key: 'username', name: 'Instagram Benutzername', value: '{username}', enabled: true },
-        { key: 'full_name', name: 'Vollständiger Name', value: '{full_name}', enabled: true },
-        { key: 'bio', name: 'Profil-Bio', value: '{bio}', enabled: false },
-        { key: 'hashtag', name: 'Hashtag', value: '{hashtag}', enabled: true },
-        { key: 'followers', name: 'Follower-Anzahl', value: '{followers}', enabled: false },
-        { key: 'caption', name: 'Beitragstext', value: '{caption}', enabled: false },
-        { key: 'product_name', name: 'Produktname', value: '{product_name}', enabled: true },
-        { key: 'product_url', name: 'Produkt-URL', value: '{product_url}', enabled: true },
-        { key: 'product_description', name: 'Produktbeschreibung', value: '{product_description}', enabled: false }
-    ];
-    
-    container.innerHTML = '';
-    
-    variables.forEach(variable => {
-        const colDiv = document.createElement('div');
-        colDiv.className = 'col-md-6 mb-2';
-        
-        colDiv.innerHTML = `
-            <div class="form-check">
-                <input class="form-check-input" type="checkbox" id="var_${variable.key}" 
-                       data-variable="${variable.key}" ${variable.enabled ? 'checked' : ''}>
-                <label class="form-check-label" for="var_${variable.key}">
-                    <strong>${variable.name}</strong>
-                    <br><small class="text-muted">${variable.value}</small>
-                </label>
-            </div>
-        `;
-        
-        container.appendChild(colDiv);
-    });
-}
-
 function generateFullEmail() {
     console.log('Generating full email with AI...');
     
-    // Get selected variables
-    const selectedVariables = getSelectedVariables();
     const username = document.getElementById('emailCampaignUsername').value;
     const productId = document.getElementById('emailCampaignProductSelect').value;
     
@@ -1099,8 +1045,8 @@ function generateFullEmail() {
     
     // Generate both subject and content
     Promise.all([
-        generateEmailSubject(selectedVariables),
-        generateEmailContent(selectedVariables)
+        generateEmailSubject(),
+        generateEmailContent()
     ]).then(() => {
         showToast('Email erfolgreich generiert!', 'success');
     }).catch(error => {
@@ -1113,18 +1059,9 @@ function generateFullEmail() {
     });
 }
 
-function getSelectedVariables() {
-    const checkboxes = document.querySelectorAll('#variableCheckboxContainer input[type="checkbox"]:checked');
-    return Array.from(checkboxes).map(cb => cb.dataset.variable);
-}
-
-async function generateEmailSubject(selectedVariables = null) {
+async function generateEmailSubject() {
     const username = document.getElementById('emailCampaignUsername').value;
     const productId = document.getElementById('emailCampaignProductSelect').value;
-    
-    if (!selectedVariables) {
-        selectedVariables = getSelectedVariables();
-    }
     
     try {
         const response = await fetch(`/draft-email/${username}`, {
@@ -1134,8 +1071,7 @@ async function generateEmailSubject(selectedVariables = null) {
             },
             body: JSON.stringify({
                 type: 'subject',
-                product_id: productId,
-                variables: selectedVariables
+                product_id: productId
             })
         });
         
@@ -1152,13 +1088,9 @@ async function generateEmailSubject(selectedVariables = null) {
     }
 }
 
-async function generateEmailContent(selectedVariables = null) {
+async function generateEmailContent() {
     const username = document.getElementById('emailCampaignUsername').value;
     const productId = document.getElementById('emailCampaignProductSelect').value;
-    
-    if (!selectedVariables) {
-        selectedVariables = getSelectedVariables();
-    }
     
     try {
         const response = await fetch(`/draft-email/${username}`, {
@@ -1168,8 +1100,7 @@ async function generateEmailContent(selectedVariables = null) {
             },
             body: JSON.stringify({
                 type: 'content',
-                product_id: productId,
-                variables: selectedVariables
+                product_id: productId
             })
         });
         

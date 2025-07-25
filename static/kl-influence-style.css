@@ -827,26 +827,7 @@ select:focus {
   max-width: 800px;
 }
 
-.modal.show {
-  opacity: 1;
-  visibility: visible;
-}
 
-.modal-dialog {
-  background-color: var(--color-white);
-  border-radius: 12px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-  max-width: 600px;
-  width: 90%;
-  max-height: 90vh;
-  overflow: hidden;
-  transform: scale(0.9);
-  transition: var(--transition-medium);
-}
-
-.modal.show .modal-dialog {
-  transform: scale(1);
-}
 
 .modal-header {
   padding: var(--space-lg);
