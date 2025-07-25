@@ -299,7 +299,7 @@ a:hover {
 }
 
 .app-layout.sidebar-collapsed .sidebar-toggle {
-  left: 0;
+  left: 10px;
   right: auto;
   transform: translateY(-50%);
   border-radius: 0 20px 20px 0;
