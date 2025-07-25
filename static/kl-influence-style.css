@@ -273,7 +273,16 @@ a:hover {
   transform: translateY(-50%) translateX(2px);
 }
 
+.app-layout.sidebar-collapsed .sidebar-toggle:hover {
+  transform: translateY(-50%) translateX(2px);
+}
+
 .sidebar-toggle:active {
+  background-color: var(--color-pale-green);
+  transform: translateY(-50%) translateX(1px);
+}
+
+.app-layout.sidebar-collapsed .sidebar-toggle:active {
   background-color: var(--color-pale-green);
   transform: translateY(-50%) translateX(1px);
 }
@@ -292,6 +301,7 @@ a:hover {
 .app-layout.sidebar-collapsed .sidebar-toggle {
   left: 0;
   right: auto;
+  transform: translateY(-50%);
   border-radius: 0 20px 20px 0;
 }
 
