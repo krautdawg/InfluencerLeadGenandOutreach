@@ -2057,7 +2057,7 @@ def build_dynamic_prompt_content(lead, prompt_type, has_product):
 
 
 
-@app.route('/draft-email/<username>', methods=['GET', 'POST'])
+@app.route('/draft-email/<username>', methods=['GET'])
 @login_required
 def draft_email(username):
     """Generate email draft using OpenAI"""
@@ -2067,22 +2067,6 @@ def draft_email(username):
         return {"error": "Lead not found"}, 404
 
     try:
-        # Handle POST request with JSON data
-        if request.method == 'POST':
-            data = request.get_json() or {}
-            email_type = data.get('type', 'both')  # 'subject', 'content', or 'both'
-            product_id = data.get('product_id')
-            
-            # Update lead's product if provided
-            if product_id and product_id != lead.selected_product_id:
-                lead.selected_product_id = product_id if product_id != '' else None
-                db.session.commit()
-                # Reload lead with new product
-                lead = Lead.query.options(db.joinedload(Lead.selected_product)).filter_by(username=username).first()
-        else:
-            # Handle GET request (legacy)
-            email_type = 'both'
-        
         # Determine if product is selected
         has_product = lead.selected_product is not None
         
@@ -2151,38 +2135,14 @@ def draft_email(username):
         subject_text = subject_response.choices[0].message.content.strip()
         body_text = body_response.choices[0].message.content.strip()
 
-        # Store the generated content in the lead record
-        email_subject = subject_text if subject_text else 'Collaboration Opportunity'
-        email_body = body_text if body_text else 'Hello, I would like to discuss a collaboration opportunity.'
-        
-        if request.method == 'POST':
-            # Only update the specific field based on type
-            if email_type == 'subject':
-                lead.subject = email_subject
-            elif email_type == 'content':
-                lead.email_body = email_body
-            else:  # both
-                lead.subject = email_subject
-                lead.email_body = email_body
-        else:
-            # GET request - update both
-            lead.subject = email_subject
-            lead.email_body = email_body
-            
-        lead.updated_at = datetime.utcnow()
+        # Update lead with generated content
+        lead.subject = subject_text if subject_text else 'Collaboration Opportunity'
+        lead.email_body = body_text if body_text else 'Hello, I would like to discuss a collaboration opportunity.'
+
+        # Save to database
         db.session.commit()
 
-        # Return appropriate data based on request type
-        if request.method == 'POST':
-            if email_type == 'subject':
-                return {"subject": email_subject}
-            elif email_type == 'content':
-                return {"email_body": email_body}
-            else:  # both
-                return {"subject": email_subject, "email_body": email_body}
-        else:
-            # GET request - return legacy format
-            return {"subject": lead.subject, "body": lead.email_body}
+        return {"subject": lead.subject, "body": lead.email_body}
 
     except Exception as e:
         logger.error(f"Email drafting failed: {e}")

@@ -1064,16 +1064,16 @@ async function generateEmailSubject() {
     const productId = document.getElementById('emailCampaignProductSelect').value;
     
     try {
-        const response = await fetch(`/draft-email/${username}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                type: 'subject',
-                product_id: productId
-            })
-        });
+        // Update product if needed before generating
+        if (productId) {
+            await fetch(`/api/leads/${username}/product`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ product_id: productId })
+            });
+        }
+        
+        const response = await fetch(`/draft-email/${username}`);
         
         if (response.ok) {
             const data = await response.json();
@@ -1093,20 +1093,20 @@ async function generateEmailContent() {
     const productId = document.getElementById('emailCampaignProductSelect').value;
     
     try {
-        const response = await fetch(`/draft-email/${username}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                type: 'content',
-                product_id: productId
-            })
-        });
+        // Update product if needed before generating
+        if (productId) {
+            await fetch(`/api/leads/${username}/product`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ product_id: productId })
+            });
+        }
+        
+        const response = await fetch(`/draft-email/${username}`);
         
         if (response.ok) {
             const data = await response.json();
-            document.getElementById('emailCampaignContent').value = data.email_body || '';
+            document.getElementById('emailCampaignContent').value = data.body || data.email_body || '';
             updateCharacterCounts();
         } else {
             throw new Error('Failed to generate content');
