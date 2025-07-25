@@ -557,39 +557,43 @@ function createLeadRow(lead, index) {
         row.classList.add('duplicate-row');
     }
     
+    // Get email status
+    const emailStatus = getEmailStatus(lead);
+    
     row.innerHTML = `
-        <td>${index + 1}</td>
-        <td>
-            <a href="https://www.instagram.com/${lead.username}" target="_blank" rel="noopener noreferrer">
-                <strong>@${lead.username}</strong>
+        <td data-label="#">${index + 1}</td>
+        <td data-label="Name/Benutzername">
+            ${lead.full_name ? `${lead.full_name} (` : ''}
+            <a href="https://www.instagram.com/${lead.username}" target="_blank" rel="noopener noreferrer" style="color: var(--color-natural-green);">
+                @${lead.username}
             </a>
+            ${lead.full_name ? ')' : ''}
             ${lead.is_duplicate ? '<br><small class="text-warning">Duplikat</small>' : ''}
         </td>
-        <td>${lead.hashtag || '-'}</td>
-        <td>${lead.full_name || lead.fullName || '-'}</td>
-        <td>${formatNumber(lead.followers_count || lead.followersCount || 0)}</td>
-        <td>${lead.email || '-'}</td>
-        <td>${lead.website || lead.external_url || '-'}</td>
-        <td>${lead.product || '-'}</td>
-        <td>
-            <textarea class="table-input table-textarea" id="subject_${index}" placeholder="Email-Betreff...">${lead.subject || ''}</textarea>
+        <td data-label="Hashtag">${lead.hashtag || '-'}</td>
+        <td data-label="Follower">${formatNumber(lead.followers_count || lead.followersCount || 0)}</td>
+        <td data-label="Email">${lead.email || '-'}</td>
+        <td data-label="Website">
+            ${(lead.website || lead.external_url) ? 
+                `<a href="${lead.website || lead.external_url}" target="_blank" rel="noopener noreferrer" style="color: var(--color-natural-green);">${(lead.website || lead.external_url).substring(0, 30)}${(lead.website || lead.external_url).length > 30 ? '...' : ''}</a>` : 
+                '-'
+            }
         </td>
-        <td>
-            <textarea class="table-input table-textarea" id="body_${index}" placeholder="Email-Inhalt..." rows="4">${lead.email_body || lead.emailBody || ''}</textarea>
+        <td data-label="Post Datum">
+            ${lead.sourceTimestamp ? formatDate(lead.sourceTimestamp) : '-'}
         </td>
-        <td>${lead.status || '-'}</td>
-        <td>
-            <div class="btn-group-vertical btn-group-sm">
-                ${lead.sent ? 
-                    `<span class="status-sent">Gesendet<br><small>${formatDate(lead.sent_at || lead.sentAt)}</small></span>` :
-                    `<button class="btn btn-secondary btn-sm mb-1" onclick="draftEmail('${lead.username}', ${index})">
-                        <i class="fas fa-edit me-1"></i>Entwurf
-                    </button>
-                    <button class="btn btn-primary btn-sm" onclick="sendEmail('${lead.username}', ${index})">
-                        <i class="fas fa-paper-plane me-1"></i>Senden
-                    </button>`
-                }
-            </div>
+        <td data-label="Email Status">
+            <span class="email-status ${emailStatus.class}">
+                <i class="fas ${emailStatus.class === 'gesendet' ? 'fa-check-circle' : emailStatus.class === 'entwurf' ? 'fa-edit' : 'fa-circle'}"></i>
+                ${emailStatus.text}
+                ${lead.sent && lead.sent_at ? `<br><small>${formatDate(lead.sent_at)}</small>` : ''}
+            </span>
+        </td>
+        <td data-label="Status">${lead.status || '-'}</td>
+        <td data-label="Aktionen">
+            <button class="btn btn-email-setup" onclick="openEmailCampaignModal('${lead.username}')" title="Email Campaign Setup">
+                <i class="fas fa-envelope-open-text"></i> Email Setup
+            </button>
         </td>
     `;
     
@@ -870,4 +874,344 @@ function formatDate(dateString) {
     if (!dateString) return '';
     const date = new Date(dateString);
     return date.toLocaleString();
+}
+
+// ============= EMAIL CAMPAIGN MODAL FUNCTIONALITY =============
+
+// Open email campaign modal for a specific lead
+function openEmailCampaignModal(username) {
+    console.log('Opening email campaign modal for:', username);
+    
+    // Find the lead data
+    const lead = window.leadsData.find(l => l.username === username);
+    if (!lead) {
+        showToast('Lead-Daten nicht gefunden', 'error');
+        return;
+    }
+    
+    // Store current username
+    document.getElementById('emailCampaignUsername').value = username;
+    
+    // Populate lead context
+    document.getElementById('emailCampaignLeadName').textContent = lead.full_name || lead.name || username;
+    document.getElementById('emailCampaignLeadInfo').textContent = `@${username} • ${formatNumber(lead.followers)} Follower`;
+    
+    // Populate products dropdown
+    populateProductsDropdown();
+    
+    // Load existing email data if available
+    loadExistingEmailData(lead);
+    
+    // Setup event listeners for the modal
+    setupEmailCampaignEventListeners();
+    
+    // Show the modal
+    const modal = document.getElementById('emailCampaignModal');
+    modal.style.display = 'block';
+    modal.classList.add('show');
+}
+
+function populateProductsDropdown() {
+    const select = document.getElementById('emailCampaignProductSelect');
+    select.innerHTML = '<option value="">-- Produkt auswählen --</option>';
+    
+    if (window.productsData && window.productsData.length > 0) {
+        window.productsData.forEach(product => {
+            const option = document.createElement('option');
+            option.value = product.id;
+            option.textContent = product.name;
+            select.appendChild(option);
+        });
+    }
+}
+
+function loadExistingEmailData(lead) {
+    // Pre-select product if already assigned
+    if (lead.product_id) {
+        document.getElementById('emailCampaignProductSelect').value = lead.product_id;
+        updateProductPreview(lead.product_id);
+    }
+    
+    // Load existing subject and content
+    document.getElementById('emailCampaignSubject').value = lead.subject || '';
+    document.getElementById('emailCampaignContent').value = lead.email_body || '';
+    
+    // Update character counts
+    updateCharacterCounts();
+}
+
+function setupEmailCampaignEventListeners() {
+    // Product selection change
+    const productSelect = document.getElementById('emailCampaignProductSelect');
+    productSelect.removeEventListener('change', handleProductChange);
+    productSelect.addEventListener('change', handleProductChange);
+    
+    // Character count updates
+    const subjectInput = document.getElementById('emailCampaignSubject');
+    const contentTextarea = document.getElementById('emailCampaignContent');
+    
+    subjectInput.removeEventListener('input', updateCharacterCounts);
+    contentTextarea.removeEventListener('input', updateCharacterCounts);
+    subjectInput.addEventListener('input', updateCharacterCounts);
+    contentTextarea.addEventListener('input', updateCharacterCounts);
+    
+    // AI generation buttons
+    document.getElementById('generateSubjectBtn').removeEventListener('click', generateEmailSubject);
+    document.getElementById('generateContentBtn').removeEventListener('click', generateEmailContent);
+    document.getElementById('generateSubjectBtn').addEventListener('click', generateEmailSubject);
+    document.getElementById('generateContentBtn').addEventListener('click', generateEmailContent);
+    
+    // Variables toggle
+    document.getElementById('insertVariablesBtn').removeEventListener('click', toggleVariablesSection);
+    document.getElementById('insertVariablesBtn').addEventListener('click', toggleVariablesSection);
+    
+    // Action buttons
+    document.getElementById('saveDraftBtn').removeEventListener('click', saveEmailDraft);
+    document.getElementById('sendEmailFromModalBtn').removeEventListener('click', sendEmailFromModal);
+    document.getElementById('saveDraftBtn').addEventListener('click', saveEmailDraft);
+    document.getElementById('sendEmailFromModalBtn').addEventListener('click', sendEmailFromModal);
+}
+
+function handleProductChange() {
+    const productId = document.getElementById('emailCampaignProductSelect').value;
+    updateProductPreview(productId);
+}
+
+function updateProductPreview(productId) {
+    const preview = document.getElementById('emailCampaignProductPreview');
+    
+    if (!productId || !window.productsData) {
+        preview.style.display = 'none';
+        return;
+    }
+    
+    const product = window.productsData.find(p => p.id == productId);
+    if (!product) {
+        preview.style.display = 'none';
+        return;
+    }
+    
+    // Update preview elements
+    document.getElementById('emailCampaignProductImage').src = product.image_url || '/static/placeholder.png';
+    document.getElementById('emailCampaignProductName').textContent = product.name;
+    document.getElementById('emailCampaignProductDescription').textContent = product.description || 'Keine Beschreibung verfügbar';
+    document.getElementById('emailCampaignProductPrice').textContent = product.price || '';
+    
+    preview.style.display = 'block';
+}
+
+function updateCharacterCounts() {
+    const subjectInput = document.getElementById('emailCampaignSubject');
+    const contentTextarea = document.getElementById('emailCampaignContent');
+    
+    document.getElementById('subjectCharCount').textContent = subjectInput.value.length;
+    document.getElementById('contentCharCount').textContent = contentTextarea.value.length;
+}
+
+function toggleVariablesSection() {
+    const section = document.getElementById('emailVariablesSection');
+    const isVisible = section.style.display !== 'none';
+    section.style.display = isVisible ? 'none' : 'block';
+    
+    // Update button text
+    const button = document.getElementById('insertVariablesBtn');
+    button.innerHTML = isVisible ? 
+        '<i class="fas fa-code"></i> Variablen' : 
+        '<i class="fas fa-times"></i> Schließen';
+}
+
+async function generateEmailSubject() {
+    const button = document.getElementById('generateSubjectBtn');
+    const username = document.getElementById('emailCampaignUsername').value;
+    const productId = document.getElementById('emailCampaignProductSelect').value;
+    
+    if (!productId) {
+        showToast('Bitte wähle zuerst ein Produkt aus', 'warning');
+        return;
+    }
+    
+    try {
+        button.disabled = true;
+        button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        
+        const response = await fetch('/generate-email', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                username: username,
+                product_id: productId,
+                type: 'subject'
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            document.getElementById('emailCampaignSubject').value = result.content;
+            updateCharacterCounts();
+            showToast('AI-Betreff generiert', 'success');
+        } else {
+            showToast(result.error || 'Fehler beim Generieren des Betreffs', 'error');
+        }
+    } catch (error) {
+        console.error('Error generating subject:', error);
+        showToast('Fehler beim Generieren des Betreffs', 'error');
+    } finally {
+        button.disabled = false;
+        button.innerHTML = '<i class="fas fa-magic"></i>';
+    }
+}
+
+async function generateEmailContent() {
+    const button = document.getElementById('generateContentBtn');
+    const username = document.getElementById('emailCampaignUsername').value;
+    const productId = document.getElementById('emailCampaignProductSelect').value;
+    
+    if (!productId) {
+        showToast('Bitte wähle zuerst ein Produkt aus', 'warning');
+        return;
+    }
+    
+    try {
+        button.disabled = true;
+        button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generiere...';
+        
+        const response = await fetch('/generate-email', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                username: username,
+                product_id: productId,
+                type: 'body'
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            document.getElementById('emailCampaignContent').value = result.content;
+            updateCharacterCounts();
+            showToast('AI-Inhalt generiert', 'success');
+        } else {
+            showToast(result.error || 'Fehler beim Generieren des Inhalts', 'error');
+        }
+    } catch (error) {
+        console.error('Error generating content:', error);
+        showToast('Fehler beim Generieren des Inhalts', 'error');
+    } finally {
+        button.disabled = false;
+        button.innerHTML = '<i class="fas fa-magic"></i> AI generieren';
+    }
+}
+
+async function saveEmailDraft() {
+    const username = document.getElementById('emailCampaignUsername').value;
+    const productId = document.getElementById('emailCampaignProductSelect').value;
+    const subject = document.getElementById('emailCampaignSubject').value.trim();
+    const content = document.getElementById('emailCampaignContent').value.trim();
+    
+    if (!productId || !subject || !content) {
+        showToast('Bitte fülle alle Pflichtfelder aus', 'warning');
+        return;
+    }
+    
+    try {
+        const response = await fetch('/save-email-draft', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                username: username,
+                product_id: productId,
+                subject: subject,
+                email_body: content
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            showToast('Entwurf gespeichert', 'success');
+            
+            // Update local lead data
+            const lead = window.leadsData.find(l => l.username === username);
+            if (lead) {
+                lead.product_id = productId;
+                lead.subject = subject;
+                lead.email_body = content;
+            }
+            
+            // Close modal and refresh table
+            closeModal('emailCampaignModal');
+            displayResults(window.leadsData);
+        } else {
+            showToast(result.error || 'Fehler beim Speichern', 'error');
+        }
+    } catch (error) {
+        console.error('Error saving draft:', error);
+        showToast('Fehler beim Speichern', 'error');
+    }
+}
+
+async function sendEmailFromModal() {
+    const username = document.getElementById('emailCampaignUsername').value;
+    const subject = document.getElementById('emailCampaignSubject').value.trim();
+    const content = document.getElementById('emailCampaignContent').value.trim();
+    
+    if (!subject || !content) {
+        showToast('Bitte fülle Betreff und Inhalt aus', 'warning');
+        return;
+    }
+    
+    // First save the draft
+    await saveEmailDraft();
+    
+    // Then send the email (using existing sendEmail function)
+    const lead = window.leadsData.find(l => l.username === username);
+    if (!lead || !lead.email) {
+        showToast('Keine E-Mail-Adresse für diesen Lead gefunden', 'error');
+        return;
+    }
+    
+    try {
+        // Create Gmail compose URL
+        const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(lead.email)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(content)}`;
+        
+        // Open Gmail compose in new tab
+        window.open(gmailUrl, '_blank');
+        
+        // Mark as sent in database
+        const response = await fetch(`/mark-sent/${username}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ subject: subject, body: content })
+        });
+        
+        if (response.ok) {
+            showToast('Gmail erfolgreich geöffnet - bitte sende die E-Mail', 'success');
+            
+            // Update local lead data
+            lead.sent = true;
+            lead.sent_at = new Date().toISOString();
+            
+            // Close modal and refresh table
+            closeModal('emailCampaignModal');
+            displayResults(window.leadsData);
+        } else {
+            showToast('Gmail geöffnet, aber Sendestatus konnte nicht aktualisiert werden', 'warning');
+        }
+    } catch (error) {
+        console.error('Error sending email:', error);
+        showToast('Fehler beim Öffnen von Gmail', 'error');
+    }
+}
+
+// Helper function to get email status for display
+function getEmailStatus(lead) {
+    if (lead.sent) {
+        return { class: 'gesendet', text: 'Gesendet' };
+    } else if (lead.subject && lead.email_body) {
+        return { class: 'entwurf', text: 'Entwurf bereit' };
+    } else {
+        return { class: 'nicht-gestartet', text: 'Nicht gestartet' };
+    }
 }

@@ -191,22 +191,14 @@
                                         <div class="resize-handle" data-column="7"></div>
                                     </th>
                                     <th onclick="sortTable(7)" class="sortable">
-                                        Produkt<span class="sort-indicator">↕</span>
+                                        Email Status<span class="sort-indicator">↕</span>
                                         <div class="resize-handle" data-column="8"></div>
                                     </th>
                                     <th onclick="sortTable(8)" class="sortable">
-                                        Betreff<span class="sort-indicator">↕</span>
+                                        Status<span class="sort-indicator">↕</span>
                                         <div class="resize-handle" data-column="9"></div>
                                     </th>
-                                    <th onclick="sortTable(9)" class="sortable">
-                                        Email-Inhalt<span class="sort-indicator">↕</span>
-                                        <div class="resize-handle" data-column="10"></div>
-                                    </th>
-                                    <th onclick="sortTable(10)" class="sortable">
-                                        Status<span class="sort-indicator">↕</span>
-                                        <div class="resize-handle" data-column="11"></div>
-                                    </th>
-                                    <th>Aktionen<div class="resize-handle" data-column="12"></div></th>
+                                    <th>Aktionen<div class="resize-handle" data-column="10"></div></th>
                                 </tr>
                                 <tr class="filter-row">
                                     <th></th>
@@ -244,10 +236,15 @@
                                             <input type="date" class="filter-input" id="filterPostDateEnd" placeholder="Bis">
                                         </div>
                                     </th>
-                                    <th><input type="text" class="filter-input" id="filterProduct" data-column="7" placeholder="Filtern..."></th>
-                                    <th><input type="text" class="filter-input" id="filterSubject" data-column="8" placeholder="Filtern..."></th>
-                                    <th><input type="text" class="filter-input" id="filterEmailBody" data-column="9" placeholder="Filtern..."></th>
-                                    <th><input type="text" class="filter-input" id="filterStatus" data-column="10" placeholder="Filtern..."></th>
+                                    <th>
+                                        <select class="form-control filter-select" id="filterEmailStatus">
+                                            <option value="">Alle Email-Status</option>
+                                            <option value="nicht-gestartet">Nicht gestartet</option>
+                                            <option value="entwurf">Entwurf bereit</option>
+                                            <option value="gesendet">Gesendet</option>
+                                        </select>
+                                    </th>
+                                    <th><input type="text" class="filter-input" id="filterStatus" data-column="8" placeholder="Filtern..."></th>
                                     <th></th>
                                 </tr>
                             </thead>
@@ -453,6 +450,131 @@
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" onclick="closeModal('productEditModal')">Abbrechen</button>
                 <button type="button" class="btn btn-primary" id="saveProduct">Speichern</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Email Campaign Setup Modal -->
+    <div class="modal" id="emailCampaignModal">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-header">
+                <h4 class="modal-title" id="emailCampaignTitle">Email Campaign Setup</h4>
+                <button type="button" class="close" onclick="closeModal('emailCampaignModal')" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="emailCampaignUsername">
+                
+                <!-- Lead Context Display -->
+                <div class="alert alert-info mb-4">
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-user me-2"></i>
+                        <div>
+                            <strong id="emailCampaignLeadName">Loading...</strong>
+                            <small class="d-block text-muted" id="emailCampaignLeadInfo">@username • followers</small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Product Selection -->
+                <div class="form-group">
+                    <label for="emailCampaignProductSelect">Produkt auswählen *</label>
+                    <select class="form-control" id="emailCampaignProductSelect" required>
+                        <option value="">-- Produkt auswählen --</option>
+                        <!-- Products will be populated dynamically -->
+                    </select>
+                    <small class="form-text">Wähle das Produkt für diese Email-Kampagne aus.</small>
+                </div>
+
+                <!-- Product Preview -->
+                <div id="emailCampaignProductPreview" class="card mb-4" style="display: none;">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center">
+                            <img id="emailCampaignProductImage" src="" alt="Product" class="me-3" style="width: 60px; height: 60px; object-fit: cover; border-radius: 6px;">
+                            <div>
+                                <h6 class="mb-1" id="emailCampaignProductName">Product Name</h6>
+                                <p class="mb-1 text-muted small" id="emailCampaignProductDescription">Product description</p>
+                                <small class="text-muted" id="emailCampaignProductPrice">Price</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Email Subject -->
+                <div class="form-group">
+                    <label for="emailCampaignSubject">Email Betreff *</label>
+                    <div class="d-flex">
+                        <input type="text" class="form-control me-2" id="emailCampaignSubject" placeholder="Gib den Email-Betreff ein..." required maxlength="100">
+                        <button type="button" class="btn btn-secondary btn-sm" id="generateSubjectBtn" title="AI-Betreff generieren">
+                            <i class="fas fa-magic"></i>
+                        </button>
+                    </div>
+                    <small class="form-text">
+                        <span id="subjectCharCount">0</span>/100 Zeichen
+                    </small>
+                </div>
+
+                <!-- Email Content -->
+                <div class="form-group">
+                    <label for="emailCampaignContent">Email Inhalt *</label>
+                    <div class="d-flex flex-column">
+                        <div class="d-flex mb-2">
+                            <button type="button" class="btn btn-secondary btn-sm me-2" id="generateContentBtn" title="AI-Inhalt generieren">
+                                <i class="fas fa-magic"></i> AI generieren
+                            </button>
+                            <button type="button" class="btn btn-tertiary btn-sm" id="insertVariablesBtn" title="Verfügbare Variablen anzeigen">
+                                <i class="fas fa-code"></i> Variablen
+                            </button>
+                        </div>
+                        <textarea class="form-control" id="emailCampaignContent" rows="8" placeholder="Gib den Email-Inhalt ein..." required></textarea>
+                    </div>
+                    <small class="form-text">
+                        <span id="contentCharCount">0</span> Zeichen • Verwende Variablen wie {username}, {product_name}, {product_url}
+                    </small>
+                </div>
+
+                <!-- Available Variables -->
+                <div id="emailVariablesSection" class="form-group" style="display: none;">
+                    <label>Verfügbare Variablen</label>
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="variable-item mb-2">
+                                        <code>{username}</code> - Instagram Benutzername
+                                    </div>
+                                    <div class="variable-item mb-2">
+                                        <code>{full_name}</code> - Vollständiger Name
+                                    </div>
+                                    <div class="variable-item mb-2">
+                                        <code>{followers}</code> - Follower-Anzahl
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="variable-item mb-2">
+                                        <code>{product_name}</code> - Produktname
+                                    </div>
+                                    <div class="variable-item mb-2">
+                                        <code>{product_url}</code> - Produkt-URL
+                                    </div>
+                                    <div class="variable-item mb-2">
+                                        <code>{product_description}</code> - Produktbeschreibung
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('emailCampaignModal')">Abbrechen</button>
+                <button type="button" class="btn btn-secondary" id="saveDraftBtn">
+                    <i class="fas fa-save"></i> Entwurf speichern
+                </button>
+                <button type="button" class="btn btn-primary" id="sendEmailFromModalBtn">
+                    <i class="fas fa-paper-plane"></i> Email senden
+                </button>
             </div>
         </div>
     </div>

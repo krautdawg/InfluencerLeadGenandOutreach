@@ -531,15 +531,13 @@ select:focus {
   --col-width-1: 60px;   /* # column */
   --col-width-2: 150px;  /* Username column (sticky) */
   --col-width-3: 120px;  /* Hashtag column */
-  --col-width-4: 180px;  /* Full Name column */
-  --col-width-5: 100px;  /* Followers column */
-  --col-width-6: 200px;  /* Email column */
-  --col-width-7: 180px;  /* Website column */
-  --col-width-8: 150px;  /* Product column */
-  --col-width-9: 250px;  /* Subject column */
-  --col-width-10: 300px; /* Email Content column */
-  --col-width-11: 120px; /* Status column */
-  --col-width-12: 120px; /* Actions column */
+  --col-width-4: 100px;  /* Followers column */
+  --col-width-5: 200px;  /* Email column */
+  --col-width-6: 180px;  /* Website column */
+  --col-width-7: 150px;  /* Post Datum column */
+  --col-width-8: 150px;  /* Email Status column */
+  --col-width-9: 120px;  /* Status column */
+  --col-width-10: 180px; /* Actions column */
 }
 
 /* Apply column widths to table headers and cells */
@@ -1474,4 +1472,111 @@ select:focus {
     .pagination-size {
         justify-content: center;
     }
+}
+
+/* 15. Email Campaign Modal Specific Styles
+------------------------------------------- */
+#emailCampaignModal .alert-info {
+  background-color: rgba(45, 91, 45, 0.1);
+  border-color: var(--color-sage-green);
+  color: var(--color-forest-green);
+}
+
+#emailCampaignModal .card {
+  border-color: var(--color-light-gray);
+  transition: var(--transition-fast);
+}
+
+#emailCampaignModal .card:hover {
+  border-color: var(--color-sage-green);
+}
+
+.variable-item {
+  display: flex;
+  align-items: center;
+  padding: var(--space-xs) 0;
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.variable-item:hover {
+  background-color: var(--color-pale-green);
+  padding-left: var(--space-sm);
+  border-radius: 4px;
+}
+
+.variable-item code {
+  background-color: var(--color-pale-green);
+  color: var(--color-forest-green);
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: var(--text-body-sm);
+  margin-right: var(--space-sm);
+  border: 1px solid var(--color-light-gray);
+}
+
+/* Email status indicators */
+.email-status {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: var(--text-body-sm);
+  font-weight: 500;
+}
+
+.email-status.nicht-gestartet {
+  background-color: var(--color-light-gray);
+  color: var(--color-medium-gray);
+}
+
+.email-status.entwurf {
+  background-color: rgba(255, 193, 7, 0.1);
+  color: #856404;
+}
+
+.email-status.gesendet {
+  background-color: rgba(40, 167, 69, 0.1);
+  color: var(--color-forest-green);
+}
+
+/* Character count styling */
+.form-text {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+#subjectCharCount,
+#contentCharCount {
+  font-weight: 500;
+  color: var(--color-natural-green);
+}
+
+/* Input validation states */
+.form-control.is-invalid {
+  border-color: #dc3545;
+}
+
+.form-control.is-valid {
+  border-color: var(--color-natural-green);
+}
+
+/* Action button styling for email setup */
+.btn-email-setup {
+  background-color: transparent;
+  color: var(--color-natural-green);
+  border: 1px solid var(--color-natural-green);
+  border-radius: 4px;
+  padding: 6px 12px;
+  font-size: var(--text-body-sm);
+  font-weight: 500;
+  transition: var(--transition-fast);
+}
+
+.btn-email-setup:hover {
+  background-color: var(--color-natural-green);
+  color: var(--color-white);
 }
