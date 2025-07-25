@@ -277,9 +277,7 @@ function applyFilters() {
         email: document.getElementById('filterEmail')?.value.toLowerCase() || '',
         website: document.getElementById('filterWebsite')?.value.toLowerCase() || '',
         postDate: document.getElementById('filterPostDate')?.value || '',
-        product: document.getElementById('filterProduct')?.value.toLowerCase() || '',
-        subject: document.getElementById('filterSubject')?.value.toLowerCase() || '',
-        emailBody: document.getElementById('filterEmailBody')?.value.toLowerCase() || ''
+        emailStatus: document.getElementById('filterEmailStatus')?.value.toLowerCase() || ''
     };
     
     const tbody = document.getElementById('resultsBody');
@@ -300,9 +298,7 @@ function applyFilters() {
         const email = cells[4]?.textContent.toLowerCase() || '';
         const website = cells[5]?.textContent.toLowerCase() || '';
         const postDate = cells[6]?.textContent.toLowerCase() || '';
-        const product = cells[7]?.textContent.toLowerCase() || '';
-        const subject = cells[8]?.textContent.toLowerCase() || '';
-        const emailBody = cells[9]?.textContent.toLowerCase() || '';
+        const emailStatus = cells[7]?.textContent.toLowerCase() || '';
         
         let show = true;
         
@@ -314,9 +310,7 @@ function applyFilters() {
         if (filters.hashtag && !hashtag.includes(filters.hashtag)) show = false;
         if (filters.email && !email.includes(filters.email)) show = false;
         if (filters.website && !website.includes(filters.website)) show = false;
-        if (filters.product && !product.includes(filters.product)) show = false;
-        if (filters.subject && !subject.includes(filters.subject)) show = false;
-        if (filters.emailBody && !emailBody.includes(filters.emailBody)) show = false;
+        if (filters.emailStatus && !emailStatus.includes(filters.emailStatus)) show = false;
         
         // Personal only filter - need to check the lead data directly since we removed the column
         if (filters.personalOnly) {
@@ -1126,51 +1120,48 @@ function createLeadRow(lead, index) {
         row.style.backgroundColor = 'rgba(255, 165, 0, 0.1)';
     }
     
+    // Get email status
+    const emailStatus = getEmailStatus(lead);
+    
     // Mobile data attributes
     row.innerHTML = `
         <td data-label="#">${index + 1}</td>
-        <td data-label="Name/Username">
+        <td data-label="Name/Benutzername">
             ${lead.full_name ? `${lead.full_name} (` : ''}
-            <a href="https://instagram.com/${lead.username}" target="_blank" style="color: var(--color-natural-green);">
+            <a href="https://www.instagram.com/${lead.username}" target="_blank" rel="noopener noreferrer" style="color: var(--color-natural-green);">
                 @${lead.username}
             </a>
             ${lead.full_name ? ')' : ''}
+            ${lead.is_duplicate ? '<br><small class="text-warning">Duplikat</small>' : ''}
         </td>
-        <td data-label="Hashtag">${lead.hashtag || ''}</td>
-        <td data-label="Followers">${formatNumber(lead.followersCount || 0)}</td>
+        <td data-label="Hashtag">${lead.hashtag || '-'}</td>
+        <td data-label="Follower">${formatNumber(lead.followers_count || lead.followersCount || 0)}</td>
         <td data-label="Email" class="editable-cell" onclick="startInlineEdit(this, '${lead.username}', 'email')">
             ${lead.email || '<span style="color: var(--color-light-gray);">Klicken zum Hinzufügen</span>'}
         </td>
         <td data-label="Website" class="editable-cell" onclick="startInlineEdit(this, '${lead.username}', 'website')">
-            ${lead.website ? `<a href="${lead.website}" target="_blank" style="color: var(--color-natural-green);">${lead.website}</a>` : '<span style="color: var(--color-light-gray);">Klicken zum Hinzufügen</span>'}
-        </td>
-        <td data-label="Post Datum">
-            ${lead.sourcePostUrl && lead.sourceTimestamp ? 
-                `<a href="${lead.sourcePostUrl}" target="_blank" style="color: var(--color-natural-green);" title="Instagram Post öffnen">${formatGermanDateOnly(lead.sourceTimestamp)}</a>` : 
-                (lead.sourceTimestamp ? formatGermanDateOnly(lead.sourceTimestamp) : '<span style="color: var(--color-light-gray);">-</span>')
+            ${(lead.website || lead.external_url) ? 
+                `<a href="${lead.website || lead.external_url}" target="_blank" rel="noopener noreferrer" style="color: var(--color-natural-green);">${(lead.website || lead.external_url).substring(0, 30)}${(lead.website || lead.external_url).length > 30 ? '...' : ''}</a>` : 
+                '<span style="color: var(--color-light-gray);">Klicken zum Hinzufügen</span>'
             }
         </td>
-        <td data-label="Product" class="editable-cell" id="product-cell-${lead.username}" onclick="editProductSelection('${lead.username}')">
-            ${getProductNameById(lead.selectedProductId) || '<span style="color: var(--color-light-gray);">Kein Produkt</span>'}
+        <td data-label="Post Datum">
+            ${lead.sourceTimestamp ? 
+                `<a href="${lead.sourcePostUrl || '#'}" target="_blank" rel="noopener noreferrer" style="color: var(--color-natural-green);">${formatGermanDateOnly(lead.sourceTimestamp)}</a>` : 
+                '-'
+            }
         </td>
-        <td data-label="Subject" class="editable-cell" data-username="${lead.username}" data-field="subject" onclick="editField(this)">
-            ${lead.subject || '<span style="color: var(--color-light-gray);">Klicken zum Hinzufügen</span>'}
+        <td data-label="Email Status">
+            <span class="email-status ${emailStatus.class}">
+                <i class="fas ${emailStatus.class === 'gesendet' ? 'fa-check-circle' : emailStatus.class === 'entwurf' ? 'fa-edit' : 'fa-circle'}"></i>
+                ${emailStatus.text}
+                ${lead.sent && lead.sent_at ? `<br><small>${formatDate(lead.sent_at)}</small>` : ''}
+            </span>
         </td>
-        <td data-label="Email Body" class="editable-cell" data-username="${lead.username}" data-field="email_body" onclick="editField(this)">
-            ${(lead.email_body || '').substring(0, 50)}${(lead.email_body || '').length > 50 ? '...' : ''}${!lead.email_body ? '<span style="color: var(--color-light-gray);">Klicken zum Hinzufügen</span>' : ''}
-        </td>
-        <td data-label="Status">
-            ${lead.sent ? `<span style="color: var(--color-natural-green); font-weight: 500;"><i class="fas fa-check-circle"></i> Gesendet<br><small style="color: var(--color-medium-gray); font-weight: normal;">${formatDateTime(lead.sentAt)}</small></span>` : '<span style="color: var(--color-medium-gray);">Entwurf</span>'}
-        </td>
-        <td data-label="Actions">
-            <div class="d-flex gap-1">
-                <button class="btn btn-secondary btn-sm" onclick="generateEmailContent('${lead.username}')" title="Email generieren">
-                    <i class="fas fa-envelope"></i> Email
-                </button>
-                <button class="btn btn-tertiary btn-sm send-btn" id="send-btn-${lead.username}" onclick="sendEmail('${lead.username}')" title="Email senden">
-                    <i class="fas fa-paper-plane"></i> Senden
-                </button>
-            </div>
+        <td data-label="Aktionen">
+            <button class="btn btn-email-setup" onclick="openEmailCampaignModal('${lead.username}')" title="Email Campaign Setup">
+                <i class="fas fa-envelope-open-text"></i> Email Setup
+            </button>
         </td>
     `;
     
@@ -1786,6 +1777,22 @@ function formatGermanDateOnly(isoString) {
     } catch (error) {
         console.error('Error formatting German date only:', error);
         return '';
+    }
+}
+
+function formatDate(dateString) {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    return date.toLocaleString();
+}
+
+function getEmailStatus(lead) {
+    if (lead.sent) {
+        return { class: 'gesendet', text: 'Gesendet' };
+    } else if (lead.subject && lead.email_body) {
+        return { class: 'entwurf', text: 'Entwurf bereit' };
+    } else {
+        return { class: 'nicht-gestartet', text: 'Nicht gestartet' };
     }
 }
 

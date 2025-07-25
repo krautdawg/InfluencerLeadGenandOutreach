@@ -536,8 +536,7 @@ select:focus {
   --col-width-6: 180px;  /* Website column */
   --col-width-7: 150px;  /* Post Datum column */
   --col-width-8: 150px;  /* Email Status column */
-  --col-width-9: 120px;  /* Status column */
-  --col-width-10: 180px; /* Actions column */
+  --col-width-9: 180px;  /* Actions column */
 }
 
 /* Apply column widths to table headers and cells */

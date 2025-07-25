@@ -589,7 +589,6 @@ function createLeadRow(lead, index) {
                 ${lead.sent && lead.sent_at ? `<br><small>${formatDate(lead.sent_at)}</small>` : ''}
             </span>
         </td>
-        <td data-label="Status">${lead.status || '-'}</td>
         <td data-label="Aktionen">
             <button class="btn btn-email-setup" onclick="openEmailCampaignModal('${lead.username}')" title="Email Campaign Setup">
                 <i class="fas fa-envelope-open-text"></i> Email Setup
