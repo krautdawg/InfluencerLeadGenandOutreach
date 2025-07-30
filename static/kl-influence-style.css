@@ -828,6 +828,11 @@ select:focus {
   max-width: 800px;
 }
 
+/* Prompt Settings Modal - Double Width */
+#promptSettingsModal .modal-dialog {
+  max-width: min(1600px, 95vw);
+}
+
 
 
 .modal-header {

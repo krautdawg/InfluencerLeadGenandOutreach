@@ -13,6 +13,18 @@ K+L Influence is a Flask-based Instagram lead generation and outreach automation
 
 ## Recent Changes
 
+### 2025-07-30: Prompt Settings Modal Width Enhancement (COMPLETED)
+- **Feature**: Doubled the width of "Prompt Einstellungen" modal for better usability
+- **Technical Implementation**:
+  - **Modal Width**: Increased from 800px to 1600px (double width)
+  - **Responsive Design**: Uses `min(1600px, 95vw)` to prevent overflow on smaller screens
+  - **Specific Targeting**: Only affects `#promptSettingsModal`, preserving other modal sizes
+- **Benefits**:
+  - **Better Content Display**: More space for prompt editing and variable configuration
+  - **Improved User Experience**: Less horizontal scrolling when editing long prompts
+  - **Enhanced Readability**: Side-by-side view of prompt types and variable settings
+- **Status**: Modal width enhancement fully implemented and operational
+
 ### 2025-07-25: "Kein Produkt" Option with has_product=FALSE Prompts Implementation (COMPLETED)
 - **Feature**: Added "Kein Produkt" option to email campaign modal with full integration to database prompt system
 - **Product Selection Enhancement**:
