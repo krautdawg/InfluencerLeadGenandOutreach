@@ -1106,6 +1106,9 @@ function displayResults(leadsData) {
     // Initialize column resizing for the table (if not already done)
     initializeColumnResizing();
     
+    // Initialize sidebar resizing
+    initializeSidebarResizing();
+    
     // Add reset button to action bar
     addColumnWidthResetButton();
     
@@ -2218,6 +2221,9 @@ function initializePromptSettings() {
         return;
     }
     
+    // Add sidebar reset button to the prompt settings modal footer
+    addSidebarResetButton();
+    
     // Open prompt settings modal
     promptSettingsBtn.addEventListener('click', async (e) => {
         console.log('Prompt Settings button clicked!');
@@ -2511,6 +2517,15 @@ let startX = 0;
 let startWidth = 0;
 let previewLine = null;
 
+// ===============================
+// SIDEBAR RESIZING FUNCTIONALITY
+// ===============================
+
+let isSidebarResizing = false;
+let sidebarStartX = 0;
+let sidebarStartWidth = 0;
+let sidebarPreviewLine = null;
+
 // Initialize column resizing functionality
 function initializeColumnResizing() {
     const table = document.querySelector('.data-table');
@@ -2701,7 +2716,164 @@ function addColumnWidthResetButton() {
     rightButtonGroup.appendChild(resetButton);
 }
 
+// ===============================
+// SIDEBAR RESIZING FUNCTIONALITY
+// ===============================
+
+// Initialize sidebar resizing functionality
+function initializeSidebarResizing() {
+    const sidebar = document.querySelector('.sidebar-nav');
+    if (!sidebar) return;
+
+    // Create sidebar resize handle if it doesn't exist
+    let resizeHandle = sidebar.querySelector('.sidebar-resize-handle');
+    if (!resizeHandle) {
+        resizeHandle = document.createElement('div');
+        resizeHandle.className = 'sidebar-resize-handle';
+        sidebar.appendChild(resizeHandle);
+    }
+
+    // Create preview line only if it doesn't exist
+    if (!sidebarPreviewLine) {
+        sidebarPreviewLine = document.createElement('div');
+        sidebarPreviewLine.className = 'sidebar-resize-preview-line';
+        document.body.appendChild(sidebarPreviewLine);
+    }
+
+    // Add event listeners to resize handle
+    resizeHandle.addEventListener('mousedown', startSidebarResize);
+
+    // Global mouse events for sidebar resizing (only add once)
+    if (!window.sidebarResizeInitialized) {
+        document.addEventListener('mousemove', doSidebarResize);
+        document.addEventListener('mouseup', endSidebarResize);
+        window.sidebarResizeInitialized = true;
+    }
+
+    // Load saved sidebar width
+    loadSidebarWidth();
+}
+
+// Start resizing sidebar
+function startSidebarResize(e) {
+    e.preventDefault();
+    e.stopPropagation();
+
+    isSidebarResizing = true;
+    sidebarStartX = e.clientX;
+    
+    // Get current sidebar width
+    const currentWidth = getComputedStyle(document.documentElement).getPropertyValue('--sidebar-width');
+    sidebarStartWidth = parseInt(currentWidth);
+
+    // Add resizing class to handle
+    e.target.classList.add('resizing');
+    
+    // Disable text selection during resize
+    document.body.style.userSelect = 'none';
+    document.body.style.cursor = 'ew-resize';
+
+    // Show preview line
+    updateSidebarPreviewLine(e.clientX);
+    sidebarPreviewLine.style.display = 'block';
+}
+
+// Handle sidebar resizing
+function doSidebarResize(e) {
+    if (!isSidebarResizing) return;
+
+    e.preventDefault();
+    
+    // Update preview line position
+    updateSidebarPreviewLine(e.clientX);
+}
+
+// Update sidebar preview line position
+function updateSidebarPreviewLine(clientX) {
+    if (!sidebarPreviewLine) return;
+    
+    sidebarPreviewLine.style.left = `${clientX}px`;
+}
+
+// End sidebar resizing
+function endSidebarResize(e) {
+    if (!isSidebarResizing) return;
+
+    const deltaX = e.clientX - sidebarStartX;
+    const newWidth = Math.max(280, Math.min(800, sidebarStartWidth + deltaX)); // Min 280px, Max 800px
+
+    // Update CSS variable
+    document.documentElement.style.setProperty('--sidebar-width', `${newWidth}px`);
+
+    // Save to localStorage
+    saveSidebarWidth();
+
+    // Clean up
+    const resizeHandle = document.querySelector('.sidebar-resize-handle.resizing');
+    if (resizeHandle) {
+        resizeHandle.classList.remove('resizing');
+    }
+
+    isSidebarResizing = false;
+    document.body.style.userSelect = '';
+    document.body.style.cursor = '';
+    
+    // Hide preview line
+    if (sidebarPreviewLine) {
+        sidebarPreviewLine.style.display = 'none';
+    }
+
+    // Show toast notification
+    showToast(`Sidebar-Breite auf ${newWidth}px angepasst`, 'success');
+}
+
+// Save sidebar width to localStorage
+function saveSidebarWidth() {
+    const width = getComputedStyle(document.documentElement).getPropertyValue('--sidebar-width');
+    localStorage.setItem('klinfluence-sidebar-width', width.trim());
+}
+
+// Load sidebar width from localStorage
+function loadSidebarWidth() {
+    try {
+        const saved = localStorage.getItem('klinfluence-sidebar-width');
+        if (saved) {
+            document.documentElement.style.setProperty('--sidebar-width', saved);
+        }
+    } catch (error) {
+        console.warn('Error loading sidebar width:', error);
+    }
+}
+
+// Reset sidebar width to default
+function resetSidebarWidth() {
+    document.documentElement.style.setProperty('--sidebar-width', '320px');
+    saveSidebarWidth();
+    showToast('Sidebar-Breite zurückgesetzt', 'success');
+}
+
 // ========== PRODUCT MANAGEMENT FUNCTIONS ==========
+
+// Add sidebar reset button to prompt settings modal
+function addSidebarResetButton() {
+    const modalFooter = document.querySelector('#promptSettingsModal .modal-footer');
+    if (!modalFooter) return;
+    
+    // Check if button already exists
+    if (modalFooter.querySelector('#resetSidebarBtn')) return;
+    
+    const resetButton = document.createElement('button');
+    resetButton.type = 'button';
+    resetButton.className = 'btn btn-tertiary btn-sm';
+    resetButton.id = 'resetSidebarBtn';
+    resetButton.onclick = resetSidebarWidth;
+    resetButton.innerHTML = '<i class="fas fa-expand-arrows-alt"></i> Panel zurücksetzen';
+    resetButton.title = 'Sidebar-Breite auf Standardwerte zurücksetzen';
+    
+    // Insert before the cancel button
+    const cancelBtn = modalFooter.querySelector('.btn-secondary');
+    modalFooter.insertBefore(resetButton, cancelBtn);
+}
 
 // Initialize product management
 function initializeProductManagement() {

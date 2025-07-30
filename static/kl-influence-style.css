@@ -267,6 +267,45 @@ a:hover {
   outline: none;
 }
 
+/* Sidebar Resize Handle */
+.sidebar-resize-handle {
+  position: fixed;
+  top: var(--header-height);
+  right: 0;
+  width: 8px;
+  height: calc(100vh - var(--header-height));
+  cursor: ew-resize;
+  background: transparent;
+  z-index: 1002;
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+  border-right: 2px solid transparent;
+}
+
+.sidebar-nav:hover .sidebar-resize-handle,
+.sidebar-resize-handle:hover,
+.sidebar-resize-handle.resizing {
+  opacity: 1;
+  background: linear-gradient(to right, transparent 2px, var(--color-natural-green) 2px, var(--color-natural-green) 6px, transparent 6px);
+}
+
+.sidebar-resize-handle.resizing {
+  background: linear-gradient(to right, transparent 2px, var(--color-earth-brown) 2px, var(--color-earth-brown) 6px, transparent 6px);
+}
+
+/* Sidebar resize preview line */
+.sidebar-resize-preview-line {
+  position: fixed;
+  top: var(--header-height);
+  bottom: 0;
+  width: 2px;
+  background-color: var(--color-natural-green);
+  z-index: 1003;
+  pointer-events: none;
+  opacity: 0.8;
+  display: none;
+}
+
 .sidebar-toggle:hover {
   background-color: var(--color-white);
   box-shadow: 3px 0 12px rgba(45, 91, 45, 0.12);
