@@ -13,6 +13,18 @@ K+L Influence is a Flask-based Instagram lead generation and outreach automation
 
 ## Recent Changes
 
+### 2025-07-30: Email Campaign Modal Outside-Click Prevention (COMPLETED)
+- **Feature**: Prevented email campaign modal from closing when clicking outside the modal
+- **Technical Implementation**:
+  - **Modal Exclusion**: Added `emailCampaignModal` to the list of modals excluded from click-outside-to-close behavior
+  - **Consistent Behavior**: Now matches the behavior of Prompt Einstellungen modal and other critical modals
+  - **Code Change**: Updated global modal click handler to exclude `emailCampaignModal` from automatic closing
+- **Benefits**:
+  - **Prevents Accidental Closing**: Users won't lose their email configuration work when clicking outside
+  - **Better User Experience**: Modal only closes via "X" button or "Abbrechen" (Cancel) button
+  - **Consistent Interface**: Matches existing behavior of other important modals in the application
+- **Status**: Email campaign modal outside-click prevention fully implemented
+
 ### 2025-07-30: Prompt Settings Modal Width Enhancement (COMPLETED)
 - **Feature**: Doubled the width of "Prompt Einstellungen" modal for better usability
 - **Technical Implementation**:
