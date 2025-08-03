@@ -38,7 +38,7 @@ app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
 }
 
 # Initialize database
-from models import db, Lead, ProcessingSession, HashtagUsernamePair, LeadBackup, Product, SystemPrompt, UserPrompt, VariableSettings
+from models import db, User, Lead, ProcessingSession, HashtagUsernamePair, LeadBackup, Product, SystemPrompt, UserPrompt, VariableSettings
 db.init_app(app)
 
 # Initialize OpenAI client
@@ -125,6 +125,23 @@ with app.app_context():
         db.session.commit()
 
     initialize_default_products()
+    
+    # Initialize admin user if none exists
+    def initialize_admin_user():
+        """Create first admin user if no users exist"""
+        try:
+            existing_users = User.query.count()
+            if existing_users == 0:
+                # Create default admin user
+                admin_user = User(username='admin', role='admin')
+                admin_user.set_password('admin123')  # User should change this immediately
+                db.session.add(admin_user)
+                db.session.commit()
+                logger.info("Default admin user created - Username: admin, Password: admin123")
+        except Exception as e:
+            logger.error(f"Error creating admin user: {e}")
+    
+    initialize_admin_user()
 
 # Global storage for processing status (only for status, data is in DB)
 app_data = {
@@ -139,15 +156,47 @@ app_data = {
     'stop_requested': False  # Flag to request processing stop
 }
 
-# Authentication decorator
+# Authentication decorators
 def login_required(f):
-    """Decorator to require login for protected routes"""
+    """Decorator to require login for protected routes (both legacy and user-based)"""
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if not session.get('logged_in'):
+        # Check legacy session login (K+L)
+        if session.get('logged_in'):
+            return f(*args, **kwargs)
+        # Check user-based login
+        if session.get('user_id'):
+            return f(*args, **kwargs)
+        return redirect(url_for('login'))
+    return decorated_function
+
+def admin_required(f):
+    """Decorator to require admin login for protected routes"""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        # Only user-based admin access allowed
+        user_id = session.get('user_id')
+        if not user_id:
             return redirect(url_for('login'))
+        
+        user = User.query.get(user_id)
+        if not user or not user.is_admin():
+            flash('Admin-Berechtigung erforderlich.', 'error')
+            return redirect(url_for('index'))
+        
         return f(*args, **kwargs)
     return decorated_function
+
+def get_current_user():
+    """Get current user info for templates"""
+    user_id = session.get('user_id')
+    if user_id:
+        return User.query.get(user_id)
+    return None
+
+def is_legacy_user():
+    """Check if current session is legacy K+L login"""
+    return session.get('logged_in') and not session.get('user_id')
 
 # Get password from environment
 APP_PASSWORD = os.environ.get('APP_PASSWORD')
@@ -931,21 +980,49 @@ async def enrich_profile_batch(usernames, ig_sessionid, apify_token,
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    """Login page"""
+    """Dual login page - supports both legacy APP_PASSWORD and user-based login"""
     if request.method == 'POST':
-        password = request.form.get('password')
-        if password == APP_PASSWORD:
-            session['logged_in'] = True
-            session.permanent = True
-            return redirect(url_for('index'))
+        login_type = request.form.get('login_type', 'legacy')
+        
+        if login_type == 'user':
+            # User-based login
+            username = request.form.get('username')
+            password = request.form.get('user_password')
+            
+            user = User.query.filter_by(username=username).first()
+            if user and user.check_password(password):
+                session['user_id'] = user.id
+                session['username'] = user.username
+                session['role'] = user.role
+                session.permanent = True
+                
+                # Update last login
+                user.last_login = datetime.utcnow()
+                db.session.commit()
+                
+                return redirect(url_for('index'))
+            else:
+                return render_template('login.html', error='Ungültige Anmeldedaten')
+        
         else:
-            return render_template('login.html', error='Invalid password')
+            # Legacy login (K+L)
+            password = request.form.get('password')
+            if password == APP_PASSWORD:
+                session['logged_in'] = True
+                session.permanent = True
+                return redirect(url_for('index'))
+            else:
+                return render_template('login.html', error='Ungültiges Passwort')
+    
     return render_template('login.html')
 
 @app.route('/logout')
 def logout():
-    """Logout user"""
+    """Logout user (both legacy and user-based)"""
     session.pop('logged_in', None)
+    session.pop('user_id', None)
+    session.pop('username', None)
+    session.pop('role', None)
     return redirect(url_for('login'))
 
 @app.route('/')
@@ -2742,6 +2819,91 @@ def delete_product(product_id):
         db.session.rollback()
         return {"error": "Failed to delete product"}, 500
 
+
+# Admin User Management Routes
+@app.route('/admin/users')
+@admin_required
+def admin_users():
+    """Admin page for user management"""
+    users = User.query.order_by(User.created_at.desc()).all()
+    return render_template('admin_users.html', users=users)
+
+@app.route('/admin/users/create', methods=['GET', 'POST'])
+@admin_required
+def admin_create_user():
+    """Create new user"""
+    if request.method == 'POST':
+        username = request.form.get('username')
+        password = request.form.get('password')
+        role = request.form.get('role', 'viewer')
+        
+        # Validate input
+        if not username or not password:
+            flash('Benutzername und Passwort sind erforderlich.', 'error')
+            return render_template('admin_create_user.html')
+        
+        # Check if username exists
+        existing_user = User.query.filter_by(username=username).first()
+        if existing_user:
+            flash('Benutzername bereits vorhanden.', 'error')
+            return render_template('admin_create_user.html')
+        
+        # Create user
+        user = User(username=username, role=role)
+        user.set_password(password)
+        db.session.add(user)
+        db.session.commit()
+        
+        flash(f'Benutzer "{username}" erfolgreich erstellt.', 'success')
+        return redirect(url_for('admin_users'))
+    
+    return render_template('admin_create_user.html')
+
+@app.route('/admin/users/<int:user_id>/delete', methods=['POST'])
+@admin_required
+def admin_delete_user(user_id):
+    """Delete user"""
+    user = User.query.get_or_404(user_id)
+    current_user = get_current_user()
+    
+    # Prevent self-deletion
+    if user.id == current_user.id:
+        flash('Sie können sich nicht selbst löschen.', 'error')
+        return redirect(url_for('admin_users'))
+    
+    username = user.username
+    db.session.delete(user)
+    db.session.commit()
+    
+    flash(f'Benutzer "{username}" wurde gelöscht.', 'success')
+    return redirect(url_for('admin_users'))
+
+@app.route('/admin/users/<int:user_id>/reset-password', methods=['POST'])
+@admin_required
+def admin_reset_password(user_id):
+    """Reset user password"""
+    user = User.query.get_or_404(user_id)
+    new_password = request.form.get('new_password')
+    
+    if not new_password:
+        flash('Neues Passwort ist erforderlich.', 'error')
+        return redirect(url_for('admin_users'))
+    
+    user.set_password(new_password)
+    db.session.commit()
+    
+    flash(f'Passwort für "{user.username}" wurde zurückgesetzt.', 'success')
+    return redirect(url_for('admin_users'))
+
+# Template context processor for user info
+@app.context_processor
+def inject_user_info():
+    """Inject user info into all templates"""
+    return {
+        'current_user': get_current_user(),
+        'is_legacy_user': is_legacy_user(),
+        'is_admin': get_current_user() and get_current_user().is_admin() if get_current_user() else False
+    }
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)

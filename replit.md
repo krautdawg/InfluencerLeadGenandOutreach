@@ -67,4 +67,40 @@ Preferred communication style: Simple, everyday language. Before implementing an
 - **Bootstrap 5**: UI framework and responsive design.
 - **Font Awesome**: Icon library.
 - **Google Fonts**: Specifically, the "Inter" font family for typography.
+
+## Recent Changes
+
+### 2025-08-03: Dual-Login System mit Rollenbasierter Zugriffskontrolle (COMPLETED)
+- **Feature**: Implementierung eines vollständigen Mehrbenutzersystems mit separaten Admin- und Viewer-Zugängen
+- **Sicherheitserweiterung**:
+  - **Dual-Login-System**: K+L behält bisherigen APP_PASSWORD Login mit gleichen Rechten
+  - **Admin-Login**: Neues benutzerkonto-basiertes System mit sicherer Passwort-Hashing (werkzeug.security)
+  - **Rollenbasierte Kontrolle**: Admin (Vollzugriff) und Viewer (nur Leserechte) Rollen
+- **Backend-Implementierung**:
+  - **User-Model**: Neue User-Tabelle mit username, password_hash, role, created_at, last_login
+  - **Authentication-Decorators**: `@login_required` (beide Systeme), `@admin_required` (nur User-System)
+  - **Session-Management**: Erweitert um user_id, username, role für Benutzerverfolgung
+  - **Migration-Safe**: Bestehende K+L-Funktionalität bleibt unverändert erhalten
+- **Frontend-Erweiterungen**:
+  - **Tab-basiertes Login**: "Standard Login" (K+L) und "Admin Login" mit animierten Übergängen
+  - **Admin-Navigation**: Benutzerverwaltung-Button nur für Admin-Benutzer sichtbar
+  - **User-Identifikation**: Logout-Button zeigt aktuellen Benutzer (Username oder "K+L")
+- **Admin-Panel**:
+  - **Benutzerverwaltung**: Vollständiges Interface zur Erstellung, Bearbeitung und Löschung von Benutzern
+  - **Passwort-Reset**: Admin kann Benutzerpasswörter zurücksetzen
+  - **Rollenverwaltung**: Visuelle Unterscheidung zwischen Admin- und Viewer-Rollen
+  - **Sicherheitsfeatures**: Selbstlöschung-Schutz, Bestätigungsdialoge
+- **Standard-Benutzer**:
+  - **Default Admin**: Username "admin", Passwort "admin123" (beim ersten Start erstellt)
+  - **Sofortige Verfügbarkeit**: System erstellt automatisch ersten Admin-Account
+  - **Passwort-Änderung**: Admin sollte Standardpasswort sofort ändern
+- **Backward-Kompatibilität**:
+  - **K+L Workflow**: Unverändert - weiterhin APP_PASSWORD Login möglich
+  - **Gleiche Rechte**: K+L behält Vollzugriff auf alle bisherigen Funktionen
+  - **Nahtlose Koexistenz**: Beide Login-Systeme funktionieren parallel ohne Konflikte
+- **Anwaltssichere Struktur**:
+  - **Separate Zugänge**: K+L und Admin haben getrennte Anmeldedaten
+  - **Audit-Trail**: Last_login Tracking für alle Benutzer
+  - **Rollenbasierte Berechtigung**: Klare Trennung zwischen Admin- und Viewer-Rechten
+- **Status**: Dual-Login-System vollständig implementiert und einsatzbereit
 ```
