@@ -1087,68 +1087,6 @@ select:focus {
   margin-left: var(--space-sm);
 }
 
-/* Row Number Delete Button Styles
-------------------------------------------- */
-.row-number-cell {
-  position: relative;
-  text-align: center;
-  padding: var(--space-sm) var(--space-md);
-  cursor: pointer;
-  user-select: none;
-  transition: all var(--transition-fast);
-  border-radius: 4px;
-  font-weight: 600;
-  color: var(--color-medium-gray);
-}
-
-.row-number-cell:hover {
-  background-color: #ffebee;
-  color: #d32f2f;
-  border-color: #ffcdd2;
-  transform: scale(1.02);
-  box-shadow: 0 2px 4px rgba(211, 47, 47, 0.2);
-}
-
-.row-number-cell.clicking {
-  background-color: #f44336 !important;
-  color: white !important;
-  transform: scale(0.95);
-  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
-}
-
-.row-number-cell.flashing {
-  animation: deleteFlash 0.3s ease-in-out;
-}
-
-@keyframes deleteFlash {
-  0% { 
-    background-color: #f44336; 
-    color: white;
-    transform: scale(0.95);
-  }
-  50% { 
-    background-color: #ff1744; 
-    color: white;
-    transform: scale(1.05);
-  }
-  100% { 
-    background-color: #f44336; 
-    color: white;
-    transform: scale(0.95);
-  }
-}
-
-/* Enhanced row hover for better UX */
-.data-table tbody tr:hover .row-number-cell {
-  background-color: #fff3e0;
-  color: #f57c00;
-}
-
-.data-table tbody tr:hover .row-number-cell:hover {
-  background-color: #ffebee;
-  color: #d32f2f;
-}
-
 /* 12. Mobile Responsiveness
 ------------------------------------------- */
 .mobile-menu-toggle {
@@ -1682,97 +1620,96 @@ select:focus {
   color: var(--color-white);
 }
 
-/* 16. Row Selection System
-------------------------------------------- */
-.selection-action-bar {
-  background: linear-gradient(135deg, var(--color-natural-green) 0%, var(--color-forest-green) 100%);
-  color: white;
-  padding: 1rem 1.5rem;
-  border-radius: 12px;
-  margin-bottom: 1rem;
-  box-shadow: 0 4px 12px rgba(45, 91, 45, 0.2);
-  animation: slideInFromTop 0.3s ease-out;
-}
-
-.selection-action-bar .selection-info {
-  font-weight: 600;
-  font-size: 1.1rem;
-}
-
-.selection-action-bar .btn {
-  border-color: rgba(255, 255, 255, 0.3);
-  background: rgba(255, 255, 255, 0.1);
-  color: white;
-  transition: all 0.3s ease;
-}
-
-.selection-action-bar .btn:hover {
-  background: rgba(255, 255, 255, 0.2);
-  border-color: rgba(255, 255, 255, 0.5);
-  color: white;
-  transform: translateY(-1px);
-}
-
-.selection-action-bar .btn-danger {
-  background: rgba(220, 53, 69, 0.8);
-  border-color: rgba(220, 53, 69, 0.8);
-}
-
-.selection-action-bar .btn-danger:hover {
-  background: rgba(220, 53, 69, 1);
-  border-color: rgba(220, 53, 69, 1);
-}
-
-@keyframes slideInFromTop {
-  from {
-    opacity: 0;
-    transform: translateY(-20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-/* Row Selection Styles */
-.row-number-cell {
-  cursor: pointer;
-  user-select: none;
-  transition: all 0.3s ease;
-  position: relative;
-}
-
-.row-number-cell:hover {
-  background-color: var(--color-pale-green) !important;
-  color: var(--color-natural-green);
-  font-weight: 600;
-}
-
-.row-number-cell.selection-mode {
-  background-color: var(--color-pale-green) !important;
-}
-
-.row-number-checkbox {
-  display: none;
-  width: 18px;
-  height: 18px;
-  cursor: pointer;
-  accent-color: var(--color-natural-green);
-}
-
-.row-number-cell.selected .row-number-checkbox {
-  display: inline-block;
-}
-
-.row-number-cell.selected .row-number-text {
-  display: none;
-}
-
+/* Row Selection and Inline Actions */
 .row-selected {
-  background-color: var(--color-pale-green) !important;
-  border-left: 4px solid var(--color-natural-green);
+  background-color: rgba(45, 91, 45, 0.05) !important;
+  border-left: 3px solid var(--color-natural-green);
 }
 
-.row-selected td {
-  background-color: inherit !important;
+.row-checkbox {
+  accent-color: var(--color-natural-green);
+  transform: scale(1.1);
+  cursor: pointer;
+}
+
+#bulkActions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  background-color: var(--color-pale-green);
+  border-radius: 4px;
+  border: 1px solid var(--color-light-gray);
+}
+
+#selectedCount {
+  font-size: var(--text-body-sm);
+  font-weight: 500;
+  color: var(--color-natural-green);
+}
+
+.delete-btn {
+  background-color: transparent;
+  color: var(--color-error);
+  border: 1px solid var(--color-error);
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: var(--text-body-sm);
+  transition: var(--transition-fast);
+  min-width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.delete-btn:hover {
+  background-color: var(--color-error);
+  color: var(--color-white);
+}
+
+.row-selected .delete-btn {
+  background-color: var(--color-error);
+  color: var(--color-white);
+  box-shadow: 0 2px 4px rgba(160, 82, 45, 0.2);
+}
+
+/* Action buttons container */
+.data-table td[data-label="Aktionen"] .d-flex {
+  gap: 4px;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+/* Select all checkbox styling */
+#selectAll {
+  accent-color: var(--color-natural-green);
+  transform: scale(1.1);
+  cursor: pointer;
+}
+
+#selectAll:indeterminate {
+  background-color: var(--color-natural-green);
+}
+
+/* Responsive adjustments for mobile */
+@media (max-width: 768px) {
+  #bulkActions {
+    flex-direction: column;
+    gap: var(--space-xs);
+    padding: var(--space-xs) var(--space-sm);
+  }
+  
+  .data-table td[data-label="Aktionen"] .d-flex {
+    flex-direction: column;
+    gap: 2px;
+  }
+  
+  .btn-email-setup,
+  .delete-btn {
+    font-size: 10px;
+    padding: 2px 4px;
+    min-width: 24px;
+    height: 24px;
+  }
 }

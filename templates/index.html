@@ -118,31 +118,8 @@
             <div id="resultsContainer">
                 <!-- Results Section -->
                 <div id="resultsSection" style="display: none;">
-                    <!-- Selection Action Bar (hidden by default) -->
-                    <div id="selectionActionBar" class="selection-action-bar" style="display: none;">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div class="selection-info">
-                                <span id="selectionCount">0 Zeilen ausgewählt</span>
-                            </div>
-                            <div class="d-flex gap-2 align-items-center">
-                                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="selectAllRows()">
-                                    <i class="fas fa-check-square"></i> Alle auswählen
-                                </button>
-                                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="deselectAllRows()">
-                                    <i class="fas fa-square"></i> Auswahl aufheben
-                                </button>
-                                <button type="button" class="btn btn-danger btn-sm" onclick="deleteSelectedRows()">
-                                    <i class="fas fa-trash"></i> Ausgewählte löschen
-                                </button>
-                                <button type="button" class="btn btn-secondary btn-sm" onclick="exitSelectionMode()">
-                                    <i class="fas fa-times"></i> Abbrechen
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Normal Action Bar -->
-                    <div id="normalActionBar" class="d-flex justify-content-between align-items-center mb-4">
+                    <!-- Action Bar -->
+                    <div class="d-flex justify-content-between align-items-center mb-4">
                         <h2 class="mb-0">Lead Ergebnisse</h2>
                         <div class="d-flex gap-2 align-items-center">
                             <div class="form-check me-3">
@@ -150,6 +127,12 @@
                                 <label class="form-check-label" for="filterPersonalOnly" style="font-size: 14px; color: var(--color-medium-gray);">
                                     Nur Personal
                                 </label>
+                            </div>
+                            <div id="bulkActions" style="display: none;" class="me-3">
+                                <span id="selectedCount" class="text-muted me-2">0 ausgewählt</span>
+                                <button type="button" class="btn btn-danger btn-sm" onclick="deleteSelectedLeads()">
+                                    <i class="fas fa-trash"></i> Ausgewählte löschen
+                                </button>
                             </div>
                             <button type="button" class="btn btn-secondary btn-sm" onclick="clearFilters()">
                                 <i class="fas fa-filter"></i> Filter löschen
@@ -198,7 +181,10 @@
                         <table class="data-table" id="resultsTable">
                             <thead>
                                 <tr>
-                                    <th onclick="sortTable(0)" class="sortable row-number-header">
+                                    <th style="width: 40px;">
+                                        <input type="checkbox" id="selectAll" class="form-check-input" title="Alle auswählen/abwählen">
+                                    </th>
+                                    <th onclick="sortTable(0)" class="sortable">
                                         #<span class="sort-indicator">↕</span>
                                         <div class="resize-handle" data-column="1"></div>
                                     </th>
@@ -230,9 +216,10 @@
                                         Email Status<span class="sort-indicator">↕</span>
                                         <div class="resize-handle" data-column="8"></div>
                                     </th>
-                                    <th>Aktionen<div class="resize-handle" data-column="9"></div></th>
+                                    <th style="width: 120px;">Aktionen<div class="resize-handle" data-column="9"></div></th>
                                 </tr>
                                 <tr class="filter-row">
+                                    <th></th>
                                     <th></th>
                                     <th><input type="text" class="filter-input" id="filterNameUsername" data-column="1" placeholder="Name oder @benutzername..."></th>
                                     <th><input type="text" class="filter-input" id="filterHashtag" data-column="2" placeholder="Filtern..."></th>

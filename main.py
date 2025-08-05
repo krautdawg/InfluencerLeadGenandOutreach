@@ -2576,9 +2576,8 @@ def export_data(format):
 
 @app.route('/clear')
 @login_required
-@admin_required
 def clear_data():
-    """Clear all stored data - Admin only"""
+    """Clear all stored data"""
     try:
         # Clear all data from database
         Lead.query.delete()
@@ -2592,63 +2591,6 @@ def clear_data():
         logger.error(f"Failed to clear data: {e}")
         db.session.rollback()
         return {"error": "Failed to clear data"}, 500
-
-@app.route('/delete_leads', methods=['POST'])
-@login_required
-def delete_leads():
-    """Delete selected leads by IDs"""
-    try:
-        data = request.get_json()
-        lead_ids = data.get('lead_ids', [])
-        
-        if not lead_ids:
-            return jsonify({"success": False, "message": "Keine Lead-IDs angegeben."})
-        
-        # Validate that all IDs are integers
-        try:
-            lead_ids = [int(id) for id in lead_ids]
-        except (ValueError, TypeError):
-            return jsonify({"success": False, "message": "Ungültige Lead-IDs."})
-        
-        # Delete leads
-        deleted_count = Lead.query.filter(Lead.id.in_(lead_ids)).delete(synchronize_session=False)
-        db.session.commit()
-        
-        return jsonify({
-            "success": True, 
-            "message": f"{deleted_count} Lead(s) erfolgreich gelöscht.",
-            "deleted_count": deleted_count
-        })
-        
-    except Exception as e:
-        db.session.rollback()
-        logger.error(f"Error deleting leads: {e}")
-        return jsonify({"success": False, "message": f"Fehler beim Löschen: {str(e)}"})
-
-
-@app.route('/delete_lead/<int:lead_id>', methods=['DELETE'])
-@login_required
-def delete_single_lead(lead_id):
-    """Delete a single lead by ID"""
-    try:
-        # Find the lead
-        lead = Lead.query.get(lead_id)
-        if not lead:
-            return jsonify({"success": False, "message": "Lead nicht gefunden."})
-        
-        # Delete the lead
-        db.session.delete(lead)
-        db.session.commit()
-        
-        return jsonify({
-            "success": True, 
-            "message": f"Lead '{lead.username}' erfolgreich gelöscht."
-        })
-        
-    except Exception as e:
-        db.session.rollback()
-        logger.error(f"Error deleting single lead: {e}")
-        return jsonify({"success": False, "message": f"Fehler beim Löschen: {str(e)}"})
 
 
 # Email templates API removed - now using SystemPrompt table
@@ -3060,6 +3002,53 @@ def admin_reset_password(user_id):
     
     flash(f'Passwort für "{user.username}" wurde zurückgesetzt.', 'success')
     return redirect(url_for('admin_users'))
+
+@app.route('/delete-lead/<int:lead_id>', methods=['DELETE'])
+@login_required
+def delete_single_lead(lead_id):
+    """Delete a single lead by ID"""
+    try:
+        lead = Lead.query.get_or_404(lead_id)
+        db.session.delete(lead)
+        db.session.commit()
+        
+        logger.info(f"Lead {lead_id} deleted by user {session.get('username', 'unknown')}")
+        return jsonify({'success': True, 'message': 'Lead erfolgreich gelöscht'})
+        
+    except Exception as e:
+        logger.error(f"Error deleting lead {lead_id}: {e}")
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/delete-leads-bulk', methods=['DELETE'])
+@login_required
+def delete_bulk_leads():
+    """Delete multiple leads by IDs"""
+    try:
+        data = request.get_json()
+        lead_ids = data.get('lead_ids', [])
+        
+        if not lead_ids:
+            return jsonify({'success': False, 'error': 'Keine Lead-IDs bereitgestellt'}), 400
+        
+        # Convert string IDs to integers
+        lead_ids = [int(id) for id in lead_ids]
+        
+        # Delete leads in bulk
+        deleted_count = Lead.query.filter(Lead.id.in_(lead_ids)).delete(synchronize_session=False)
+        db.session.commit()
+        
+        logger.info(f"{deleted_count} leads deleted by user {session.get('username', 'unknown')}")
+        return jsonify({
+            'success': True, 
+            'message': f'{deleted_count} Lead(s) erfolgreich gelöscht',
+            'deleted_count': deleted_count
+        })
+        
+    except Exception as e:
+        logger.error(f"Error deleting bulk leads: {e}")
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 # Template context processor for user info
 @app.context_processor
