@@ -134,9 +134,11 @@
                             <button type="button" class="btn btn-secondary btn-sm" onclick="window.open('/export/csv', '_blank')">
                                 <i class="fas fa-file-csv"></i> CSV Export
                             </button>
+                            {% if is_admin %}
                             <button type="button" class="btn btn-tertiary btn-sm" onclick="clearData()">
                                 <i class="fas fa-trash"></i> Alle löschen
                             </button>
+                            {% endif %}
                         </div>
                     </div>
 
