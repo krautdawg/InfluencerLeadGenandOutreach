@@ -1035,8 +1035,12 @@ def setup_2fa():
                                  secret=user.generate_2fa_secret(),
                                  error='Bitte geben Sie den 6-stelligen Code ein')
         
+        # Debug logging for TOTP verification
+        logger.debug(f"2FA Setup - User: {user.username}, Token: {token}, Secret exists: {bool(user.two_factor_secret)}")
+        
         # Verify the token
         if user.verify_totp(token):
+            logger.info(f"2FA Setup successful for user: {user.username}")
             # Enable 2FA and generate backup codes
             user.two_factor_enabled = True
             backup_codes = user.generate_backup_codes()
@@ -1054,6 +1058,7 @@ def setup_2fa():
                                  backup_codes=backup_codes,
                                  username=user.username)
         else:
+            logger.warning(f"2FA Setup failed for user: {user.username}, invalid token: {token}")
             return render_template('setup_2fa.html', 
                                  user=user, 
                                  qr_code=user.generate_qr_code(),
@@ -1061,8 +1066,10 @@ def setup_2fa():
                                  error='Ungültiger Code. Bitte versuchen Sie es erneut.')
     
     # Generate QR code for setup
-    qr_code = user.generate_qr_code()
     secret = user.generate_2fa_secret()
+    # Save the secret to database
+    db.session.commit()
+    qr_code = user.generate_qr_code()
     
     return render_template('setup_2fa.html', 
                          user=user, 
@@ -1092,14 +1099,20 @@ def verify_2fa():
                                  user=user,
                                  error='Bitte geben Sie den Code ein')
         
+        # Debug logging for TOTP verification
+        logger.debug(f"2FA Verify - User: {user.username}, Token: {token}, Is backup: {is_backup_code}")
+        
         # Verify token or backup code
         valid = False
         if is_backup_code:
             valid = user.verify_backup_code(token)
+            logger.debug(f"Backup code verification result: {valid}")
         else:
             valid = user.verify_totp(token)
+            logger.debug(f"TOTP verification result: {valid}")
         
         if valid:
+            logger.info(f"2FA Login successful for user: {user.username}")
             # Complete login
             user.last_login = datetime.utcnow()
             db.session.commit()
@@ -1113,6 +1126,7 @@ def verify_2fa():
             return redirect(url_for('index'))
         else:
             error_msg = 'Ungültiger Backup-Code' if is_backup_code else 'Ungültiger Code'
+            logger.warning(f"2FA Login failed for user: {user.username}, error: {error_msg}")
             return render_template('verify_2fa.html', 
                                  user=user,
                                  error=error_msg)

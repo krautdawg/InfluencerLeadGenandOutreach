@@ -87,7 +87,16 @@ class User(db.Model):
             return False
         
         totp = pyotp.TOTP(self.two_factor_secret)
-        return totp.verify(token, valid_window=1)  # Allow 1 window tolerance
+        # Allow 3 window tolerance (90 seconds) for time synchronization issues
+        result = totp.verify(token, valid_window=3)
+        
+        # Debug logging
+        import logging
+        logger = logging.getLogger(__name__)
+        current_code = totp.now()
+        logger.debug(f"TOTP Verification - Secret: {self.two_factor_secret[:8]}..., Current code: {current_code}, Provided: {token}, Result: {result}")
+        
+        return result
     
     def generate_backup_codes(self):
         """Generate 10 backup codes"""

@@ -229,6 +229,12 @@
         <div class="secret-section">
             <small class="text-muted">Alternativ können Sie diesen Code manuell eingeben:</small>
             <div class="secret-code">{{ secret }}</div>
+            <div class="mt-2">
+                <small class="text-muted">
+                    <strong>Server-Zeit:</strong> <span id="server-time"></span><br>
+                    <small>Stellen Sie sicher, dass Ihre Uhr synchron ist</small>
+                </small>
+            </div>
         </div>
 
         <form method="POST">
@@ -258,6 +264,21 @@
             let value = e.target.value.replace(/\D/g, '').slice(0, 6);
             e.target.value = value;
         });
+
+        // Display current server time
+        function updateServerTime() {
+            const now = new Date();
+            const timeString = now.toLocaleString('de-DE', {
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                timeZoneName: 'short'
+            });
+            document.getElementById('server-time').textContent = timeString;
+        }
+        
+        updateServerTime();
+        setInterval(updateServerTime, 1000);
     </script>
 </body>
 </html>
