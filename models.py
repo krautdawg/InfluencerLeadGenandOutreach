@@ -2,6 +2,11 @@ from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import DeclarativeBase
 from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
+import pyotp
+import qrcode
+import io
+import base64
+import secrets
 
 
 class Base(DeclarativeBase):
@@ -12,13 +17,18 @@ db = SQLAlchemy(model_class=Base)
 
 
 class User(db.Model):
-    """Model for storing user accounts with roles"""
+    """Model for storing user accounts with roles and 2FA"""
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
     password_hash = db.Column(db.String(256), nullable=False)
     role = db.Column(db.String(20), nullable=False, default='viewer')  # 'admin' or 'viewer'
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     last_login = db.Column(db.DateTime)
+    
+    # 2FA fields
+    two_factor_secret = db.Column(db.String(32), nullable=True)  # TOTP secret
+    two_factor_enabled = db.Column(db.Boolean, default=False)    # 2FA status
+    backup_codes = db.Column(db.Text, nullable=True)             # JSON string of backup codes
     
     def set_password(self, password):
         """Hash and set password"""
@@ -36,12 +46,93 @@ class User(db.Model):
         """Check if user has viewer role"""
         return self.role == 'viewer'
     
+    def generate_2fa_secret(self):
+        """Generate a new TOTP secret for this user"""
+        if not self.two_factor_secret:
+            self.two_factor_secret = pyotp.random_base32()
+        return self.two_factor_secret
+    
+    def get_totp_uri(self, app_name="K+L Influence"):
+        """Get the TOTP URI for QR code generation"""
+        if not self.two_factor_secret:
+            self.generate_2fa_secret()
+        
+        totp = pyotp.TOTP(self.two_factor_secret)
+        return totp.provisioning_uri(
+            name=self.username,
+            issuer_name=app_name
+        )
+    
+    def generate_qr_code(self):
+        """Generate QR code image as base64 string"""
+        import qrcode.constants
+        qr = qrcode.QRCode(
+            version=1,
+            error_correction=qrcode.constants.ERROR_CORRECT_L,
+            box_size=10,
+            border=4,
+        )
+        qr.add_data(self.get_totp_uri())
+        qr.make(fit=True)
+        
+        img = qr.make_image(fill_color="black", back_color="white")
+        buffer = io.BytesIO()
+        img.save(buffer, format='PNG')
+        img_str = base64.b64encode(buffer.getvalue()).decode()
+        return img_str
+    
+    def verify_totp(self, token):
+        """Verify TOTP token"""
+        if not self.two_factor_secret:
+            return False
+        
+        totp = pyotp.TOTP(self.two_factor_secret)
+        return totp.verify(token, valid_window=1)  # Allow 1 window tolerance
+    
+    def generate_backup_codes(self):
+        """Generate 10 backup codes"""
+        import json
+        codes = [secrets.token_hex(4).upper() for _ in range(10)]
+        self.backup_codes = json.dumps(codes)
+        return codes
+    
+    def verify_backup_code(self, code):
+        """Verify and consume a backup code"""
+        if not self.backup_codes:
+            return False
+        
+        import json
+        try:
+            codes = json.loads(self.backup_codes)
+            if code.upper() in codes:
+                codes.remove(code.upper())
+                self.backup_codes = json.dumps(codes)
+                return True
+        except (json.JSONDecodeError, ValueError):
+            return False
+        
+        return False
+    
+    def get_remaining_backup_codes(self):
+        """Get count of remaining backup codes"""
+        if not self.backup_codes:
+            return 0
+        
+        import json
+        try:
+            codes = json.loads(self.backup_codes)
+            return len(codes)
+        except (json.JSONDecodeError, ValueError):
+            return 0
+    
     def to_dict(self):
         """Convert User object to dictionary"""
         return {
             'id': self.id,
             'username': self.username,
             'role': self.role,
+            'two_factor_enabled': self.two_factor_enabled,
+            'remaining_backup_codes': self.get_remaining_backup_codes(),
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'last_login': self.last_login.isoformat() if self.last_login else None
         }

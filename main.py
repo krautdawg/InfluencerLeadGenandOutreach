@@ -986,16 +986,16 @@ def login():
         
         user = User.query.filter_by(username=username).first()
         if user and user.check_password(password):
-            session['user_id'] = user.id
-            session['username'] = user.username
-            session['role'] = user.role
+            # Store user temporarily for 2FA verification
+            session['pending_user_id'] = user.id
+            session['login_step'] = 'password_verified'
             session.permanent = True
             
-            # Update last login
-            user.last_login = datetime.utcnow()
-            db.session.commit()
-            
-            return redirect(url_for('index'))
+            # Check if user needs to setup 2FA
+            if not user.two_factor_enabled:
+                return redirect(url_for('setup_2fa'))
+            else:
+                return redirect(url_for('verify_2fa'))
         else:
             return render_template('login.html', error='Ungültige Anmeldedaten')
     
@@ -1007,7 +1007,117 @@ def logout():
     session.pop('user_id', None)
     session.pop('username', None)
     session.pop('role', None)
+    session.pop('pending_user_id', None)
+    session.pop('login_step', None)
     return redirect(url_for('login'))
+
+@app.route('/setup-2fa', methods=['GET', 'POST'])
+def setup_2fa():
+    """Setup 2FA for users who haven't enabled it yet"""
+    # Check if user is in setup flow
+    pending_user_id = session.get('pending_user_id')
+    if not pending_user_id or session.get('login_step') != 'password_verified':
+        return redirect(url_for('login'))
+    
+    user = User.query.get(pending_user_id)
+    if not user:
+        session.pop('pending_user_id', None)
+        session.pop('login_step', None)
+        return redirect(url_for('login'))
+    
+    if request.method == 'POST':
+        token = request.form.get('token', '').strip()
+        
+        if not token:
+            return render_template('setup_2fa.html', 
+                                 user=user, 
+                                 qr_code=user.generate_qr_code(),
+                                 secret=user.generate_2fa_secret(),
+                                 error='Bitte geben Sie den 6-stelligen Code ein')
+        
+        # Verify the token
+        if user.verify_totp(token):
+            # Enable 2FA and generate backup codes
+            user.two_factor_enabled = True
+            backup_codes = user.generate_backup_codes()
+            user.last_login = datetime.utcnow()
+            db.session.commit()
+            
+            # Complete login
+            session['user_id'] = user.id
+            session['username'] = user.username
+            session['role'] = user.role
+            session.pop('pending_user_id', None)
+            session.pop('login_step', None)
+            
+            return render_template('setup_complete.html', 
+                                 backup_codes=backup_codes,
+                                 username=user.username)
+        else:
+            return render_template('setup_2fa.html', 
+                                 user=user, 
+                                 qr_code=user.generate_qr_code(),
+                                 secret=user.generate_2fa_secret(),
+                                 error='Ungültiger Code. Bitte versuchen Sie es erneut.')
+    
+    # Generate QR code for setup
+    qr_code = user.generate_qr_code()
+    secret = user.generate_2fa_secret()
+    
+    return render_template('setup_2fa.html', 
+                         user=user, 
+                         qr_code=qr_code,
+                         secret=secret)
+
+@app.route('/verify-2fa', methods=['GET', 'POST'])
+def verify_2fa():
+    """Verify 2FA for users who already have it enabled"""
+    # Check if user is in verification flow
+    pending_user_id = session.get('pending_user_id')
+    if not pending_user_id or session.get('login_step') != 'password_verified':
+        return redirect(url_for('login'))
+    
+    user = User.query.get(pending_user_id)
+    if not user or not user.two_factor_enabled:
+        session.pop('pending_user_id', None)
+        session.pop('login_step', None)
+        return redirect(url_for('login'))
+    
+    if request.method == 'POST':
+        token = request.form.get('token', '').strip()
+        is_backup_code = request.form.get('is_backup_code') == 'true'
+        
+        if not token:
+            return render_template('verify_2fa.html', 
+                                 user=user,
+                                 error='Bitte geben Sie den Code ein')
+        
+        # Verify token or backup code
+        valid = False
+        if is_backup_code:
+            valid = user.verify_backup_code(token)
+        else:
+            valid = user.verify_totp(token)
+        
+        if valid:
+            # Complete login
+            user.last_login = datetime.utcnow()
+            db.session.commit()
+            
+            session['user_id'] = user.id
+            session['username'] = user.username
+            session['role'] = user.role
+            session.pop('pending_user_id', None)
+            session.pop('login_step', None)
+            
+            return redirect(url_for('index'))
+        else:
+            error_msg = 'Ungültiger Backup-Code' if is_backup_code else 'Ungültiger Code'
+            return render_template('verify_2fa.html', 
+                                 user=user,
+                                 error=error_msg)
+    
+    return render_template('verify_2fa.html', user=user)
 
 @app.route('/')
 @login_required

@@ -70,7 +70,46 @@ Preferred communication style: Simple, everyday language. Before implementing an
 
 ## Recent Changes
 
-### 2025-08-03: Dual-Login System mit Rollenbasierter Zugriffskontrolle (COMPLETED)
+### 2025-08-05: TOTP Two-Factor Authentication Implementation (COMPLETED)
+- **Feature**: Vollständige TOTP-basierte Zwei-Faktor-Authentifizierung mit Mandatory Setup für bestehende Benutzer
+- **Sicherheitserweiterung**:
+  - **TOTP Integration**: PyOTP-basierte Implementierung mit Google Authenticator-Kompatibilität
+  - **QR-Code Setup**: Automatische QR-Code-Generierung für einfache Authenticator-App-Konfiguration
+  - **Backup-Codes**: 10 einmalige Backup-Codes für Notfall-Zugang bei verlorenem Gerät
+  - **Mandatory Activation**: Bestehende Benutzer müssen 2FA bei nächstem Login einrichten
+- **Backend-Implementierung**:
+  - **Erweiterte User-Model**: Neue Felder `two_factor_secret`, `two_factor_enabled`, `backup_codes`
+  - **Mehrstufiger Login-Flow**: Username/Password → 2FA Setup/Verification → Dashboard-Zugang
+  - **TOTP-Verifikation**: 30-Sekunden-Fenster mit 1-Periode-Toleranz für Zeitabweichungen
+  - **Session-Management**: Temporäre Session-States für sichere Multi-Step-Authentifizierung
+- **Frontend-Implementierung**:
+  - **Setup-Seite**: Responsive QR-Code-Interface mit manueller Secret-Eingabe-Option
+  - **Verifikations-Seite**: 6-stellige TOTP-Eingabe mit Backup-Code-Fallback
+  - **Abschluss-Seite**: Backup-Code-Anzeige mit Copy-Funktion und Sicherheitshinweisen
+  - **K+L Design**: Konsistente Natural Green-Farbgebung und Inter-Typografie
+- **Sicherheitsfeatures**:
+  - **Backup-Code-System**: JSON-gespeicherte, einmalig verwendbare 8-stellige Codes
+  - **Session-Schutz**: Temporäre Anmeldedaten nur während 2FA-Flow verfügbar
+  - **Auto-Format**: Client-seitige Eingabe-Validierung und -Formatierung
+  - **Sichere Secret-Generierung**: Kryptographisch sichere TOTP-Secrets mit pyotp.random_base32()
+- **Migration-Strategie**:
+  - **Nahtlose Einführung**: Bestehende Benutzer können sich normal anmelden
+  - **Mandatory Setup**: 2FA-Einrichtung wird bei nächstem Login erzwungen
+  - **Backward-Kompatibilität**: Alte Sessions bleiben gültig bis zur nächsten Anmeldung
+- **Abhängigkeiten**:
+  - **PyOTP**: TOTP-Implementierung und Secret-Generierung
+  - **QRCode**: QR-Code-Bildgenerierung für Authenticator-Apps
+  - **Pillow**: Bildverarbeitung für QR-Code-Rendering
+- **Status**: TOTP 2FA vollständig implementiert und für alle Benutzer aktiviert
+
+### 2025-08-05: Legacy Login System Removal (COMPLETED)
+- **Entfernung**: Standard Login (APP_PASSWORD) vollständig entfernt
+- **Vereinfachung**: Nur noch Username-Password-Authentifizierung aktiv
+- **Vorbereitung**: Login-System für 2FA-Integration optimiert
+- **Session-Cleanup**: Legacy Session-Variablen entfernt
+- **Status**: Single Login System implementiert
+
+### 2025-08-03: Dual-Login System mit Rollenbasierter Zugriffskontrolle (SUPERSEDED)
 - **Feature**: Implementierung eines vollständigen Mehrbenutzersystems mit separaten Admin- und Viewer-Zugängen
 - **Sicherheitserweiterung**:
   - **Dual-Login-System**: K+L behält bisherigen APP_PASSWORD Login mit gleichen Rechten
