@@ -601,6 +601,9 @@ function createLeadRow(lead, index) {
             <button class="btn btn-email-setup" onclick="openEmailCampaignModal('${lead.username}')" title="Email Campaign Setup">
                 <i class="fas fa-envelope-open-text"></i> Email Setup
             </button>
+            <button class="btn btn-delete-lead" onclick="deleteLead(${lead.id}, '${lead.username}')" title="Lead löschen">
+                <i class="fas fa-trash"></i>
+            </button>
         </td>
     `;
     
@@ -833,6 +836,51 @@ async function clearData() {
         console.error('Error clearing data:', error);
         showToast('Fehler beim Löschen der Daten', 'error');
     }
+}
+
+async function deleteLead(leadId, username) {
+    if (!confirm(`Bist du sicher, dass du den Lead "@${username}" löschen möchtest?`)) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/delete_lead/${leadId}`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            // Remove the row from the table
+            const row = document.querySelector(`button[onclick="deleteLead(${leadId}, '${username}')"]`).closest('tr');
+            if (row) {
+                row.remove();
+            }
+            
+            // Update the row numbers
+            updateRowNumbers();
+            
+            showToast('Lead erfolgreich gelöscht', 'success');
+        } else {
+            showToast(result.error || 'Fehler beim Löschen des Leads', 'error');
+        }
+    } catch (error) {
+        console.error('Error deleting lead:', error);
+        showToast('Fehler beim Löschen des Leads', 'error');
+    }
+}
+
+function updateRowNumbers() {
+    const rows = document.querySelectorAll('#resultsBody tr');
+    rows.forEach((row, index) => {
+        const firstCell = row.querySelector('td:first-child');
+        if (firstCell) {
+            firstCell.textContent = index + 1;
+        }
+    });
 }
 
 function showToast(message, type = 'info') {

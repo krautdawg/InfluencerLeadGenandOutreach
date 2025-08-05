@@ -2575,9 +2575,9 @@ def export_data(format):
 
 
 @app.route('/clear')
-@login_required
+@admin_required
 def clear_data():
-    """Clear all stored data"""
+    """Clear all stored data (admin only)"""
     try:
         # Clear all data from database
         Lead.query.delete()
@@ -2591,6 +2591,23 @@ def clear_data():
         logger.error(f"Failed to clear data: {e}")
         db.session.rollback()
         return {"error": "Failed to clear data"}, 500
+
+
+@app.route('/delete_lead/<int:lead_id>', methods=['DELETE'])
+@login_required
+def delete_lead(lead_id):
+    """Delete individual lead (all users can delete)"""
+    try:
+        lead = Lead.query.get_or_404(lead_id)
+        db.session.delete(lead)
+        db.session.commit()
+        
+        logger.info(f"Lead deleted: ID {lead_id}")
+        return {"success": True, "message": "Lead erfolgreich gelöscht"}
+    except Exception as e:
+        logger.error(f"Failed to delete lead {lead_id}: {e}")
+        db.session.rollback()
+        return {"error": "Fehler beim Löschen des Leads"}, 500
 
 
 # Email templates API removed - now using SystemPrompt table
