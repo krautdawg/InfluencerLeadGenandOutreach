@@ -158,12 +158,9 @@ app_data = {
 
 # Authentication decorators
 def login_required(f):
-    """Decorator to require login for protected routes (both legacy and user-based)"""
+    """Decorator to require login for protected routes"""
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        # Check legacy session login (K+L)
-        if session.get('logged_in'):
-            return f(*args, **kwargs)
         # Check user-based login
         if session.get('user_id'):
             return f(*args, **kwargs)
@@ -195,11 +192,10 @@ def get_current_user():
     return None
 
 def is_legacy_user():
-    """Check if current session is legacy K+L login"""
-    return session.get('logged_in') and not session.get('user_id')
+    """Legacy function - now always returns False since legacy login is removed"""
+    return False
 
-# Get password from environment
-APP_PASSWORD = os.environ.get('APP_PASSWORD')
+# Legacy APP_PASSWORD removed - no longer needed
 
 
 def deduplicate_profiles(profiles):
@@ -980,46 +976,34 @@ async def enrich_profile_batch(usernames, ig_sessionid, apify_token,
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    """Dual login page - supports both legacy APP_PASSWORD and user-based login"""
+    """User login page with username and password authentication"""
     if request.method == 'POST':
-        login_type = request.form.get('login_type', 'legacy')
+        username = request.form.get('username')
+        password = request.form.get('password')
         
-        if login_type == 'user':
-            # User-based login
-            username = request.form.get('username')
-            password = request.form.get('user_password')
+        if not username or not password:
+            return render_template('login.html', error='Benutzername und Passwort sind erforderlich')
+        
+        user = User.query.filter_by(username=username).first()
+        if user and user.check_password(password):
+            session['user_id'] = user.id
+            session['username'] = user.username
+            session['role'] = user.role
+            session.permanent = True
             
-            user = User.query.filter_by(username=username).first()
-            if user and user.check_password(password):
-                session['user_id'] = user.id
-                session['username'] = user.username
-                session['role'] = user.role
-                session.permanent = True
-                
-                # Update last login
-                user.last_login = datetime.utcnow()
-                db.session.commit()
-                
-                return redirect(url_for('index'))
-            else:
-                return render_template('login.html', error='Ungültige Anmeldedaten')
-        
+            # Update last login
+            user.last_login = datetime.utcnow()
+            db.session.commit()
+            
+            return redirect(url_for('index'))
         else:
-            # Legacy login (K+L)
-            password = request.form.get('password')
-            if password == APP_PASSWORD:
-                session['logged_in'] = True
-                session.permanent = True
-                return redirect(url_for('index'))
-            else:
-                return render_template('login.html', error='Ungültiges Passwort')
+            return render_template('login.html', error='Ungültige Anmeldedaten')
     
     return render_template('login.html')
 
 @app.route('/logout')
 def logout():
-    """Logout user (both legacy and user-based)"""
-    session.pop('logged_in', None)
+    """Logout user"""
     session.pop('user_id', None)
     session.pop('username', None)
     session.pop('role', None)

@@ -139,33 +139,7 @@
             text-align: center;
         }
 
-        .login-tabs {
-            display: flex;
-            border-bottom: 2px solid #e9ecef;
-            margin-bottom: 2rem;
-        }
 
-        .tab-button {
-            flex: 1;
-            background: none;
-            border: none;
-            padding: 1rem;
-            font-weight: 500;
-            color: var(--sage-green);
-            cursor: pointer;
-            transition: all 0.3s ease;
-            border-bottom: 3px solid transparent;
-        }
-
-        .tab-button.active {
-            color: var(--natural-green);
-            border-bottom-color: var(--natural-green);
-        }
-
-        .tab-button:hover {
-            color: var(--natural-green);
-            background-color: var(--pale-green);
-        }
 
         .login-form {
             animation: fadeIn 0.3s ease;
@@ -182,10 +156,7 @@
                 padding: 2rem;
             }
             
-            .tab-button {
-                font-size: 0.9rem;
-                padding: 0.75rem;
-            }
+
         }
     </style>
 </head>
@@ -206,25 +177,26 @@
             {% endif %}
         {% endwith %}
 
-        <!-- Login Type Tabs -->
-        <div class="login-tabs mb-4">
-            <button type="button" class="tab-button active" onclick="switchTab('legacy')" id="legacy-tab">
-                Standard Login
-            </button>
-            <button type="button" class="tab-button" onclick="switchTab('user')" id="user-tab">
-                Admin Login
-            </button>
-        </div>
-
-        <!-- Legacy Login Form (K+L) -->
-        <form method="POST" id="legacy-form" class="login-form">
-            <input type="hidden" name="login_type" value="legacy">
+        <!-- User Login Form -->
+        <form method="POST" class="login-form">
             <div class="mb-3">
+                <label for="username" class="form-label">Benutzername</label>
+                <input type="text" 
+                       class="form-control" 
+                       id="username" 
+                       name="username" 
+                       placeholder="Benutzername eingeben"
+                       required
+                       autocomplete="username">
+            </div>
+            
+            <div class="mb-3">
+                <label for="password" class="form-label">Passwort</label>
                 <input type="password" 
                        class="form-control" 
                        id="password" 
                        name="password" 
-                       placeholder="App-Passwort eingeben"
+                       placeholder="Passwort eingeben"
                        required
                        autocomplete="current-password">
             </div>
@@ -233,56 +205,8 @@
                 Anmelden
             </button>
         </form>
-
-        <!-- User Login Form (Admin) -->
-        <form method="POST" id="user-form" class="login-form" style="display: none;">
-            <input type="hidden" name="login_type" value="user">
-            <div class="mb-3">
-                <label for="username" class="form-label">Benutzername</label>
-                <input type="text" 
-                       class="form-control" 
-                       id="username" 
-                       name="username" 
-                       placeholder="Benutzername eingeben"
-                       autocomplete="username">
-            </div>
-            
-            <div class="mb-3">
-                <label for="user_password" class="form-label">Passwort</label>
-                <input type="password" 
-                       class="form-control" 
-                       id="user_password" 
-                       name="user_password" 
-                       placeholder="Passwort eingeben"
-                       autocomplete="current-password">
-            </div>
-            
-            <button type="submit" class="btn btn-login">
-                Admin Anmelden
-            </button>
-        </form>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        function switchTab(tabType) {
-            // Hide all forms
-            document.getElementById('legacy-form').style.display = 'none';
-            document.getElementById('user-form').style.display = 'none';
-            
-            // Remove active class from all tabs
-            document.getElementById('legacy-tab').classList.remove('active');
-            document.getElementById('user-tab').classList.remove('active');
-            
-            // Show selected form and activate tab
-            if (tabType === 'legacy') {
-                document.getElementById('legacy-form').style.display = 'block';
-                document.getElementById('legacy-tab').classList.add('active');
-            } else {
-                document.getElementById('user-form').style.display = 'block';
-                document.getElementById('user-tab').classList.add('active');
-            }
-        }
-    </script>
 </body>
 </html>
