@@ -3,12 +3,6 @@
 let sortDirection = {};
 let filterValues = {};
 
-/* Selection system variables */
-let selectionMode = false;
-let selectedRowIds = new Set();
-let selectedLeadIds = new Set();
-let selectionSystemInitialized = false;
-
 // Initialize application
 document.addEventListener('DOMContentLoaded', function() {
     console.log('DOM Content Loaded - UI.js started');
@@ -24,8 +18,6 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('Loading existing leads data:', window.leadsData.length, 'leads');
         console.log('Sample lead data:', window.leadsData[0]);
         displayResults(window.leadsData);
-        // Initialize selection system after table is populated
-        setTimeout(() => initializeSelectionSystem(), 100);
     }
     
     // Test modal button functionality
@@ -562,17 +554,11 @@ function displayResults(leads) {
     // Re-initialize table filters after new content is loaded
     setTimeout(() => {
         initializeTableFilters();
-        // Initialize selection system after table is populated
-        initializeSelectionSystem();
     }, 100);
 }
 
 function createLeadRow(lead, index) {
     const row = document.createElement('tr');
-    
-    // Store lead data as attributes on the row for selection system
-    row.setAttribute('data-row-index', index);
-    row.setAttribute('data-lead-id', lead.id || 'unknown');
     
     // Add duplicate highlighting
     if (lead.is_duplicate) {
@@ -583,10 +569,7 @@ function createLeadRow(lead, index) {
     const emailStatus = getEmailStatus(lead);
     
     row.innerHTML = `
-        <td data-label="#" class="row-number-cell" data-row-index="${index}" data-lead-id="${lead.id || 'unknown'}">
-            <span class="row-number-text">${index + 1}</span>
-            <input type="checkbox" class="row-number-checkbox" checked>
-        </td>
+        <td data-label="#">${index + 1}</td>
         <td data-label="Name/Benutzername">
             ${lead.full_name ? `${lead.full_name} (` : ''}
             <a href="https://www.instagram.com/${lead.username}" target="_blank" rel="noopener noreferrer" style="color: var(--color-natural-green);">
@@ -720,228 +703,6 @@ async function sendEmail(username, index) {
         showToast('Fehler beim Öffnen von Gmail', 'error');
     }
 }
-
-// =============================================================================
-// ROW SELECTION SYSTEM
-// =============================================================================
-
-function initializeSelectionSystem() {
-    // Prevent double initialization
-    if (selectionSystemInitialized) {
-        console.log('Selection system already initialized, skipping...');
-        return;
-    }
-    
-    console.log('Initializing selection system...');
-    
-    // Use event delegation on the table body to catch clicks on row number cells
-    const tableContainer = document.getElementById('tableWrapper');
-    if (tableContainer) {
-        tableContainer.addEventListener('click', function(event) {
-            const cell = event.target.closest('.row-number-cell');
-            if (cell) {
-                event.preventDefault();
-                event.stopPropagation();
-                
-                const rowIndex = parseInt(cell.getAttribute('data-row-index'));
-                const leadId = cell.getAttribute('data-lead-id');
-                
-                console.log('Row number cell clicked:', { rowIndex, leadId, cell });
-                
-                // Convert leadId to number if it's not 'unknown'
-                const numericLeadId = leadId !== 'unknown' ? parseInt(leadId) : null;
-                
-                if (!isNaN(rowIndex)) {
-                    toggleRowSelection(rowIndex, numericLeadId);
-                } else {
-                    console.error('Invalid row index:', rowIndex);
-                }
-            }
-        });
-        console.log('Selection event delegation added to table wrapper');
-        selectionSystemInitialized = true;
-    } else {
-        console.error('Table wrapper not found for selection system');
-    }
-}
-
-function toggleRowSelection(rowIndex, leadId) {
-    console.log('Toggling row selection:', { rowIndex, leadId, selectionMode });
-    
-    if (!selectionMode) {
-        // Enter selection mode
-        enterSelectionMode();
-    }
-    
-    // Find the row by its data attribute
-    const row = document.querySelector(`tr[data-row-index="${rowIndex}"]`);
-    if (!row) {
-        console.error('Row not found for index:', rowIndex);
-        return;
-    }
-    
-    const numberCell = row.querySelector('.row-number-cell');
-    if (!numberCell) {
-        console.error('Number cell not found in row:', row);
-        return;
-    }
-    
-    if (selectedRowIds.has(rowIndex)) {
-        // Deselect
-        selectedRowIds.delete(rowIndex);
-        if (leadId) selectedLeadIds.delete(leadId);
-        numberCell.classList.remove('selected');
-        row.classList.remove('row-selected');
-        console.log('Deselected row:', rowIndex);
-    } else {
-        // Select
-        selectedRowIds.add(rowIndex);
-        if (leadId) selectedLeadIds.add(leadId);
-        numberCell.classList.add('selected');
-        row.classList.add('row-selected');
-        console.log('Selected row:', rowIndex);
-    }
-    
-    updateSelectionDisplay();
-    
-    // Exit selection mode if no rows selected
-    if (selectedRowIds.size === 0) {
-        exitSelectionMode();
-    }
-}
-
-function enterSelectionMode() {
-    console.log('Entering selection mode');
-    selectionMode = true;
-    
-    // Show selection action bar
-    document.getElementById('selectionActionBar').style.display = 'block';
-    document.getElementById('normalActionBar').style.display = 'none';
-    
-    // Add selection-mode class to all row number cells
-    document.querySelectorAll('.row-number-cell').forEach(cell => {
-        cell.classList.add('selection-mode');
-    });
-}
-
-function exitSelectionMode() {
-    console.log('Exiting selection mode');
-    selectionMode = false;
-    selectedRowIds.clear();
-    selectedLeadIds.clear();
-    
-    // Hide selection action bar
-    document.getElementById('selectionActionBar').style.display = 'none';
-    document.getElementById('normalActionBar').style.display = 'block';
-    
-    // Remove all selection classes
-    document.querySelectorAll('.row-number-cell').forEach(cell => {
-        cell.classList.remove('selection-mode', 'selected');
-    });
-    
-    document.querySelectorAll('tr').forEach(row => {
-        row.classList.remove('row-selected');
-    });
-}
-
-function selectAllRows() {
-    console.log('Selecting all rows');
-    
-    document.querySelectorAll('tbody tr').forEach(row => {
-        const rowIndex = parseInt(row.getAttribute('data-row-index'));
-        const leadId = parseInt(row.getAttribute('data-lead-id'));
-        const numberCell = row.querySelector('.row-number-cell');
-        
-        selectedRowIds.add(rowIndex);
-        selectedLeadIds.add(leadId);
-        numberCell.classList.add('selected');
-        row.classList.add('row-selected');
-    });
-    
-    updateSelectionDisplay();
-}
-
-function deselectAllRows() {
-    console.log('Deselecting all rows');
-    exitSelectionMode();
-}
-
-function updateSelectionDisplay() {
-    const count = selectedRowIds.size;
-    const countElement = document.getElementById('selectionCount');
-    countElement.textContent = `${count} ${count === 1 ? 'Zeile ausgewählt' : 'Zeilen ausgewählt'}`;
-}
-
-async function deleteSelectedRows() {
-    if (selectedLeadIds.size === 0) {
-        showToast('Keine Zeilen ausgewählt', 'warning');
-        return;
-    }
-    
-    const count = selectedLeadIds.size;
-    if (!confirm(`Sind Sie sicher, dass Sie ${count} ${count === 1 ? 'Lead' : 'Leads'} löschen möchten?`)) {
-        return;
-    }
-    
-    try {
-        const response = await fetch('/delete_leads', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                lead_ids: Array.from(selectedLeadIds)
-            })
-        });
-        
-        const result = await response.json();
-        
-        if (response.ok) {
-            showToast(result.message, 'success');
-            
-            // Remove deleted rows from the table
-            selectedRowIds.forEach(rowIndex => {
-                const row = document.querySelector(`tr[data-row-index="${rowIndex}"]`);
-                if (row) {
-                    row.remove();
-                }
-            });
-            
-            // Update leads data by removing deleted leads
-            if (window.leadsData) {
-                window.leadsData = window.leadsData.filter(lead => !selectedLeadIds.has(lead.id));
-            }
-            
-            // Exit selection mode
-            exitSelectionMode();
-            
-            // Update row numbers
-            updateRowNumbers();
-            
-        } else {
-            showToast(result.message || 'Fehler beim Löschen der Leads', 'error');
-        }
-        
-    } catch (error) {
-        console.error('Error deleting leads:', error);
-        showToast('Fehler beim Löschen der Leads', 'error');
-    }
-}
-
-function updateRowNumbers() {
-    const rows = document.querySelectorAll('tbody tr');
-    rows.forEach((row, index) => {
-        const numberCell = row.querySelector('.row-number-cell .row-number-text');
-        if (numberCell) {
-            numberCell.textContent = index + 1;
-        }
-        row.setAttribute('data-row-index', index);
-    });
-}
-
-// =============================================================================
-// TABLE FUNCTIONALITY
-// =============================================================================
 
 function sortTable(columnIndex) {
     const table = document.getElementById('resultsTable');
