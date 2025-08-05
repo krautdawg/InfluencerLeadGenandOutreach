@@ -3003,53 +3003,6 @@ def admin_reset_password(user_id):
     flash(f'Passwort für "{user.username}" wurde zurückgesetzt.', 'success')
     return redirect(url_for('admin_users'))
 
-@app.route('/delete-lead/<int:lead_id>', methods=['DELETE'])
-@login_required
-def delete_single_lead(lead_id):
-    """Delete a single lead by ID"""
-    try:
-        lead = Lead.query.get_or_404(lead_id)
-        db.session.delete(lead)
-        db.session.commit()
-        
-        logger.info(f"Lead {lead_id} deleted by user {session.get('username', 'unknown')}")
-        return jsonify({'success': True, 'message': 'Lead erfolgreich gelöscht'})
-        
-    except Exception as e:
-        logger.error(f"Error deleting lead {lead_id}: {e}")
-        db.session.rollback()
-        return jsonify({'success': False, 'error': str(e)}), 500
-
-@app.route('/delete-leads-bulk', methods=['DELETE'])
-@login_required
-def delete_bulk_leads():
-    """Delete multiple leads by IDs"""
-    try:
-        data = request.get_json()
-        lead_ids = data.get('lead_ids', [])
-        
-        if not lead_ids:
-            return jsonify({'success': False, 'error': 'Keine Lead-IDs bereitgestellt'}), 400
-        
-        # Convert string IDs to integers
-        lead_ids = [int(id) for id in lead_ids]
-        
-        # Delete leads in bulk
-        deleted_count = Lead.query.filter(Lead.id.in_(lead_ids)).delete(synchronize_session=False)
-        db.session.commit()
-        
-        logger.info(f"{deleted_count} leads deleted by user {session.get('username', 'unknown')}")
-        return jsonify({
-            'success': True, 
-            'message': f'{deleted_count} Lead(s) erfolgreich gelöscht',
-            'deleted_count': deleted_count
-        })
-        
-    except Exception as e:
-        logger.error(f"Error deleting bulk leads: {e}")
-        db.session.rollback()
-        return jsonify({'success': False, 'error': str(e)}), 500
-
 # Template context processor for user info
 @app.context_processor
 def inject_user_info():
