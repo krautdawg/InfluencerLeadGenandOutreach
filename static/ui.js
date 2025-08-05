@@ -3,6 +3,11 @@
 let sortDirection = {};
 let filterValues = {};
 
+/* Selection system variables */
+let selectionMode = false;
+let selectedRowIds = new Set();
+let selectedLeadIds = new Set();
+
 // Initialize application
 document.addEventListener('DOMContentLoaded', function() {
     console.log('DOM Content Loaded - UI.js started');
@@ -569,7 +574,10 @@ function createLeadRow(lead, index) {
     const emailStatus = getEmailStatus(lead);
     
     row.innerHTML = `
-        <td data-label="#">${index + 1}</td>
+        <td data-label="#" class="row-number-cell" onclick="toggleRowSelection(${index}, ${lead.id})">
+            <span class="row-number-text">${index + 1}</span>
+            <input type="checkbox" class="row-number-checkbox" checked>
+        </td>
         <td data-label="Name/Benutzername">
             ${lead.full_name ? `${lead.full_name} (` : ''}
             <a href="https://www.instagram.com/${lead.username}" target="_blank" rel="noopener noreferrer" style="color: var(--color-natural-green);">
@@ -603,6 +611,10 @@ function createLeadRow(lead, index) {
             </button>
         </td>
     `;
+    
+    // Store lead ID as a data attribute for selection
+    row.setAttribute('data-lead-id', lead.id);
+    row.setAttribute('data-row-index', index);
     
     return row;
 }
@@ -703,6 +715,176 @@ async function sendEmail(username, index) {
         showToast('Fehler beim Öffnen von Gmail', 'error');
     }
 }
+
+// =============================================================================
+// ROW SELECTION SYSTEM
+// =============================================================================
+
+function toggleRowSelection(rowIndex, leadId) {
+    console.log('Toggling row selection:', { rowIndex, leadId, selectionMode });
+    
+    if (!selectionMode) {
+        // Enter selection mode
+        enterSelectionMode();
+    }
+    
+    const row = document.querySelector(`tr[data-row-index="${rowIndex}"]`);
+    const numberCell = row.querySelector('.row-number-cell');
+    
+    if (selectedRowIds.has(rowIndex)) {
+        // Deselect
+        selectedRowIds.delete(rowIndex);
+        selectedLeadIds.delete(leadId);
+        numberCell.classList.remove('selected');
+        row.classList.remove('row-selected');
+    } else {
+        // Select
+        selectedRowIds.add(rowIndex);
+        selectedLeadIds.add(leadId);
+        numberCell.classList.add('selected');
+        row.classList.add('row-selected');
+    }
+    
+    updateSelectionDisplay();
+    
+    // Exit selection mode if no rows selected
+    if (selectedRowIds.size === 0) {
+        exitSelectionMode();
+    }
+}
+
+function enterSelectionMode() {
+    console.log('Entering selection mode');
+    selectionMode = true;
+    
+    // Show selection action bar
+    document.getElementById('selectionActionBar').style.display = 'block';
+    document.getElementById('normalActionBar').style.display = 'none';
+    
+    // Add selection-mode class to all row number cells
+    document.querySelectorAll('.row-number-cell').forEach(cell => {
+        cell.classList.add('selection-mode');
+    });
+}
+
+function exitSelectionMode() {
+    console.log('Exiting selection mode');
+    selectionMode = false;
+    selectedRowIds.clear();
+    selectedLeadIds.clear();
+    
+    // Hide selection action bar
+    document.getElementById('selectionActionBar').style.display = 'none';
+    document.getElementById('normalActionBar').style.display = 'block';
+    
+    // Remove all selection classes
+    document.querySelectorAll('.row-number-cell').forEach(cell => {
+        cell.classList.remove('selection-mode', 'selected');
+    });
+    
+    document.querySelectorAll('tr').forEach(row => {
+        row.classList.remove('row-selected');
+    });
+}
+
+function selectAllRows() {
+    console.log('Selecting all rows');
+    
+    document.querySelectorAll('tbody tr').forEach(row => {
+        const rowIndex = parseInt(row.getAttribute('data-row-index'));
+        const leadId = parseInt(row.getAttribute('data-lead-id'));
+        const numberCell = row.querySelector('.row-number-cell');
+        
+        selectedRowIds.add(rowIndex);
+        selectedLeadIds.add(leadId);
+        numberCell.classList.add('selected');
+        row.classList.add('row-selected');
+    });
+    
+    updateSelectionDisplay();
+}
+
+function deselectAllRows() {
+    console.log('Deselecting all rows');
+    exitSelectionMode();
+}
+
+function updateSelectionDisplay() {
+    const count = selectedRowIds.size;
+    const countElement = document.getElementById('selectionCount');
+    countElement.textContent = `${count} ${count === 1 ? 'Zeile ausgewählt' : 'Zeilen ausgewählt'}`;
+}
+
+async function deleteSelectedRows() {
+    if (selectedLeadIds.size === 0) {
+        showToast('Keine Zeilen ausgewählt', 'warning');
+        return;
+    }
+    
+    const count = selectedLeadIds.size;
+    if (!confirm(`Sind Sie sicher, dass Sie ${count} ${count === 1 ? 'Lead' : 'Leads'} löschen möchten?`)) {
+        return;
+    }
+    
+    try {
+        const response = await fetch('/delete_leads', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                lead_ids: Array.from(selectedLeadIds)
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            showToast(result.message, 'success');
+            
+            // Remove deleted rows from the table
+            selectedRowIds.forEach(rowIndex => {
+                const row = document.querySelector(`tr[data-row-index="${rowIndex}"]`);
+                if (row) {
+                    row.remove();
+                }
+            });
+            
+            // Update leads data by removing deleted leads
+            if (window.leadsData) {
+                window.leadsData = window.leadsData.filter(lead => !selectedLeadIds.has(lead.id));
+            }
+            
+            // Exit selection mode
+            exitSelectionMode();
+            
+            // Update row numbers
+            updateRowNumbers();
+            
+        } else {
+            showToast(result.message || 'Fehler beim Löschen der Leads', 'error');
+        }
+        
+    } catch (error) {
+        console.error('Error deleting leads:', error);
+        showToast('Fehler beim Löschen der Leads', 'error');
+    }
+}
+
+function updateRowNumbers() {
+    const rows = document.querySelectorAll('tbody tr');
+    rows.forEach((row, index) => {
+        const numberCell = row.querySelector('.row-number-cell .row-number-text');
+        if (numberCell) {
+            numberCell.textContent = index + 1;
+        }
+        row.setAttribute('data-row-index', index);
+    });
+}
+
+// =============================================================================
+// TABLE FUNCTIONALITY
+// =============================================================================
 
 function sortTable(columnIndex) {
     const table = document.getElementById('resultsTable');

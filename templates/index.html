@@ -118,8 +118,31 @@
             <div id="resultsContainer">
                 <!-- Results Section -->
                 <div id="resultsSection" style="display: none;">
-                    <!-- Action Bar -->
-                    <div class="d-flex justify-content-between align-items-center mb-4">
+                    <!-- Selection Action Bar (hidden by default) -->
+                    <div id="selectionActionBar" class="selection-action-bar" style="display: none;">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div class="selection-info">
+                                <span id="selectionCount">0 Zeilen ausgewählt</span>
+                            </div>
+                            <div class="d-flex gap-2 align-items-center">
+                                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="selectAllRows()">
+                                    <i class="fas fa-check-square"></i> Alle auswählen
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="deselectAllRows()">
+                                    <i class="fas fa-square"></i> Auswahl aufheben
+                                </button>
+                                <button type="button" class="btn btn-danger btn-sm" onclick="deleteSelectedRows()">
+                                    <i class="fas fa-trash"></i> Ausgewählte löschen
+                                </button>
+                                <button type="button" class="btn btn-secondary btn-sm" onclick="exitSelectionMode()">
+                                    <i class="fas fa-times"></i> Abbrechen
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Normal Action Bar -->
+                    <div id="normalActionBar" class="d-flex justify-content-between align-items-center mb-4">
                         <h2 class="mb-0">Lead Ergebnisse</h2>
                         <div class="d-flex gap-2 align-items-center">
                             <div class="form-check me-3">
@@ -175,7 +198,7 @@
                         <table class="data-table" id="resultsTable">
                             <thead>
                                 <tr>
-                                    <th onclick="sortTable(0)" class="sortable">
+                                    <th onclick="sortTable(0)" class="sortable row-number-header">
                                         #<span class="sort-indicator">↕</span>
                                         <div class="resize-handle" data-column="1"></div>
                                     </th>

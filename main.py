@@ -2576,8 +2576,9 @@ def export_data(format):
 
 @app.route('/clear')
 @login_required
+@admin_required
 def clear_data():
-    """Clear all stored data"""
+    """Clear all stored data - Admin only"""
     try:
         # Clear all data from database
         Lead.query.delete()
@@ -2591,6 +2592,38 @@ def clear_data():
         logger.error(f"Failed to clear data: {e}")
         db.session.rollback()
         return {"error": "Failed to clear data"}, 500
+
+@app.route('/delete_leads', methods=['POST'])
+@login_required
+def delete_leads():
+    """Delete selected leads by IDs"""
+    try:
+        data = request.get_json()
+        lead_ids = data.get('lead_ids', [])
+        
+        if not lead_ids:
+            return jsonify({"success": False, "message": "Keine Lead-IDs angegeben."})
+        
+        # Validate that all IDs are integers
+        try:
+            lead_ids = [int(id) for id in lead_ids]
+        except (ValueError, TypeError):
+            return jsonify({"success": False, "message": "Ungültige Lead-IDs."})
+        
+        # Delete leads
+        deleted_count = Lead.query.filter(Lead.id.in_(lead_ids)).delete(synchronize_session=False)
+        db.session.commit()
+        
+        return jsonify({
+            "success": True, 
+            "message": f"{deleted_count} Lead(s) erfolgreich gelöscht.",
+            "deleted_count": deleted_count
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Error deleting leads: {e}")
+        return jsonify({"success": False, "message": f"Fehler beim Löschen: {str(e)}"})
 
 
 # Email templates API removed - now using SystemPrompt table
