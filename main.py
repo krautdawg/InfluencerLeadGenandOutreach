@@ -1458,6 +1458,32 @@ def emergency_restart():
         logger.error(f"Failed to restart server: {e}")
         return jsonify({"error": "Fehler beim Neustart"}), 500
 
+@app.route('/delete-lead', methods=['POST'])
+@login_required
+def delete_lead():
+    """Delete a single lead from database"""
+    try:
+        data = request.get_json()
+        lead_id = data.get('lead_id')
+        
+        if not lead_id:
+            return jsonify({'success': False, 'error': 'Lead ID is required'}), 400
+        
+        lead = Lead.query.get(lead_id)
+        if not lead:
+            return jsonify({'success': False, 'error': 'Lead not found'}), 404
+        
+        db.session.delete(lead)
+        db.session.commit()
+        
+        logger.info(f"Deleted lead with ID {lead_id}")
+        return jsonify({'success': True, 'message': 'Lead deleted successfully'})
+        
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Error deleting lead: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 
 @app.route('/api/hashtag-variants', methods=['GET'])
 @login_required

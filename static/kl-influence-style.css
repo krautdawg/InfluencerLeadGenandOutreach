@@ -1619,3 +1619,22 @@ select:focus {
   background-color: var(--color-natural-green);
   color: var(--color-white);
 }
+
+/* Delete row button styling */
+.btn-delete-row {
+  background-color: transparent;
+  color: #dc3545;
+  border: 1px solid #dc3545;
+  border-radius: 4px;
+  padding: 6px 8px;
+  font-size: var(--text-body-sm);
+  font-weight: 500;
+  transition: var(--transition-fast);
+  margin-left: 8px;
+}
+
+.btn-delete-row:hover {
+  background-color: #dc3545;
+  color: var(--color-white);
+  transform: translateY(-1px);
+}

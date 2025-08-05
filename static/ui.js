@@ -601,6 +601,9 @@ function createLeadRow(lead, index) {
             <button class="btn btn-email-setup" onclick="openEmailCampaignModal('${lead.username}')" title="Email Campaign Setup">
                 <i class="fas fa-envelope-open-text"></i> Email Setup
             </button>
+            <button class="btn btn-delete-row" onclick="deleteLeadRow(${lead.id})" title="Lead löschen">
+                <i class="fas fa-trash-alt"></i>
+            </button>
         </td>
     `;
     
@@ -832,6 +835,40 @@ async function clearData() {
     } catch (error) {
         console.error('Error clearing data:', error);
         showToast('Fehler beim Löschen der Daten', 'error');
+    }
+}
+
+// Delete single lead row function
+async function deleteLeadRow(leadId) {
+    if (!confirm('Sind Sie sicher, dass Sie diesen Lead löschen möchten?')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch('/delete-lead', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ lead_id: leadId })
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok && result.success) {
+            showToast('Lead wurde erfolgreich gelöscht', 'success');
+            // Remove the lead from leadsData array
+            leadsData = leadsData.filter(lead => lead.id !== leadId);
+            // Update the display
+            applyFilters();
+            updateResultsDisplay();
+            updatePagination();
+        } else {
+            showToast('Fehler beim Löschen des Leads: ' + (result.error || 'Unbekannter Fehler'), 'error');
+        }
+    } catch (error) {
+        console.error('Error deleting lead:', error);
+        showToast('Fehler beim Löschen des Leads', 'error');
     }
 }
 
