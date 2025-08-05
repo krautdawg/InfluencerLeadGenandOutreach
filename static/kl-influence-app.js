@@ -2332,6 +2332,7 @@ function updateVariablesList() {
         { name: 'Bio', value: '{bio}', key: 'bio' },
         { name: 'Hashtag', value: '{hashtag}', key: 'hashtag' },
         { name: 'Beitragstext', value: '{caption}', key: 'caption' },
+        { name: 'Beitragsdatum', value: '{beitragsdatum}', key: 'beitragsdatum' },
         { name: 'Ausgewähltes Produkt', value: '{product_name}', key: 'product_name' },
         { name: 'Produkt-URL', value: '{product_url}', key: 'product_url' },
         { name: 'Beschreibung', value: '{product_description}', key: 'product_description' }
@@ -2340,7 +2341,8 @@ function updateVariablesList() {
         { name: 'Vollständiger Name', value: '{full_name}', key: 'full_name' },
         { name: 'Bio', value: '{bio}', key: 'bio' },
         { name: 'Hashtag', value: '{hashtag}', key: 'hashtag' },
-        { name: 'Beitragstext', value: '{caption}', key: 'caption' }
+        { name: 'Beitragstext', value: '{caption}', key: 'caption' },
+        { name: 'Beitragsdatum', value: '{beitragsdatum}', key: 'beitragsdatum' }
     ];
     
     // Get current variable settings from loaded prompts

@@ -55,8 +55,8 @@ with app.app_context():
         """Initialize variable settings if they don't exist"""
         try:
             default_variables = {
-                'without_product': ['username', 'full_name', 'bio', 'hashtag', 'caption'],
-                'with_product': ['username', 'full_name', 'bio', 'hashtag', 'caption', 'product_name', 'product_url', 'product_description']
+                'without_product': ['username', 'full_name', 'bio', 'hashtag', 'caption', 'beitragsdatum'],
+                'with_product': ['username', 'full_name', 'bio', 'hashtag', 'caption', 'beitragsdatum', 'product_name', 'product_url', 'product_description']
             }
             
             for has_product in [True, False]:
@@ -2212,6 +2212,11 @@ def build_dynamic_prompt_content(lead, prompt_type, has_product):
             
         if enabled_vars.get('caption', True) and lead.beitragstext:
             auto_data_parts.append(f"Caption: {lead.beitragstext[:200]}...")
+            
+        if enabled_vars.get('beitragsdatum', True) and lead.source_timestamp:
+            # Format the date in a user-friendly German format
+            formatted_date = lead.source_timestamp.strftime("%d.%m.%Y")
+            auto_data_parts.append(f"Post Date: {formatted_date}")
 
         # Add product variables if enabled and available
         if has_product and lead.selected_product:
