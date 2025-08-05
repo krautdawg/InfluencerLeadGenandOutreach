@@ -1087,6 +1087,68 @@ select:focus {
   margin-left: var(--space-sm);
 }
 
+/* Row Number Delete Button Styles
+------------------------------------------- */
+.row-number-cell {
+  position: relative;
+  text-align: center;
+  padding: var(--space-sm) var(--space-md);
+  cursor: pointer;
+  user-select: none;
+  transition: all var(--transition-fast);
+  border-radius: 4px;
+  font-weight: 600;
+  color: var(--color-medium-gray);
+}
+
+.row-number-cell:hover {
+  background-color: #ffebee;
+  color: #d32f2f;
+  border-color: #ffcdd2;
+  transform: scale(1.02);
+  box-shadow: 0 2px 4px rgba(211, 47, 47, 0.2);
+}
+
+.row-number-cell.clicking {
+  background-color: #f44336 !important;
+  color: white !important;
+  transform: scale(0.95);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.row-number-cell.flashing {
+  animation: deleteFlash 0.3s ease-in-out;
+}
+
+@keyframes deleteFlash {
+  0% { 
+    background-color: #f44336; 
+    color: white;
+    transform: scale(0.95);
+  }
+  50% { 
+    background-color: #ff1744; 
+    color: white;
+    transform: scale(1.05);
+  }
+  100% { 
+    background-color: #f44336; 
+    color: white;
+    transform: scale(0.95);
+  }
+}
+
+/* Enhanced row hover for better UX */
+.data-table tbody tr:hover .row-number-cell {
+  background-color: #fff3e0;
+  color: #f57c00;
+}
+
+.data-table tbody tr:hover .row-number-cell:hover {
+  background-color: #ffebee;
+  color: #d32f2f;
+}
+
 /* 12. Mobile Responsiveness
 ------------------------------------------- */
 .mobile-menu-toggle {

@@ -583,9 +583,8 @@ function createLeadRow(lead, index) {
     const emailStatus = getEmailStatus(lead);
     
     row.innerHTML = `
-        <td data-label="#" class="row-number-cell" data-row-index="${index}" data-lead-id="${lead.id || 'unknown'}">
-            <span class="row-number-text">${index + 1}</span>
-            <input type="checkbox" class="row-number-checkbox" checked>
+        <td data-label="#" class="row-number-cell" data-lead-id="${lead.id}" data-lead-username="${lead.username}" data-row-number="${index + 1}" title="Klicken zum Löschen">
+            ${index + 1}
         </td>
         <td data-label="Name/Benutzername">
             ${lead.full_name ? `${lead.full_name} (` : ''}
@@ -1496,3 +1495,110 @@ function getEmailStatus(lead) {
         return { class: 'nicht-gestartet', text: 'Nicht gestartet' };
     }
 }
+
+// Row Number Delete Functionality
+function initializeRowNumberDelete() {
+    const tableWrapper = document.getElementById('tableWrapper');
+    if (!tableWrapper) return;
+
+    // Event delegation for row number clicks
+    tableWrapper.addEventListener('click', function(e) {
+        const rowNumberCell = e.target.closest('.row-number-cell');
+        if (!rowNumberCell) return;
+
+        e.preventDefault();
+        e.stopPropagation();
+
+        const leadId = rowNumberCell.getAttribute('data-lead-id');
+        const leadUsername = rowNumberCell.getAttribute('data-lead-username');
+        
+        if (!leadId || !leadUsername) {
+            console.error('Missing lead ID or username');
+            return;
+        }
+
+        handleRowNumberClick(rowNumberCell, leadId, leadUsername);
+    });
+}
+
+function handleRowNumberClick(cellElement, leadId, leadUsername) {
+    // Add clicking class for visual feedback
+    cellElement.classList.add('clicking');
+    
+    // Brief flash animation
+    setTimeout(() => {
+        cellElement.classList.remove('clicking');
+        cellElement.classList.add('flashing');
+        
+        // Show confirmation dialog after flash
+        setTimeout(() => {
+            cellElement.classList.remove('flashing');
+            showDeleteConfirmation(leadId, leadUsername, cellElement);
+        }, 300);
+    }, 150);
+}
+
+function showDeleteConfirmation(leadId, leadUsername, cellElement) {
+    const confirmed = confirm(`Lead "${leadUsername}" löschen?\n\nDiese Aktion kann nicht rückgängig gemacht werden.`);
+    
+    if (confirmed) {
+        deleteSingleLead(leadId, leadUsername, cellElement);
+    } else {
+        // Reset visual state if cancelled
+        cellElement.style.backgroundColor = '';
+        cellElement.style.color = '';
+        cellElement.style.transform = '';
+    }
+}
+
+async function deleteSingleLead(leadId, leadUsername, cellElement) {
+    try {
+        // Show loading state
+        cellElement.textContent = '...';
+        cellElement.style.pointerEvents = 'none';
+        
+        const response = await fetch(`/delete_lead/${leadId}`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok && result.success) {
+            showToast(`Lead "${leadUsername}" erfolgreich gelöscht`, 'success');
+            
+            // Remove from local data
+            if (window.leadsData) {
+                window.leadsData = window.leadsData.filter(lead => lead.id !== parseInt(leadId));
+                displayResults(window.leadsData);
+            } else {
+                // If no local data, remove row with animation
+                const row = cellElement.closest('tr');
+                if (row) {
+                    row.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+                    row.style.opacity = '0';
+                    row.style.transform = 'translateX(-100%)';
+                    setTimeout(() => row.remove(), 300);
+                }
+            }
+        } else {
+            throw new Error(result.message || 'Fehler beim Löschen');
+        }
+    } catch (error) {
+        console.error('Delete error:', error);
+        showToast(`Fehler beim Löschen: ${error.message}`, 'error');
+        
+        // Reset cell state on error
+        cellElement.style.pointerEvents = '';
+        cellElement.textContent = cellElement.getAttribute('data-row-number') || '#';
+    }
+}
+
+// Initialize row number delete when DOM is ready
+document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(() => {
+        initializeRowNumberDelete();
+    }, 500);
+});

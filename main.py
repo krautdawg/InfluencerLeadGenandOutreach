@@ -2626,6 +2626,31 @@ def delete_leads():
         return jsonify({"success": False, "message": f"Fehler beim Löschen: {str(e)}"})
 
 
+@app.route('/delete_lead/<int:lead_id>', methods=['DELETE'])
+@login_required
+def delete_single_lead(lead_id):
+    """Delete a single lead by ID"""
+    try:
+        # Find the lead
+        lead = Lead.query.get(lead_id)
+        if not lead:
+            return jsonify({"success": False, "message": "Lead nicht gefunden."})
+        
+        # Delete the lead
+        db.session.delete(lead)
+        db.session.commit()
+        
+        return jsonify({
+            "success": True, 
+            "message": f"Lead '{lead.username}' erfolgreich gelöscht."
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Error deleting single lead: {e}")
+        return jsonify({"success": False, "message": f"Fehler beim Löschen: {str(e)}"})
+
+
 # Email templates API removed - now using SystemPrompt table
 
 
