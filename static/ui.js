@@ -12,6 +12,7 @@ document.addEventListener('DOMContentLoaded', function() {
     checkSessionId();
     initializeTableFilters();
     initializeSidebar();
+    initializeSelection();
     
     // Load existing leads data if available
     if (window.leadsData && window.leadsData.length > 0) {
@@ -569,6 +570,9 @@ function createLeadRow(lead, index) {
     const emailStatus = getEmailStatus(lead);
     
     row.innerHTML = `
+        <td data-label="Auswahl">
+            <input type="checkbox" class="form-check-input row-checkbox" value="${lead.id}" title="Lead auswählen">
+        </td>
         <td data-label="#">${index + 1}</td>
         <td data-label="Name/Benutzername">
             ${lead.full_name ? `${lead.full_name} (` : ''}
@@ -598,12 +602,14 @@ function createLeadRow(lead, index) {
             </span>
         </td>
         <td data-label="Aktionen">
-            <button class="btn btn-email-setup" onclick="openEmailCampaignModal('${lead.username}')" title="Email Campaign Setup">
-                <i class="fas fa-envelope-open-text"></i> Email Setup
-            </button>
-            <button class="btn btn-delete-row" onclick="deleteLeadRow(${lead.id})" title="Lead löschen">
-                <i class="fas fa-trash-alt"></i>
-            </button>
+            <div class="d-flex gap-1">
+                <button class="btn btn-email-setup btn-sm" onclick="openEmailCampaignModal('${lead.username}')" title="Email Campaign Setup">
+                    <i class="fas fa-envelope-open-text"></i>
+                </button>
+                <button class="btn btn-danger btn-sm delete-btn" onclick="deleteLead('${lead.id}', this)" title="Lead löschen">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
         </td>
     `;
     
@@ -835,40 +841,6 @@ async function clearData() {
     } catch (error) {
         console.error('Error clearing data:', error);
         showToast('Fehler beim Löschen der Daten', 'error');
-    }
-}
-
-// Delete single lead row function
-async function deleteLeadRow(leadId) {
-    if (!confirm('Sind Sie sicher, dass Sie diesen Lead löschen möchten?')) {
-        return;
-    }
-    
-    try {
-        const response = await fetch('/delete-lead', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ lead_id: leadId })
-        });
-        
-        const result = await response.json();
-        
-        if (response.ok && result.success) {
-            showToast('Lead wurde erfolgreich gelöscht', 'success');
-            // Remove the lead from leadsData array
-            leadsData = leadsData.filter(lead => lead.id !== leadId);
-            // Update the display
-            applyFilters();
-            updateResultsDisplay();
-            updatePagination();
-        } else {
-            showToast('Fehler beim Löschen des Leads: ' + (result.error || 'Unbekannter Fehler'), 'error');
-        }
-    } catch (error) {
-        console.error('Error deleting lead:', error);
-        showToast('Fehler beim Löschen des Leads', 'error');
     }
 }
 
@@ -1292,5 +1264,194 @@ function getEmailStatus(lead) {
         return { class: 'entwurf', text: 'Entwurf bereit' };
     } else {
         return { class: 'nicht-gestartet', text: 'Nicht gestartet' };
+    }
+}
+
+// Initialize selection system for checkboxes and inline actions
+function initializeSelection() {
+    console.log('Initializing selection system...');
+    
+    // Add event delegation for dynamically created checkboxes
+    const tableWrapper = document.getElementById('tableWrapper');
+    if (tableWrapper) {
+        tableWrapper.addEventListener('change', handleSelectionChange);
+        console.log('Selection event delegation added to table wrapper');
+    }
+    
+    // Initialize "Select All" checkbox
+    const selectAllCheckbox = document.getElementById('selectAll');
+    if (selectAllCheckbox) {
+        selectAllCheckbox.addEventListener('change', handleSelectAll);
+    }
+}
+
+// Handle individual checkbox changes
+function handleSelectionChange(event) {
+    if (event.target.classList.contains('row-checkbox')) {
+        const leadId = event.target.value;
+        const row = event.target.closest('tr');
+        
+        if (event.target.checked) {
+            row.classList.add('row-selected');
+        } else {
+            row.classList.remove('row-selected');
+        }
+        
+        updateBulkActionVisibility();
+        updateSelectAllState();
+    }
+}
+
+// Handle "Select All" checkbox
+function handleSelectAll(event) {
+    const checkboxes = document.querySelectorAll('.row-checkbox');
+    const rows = document.querySelectorAll('#resultsTable tbody tr');
+    
+    checkboxes.forEach((checkbox, index) => {
+        checkbox.checked = event.target.checked;
+        
+        if (event.target.checked) {
+            rows[index]?.classList.add('row-selected');
+        } else {
+            rows[index]?.classList.remove('row-selected');
+        }
+    });
+    
+    updateBulkActionVisibility();
+}
+
+// Update bulk action visibility and counter
+function updateBulkActionVisibility() {
+    const selectedCheckboxes = document.querySelectorAll('.row-checkbox:checked');
+    const bulkActions = document.getElementById('bulkActions');
+    const selectedCount = document.getElementById('selectedCount');
+    
+    if (selectedCheckboxes.length > 0) {
+        bulkActions.style.display = 'block';
+        selectedCount.textContent = `${selectedCheckboxes.length} ausgewählt`;
+    } else {
+        bulkActions.style.display = 'none';
+    }
+}
+
+// Update "Select All" state based on individual selections
+function updateSelectAllState() {
+    const allCheckboxes = document.querySelectorAll('.row-checkbox');
+    const checkedCheckboxes = document.querySelectorAll('.row-checkbox:checked');
+    const selectAllCheckbox = document.getElementById('selectAll');
+    
+    if (checkedCheckboxes.length === 0) {
+        selectAllCheckbox.checked = false;
+        selectAllCheckbox.indeterminate = false;
+    } else if (checkedCheckboxes.length === allCheckboxes.length) {
+        selectAllCheckbox.checked = true;
+        selectAllCheckbox.indeterminate = false;
+    } else {
+        selectAllCheckbox.checked = false;
+        selectAllCheckbox.indeterminate = true;
+    }
+}
+
+// Delete individual lead
+async function deleteLead(leadId, button) {
+    if (!confirm('Möchten Sie diesen Lead wirklich löschen?')) {
+        return;
+    }
+    
+    try {
+        button.disabled = true;
+        button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        
+        const response = await fetch(`/delete-lead/${leadId}`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        if (response.ok) {
+            // Remove from UI
+            const row = button.closest('tr');
+            row.remove();
+            
+            // Remove from leadsData
+            if (window.leadsData) {
+                window.leadsData = window.leadsData.filter(lead => lead.id !== parseInt(leadId));
+            }
+            
+            showToast('Lead erfolgreich gelöscht', 'success');
+            updateBulkActionVisibility();
+            updateSelectAllState();
+        } else {
+            const errorData = await response.json();
+            showToast(`Fehler beim Löschen: ${errorData.error}`, 'error');
+        }
+    } catch (error) {
+        console.error('Error deleting lead:', error);
+        showToast('Fehler beim Löschen des Leads', 'error');
+    } finally {
+        button.disabled = false;
+        button.innerHTML = '<i class="fas fa-trash"></i>';
+    }
+}
+
+// Delete selected leads (bulk action)
+async function deleteSelectedLeads() {
+    const selectedCheckboxes = document.querySelectorAll('.row-checkbox:checked');
+    const selectedIds = Array.from(selectedCheckboxes).map(cb => cb.value);
+    
+    if (selectedIds.length === 0) {
+        showToast('Keine Leads ausgewählt', 'warning');
+        return;
+    }
+    
+    if (!confirm(`Möchten Sie wirklich ${selectedIds.length} Lead(s) löschen?`)) {
+        return;
+    }
+    
+    try {
+        const bulkActionsBtn = document.querySelector('#bulkActions button');
+        if (bulkActionsBtn) {
+            bulkActionsBtn.disabled = true;
+            bulkActionsBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Lösche...';
+        }
+        
+        const response = await fetch('/delete-leads-bulk', {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ lead_ids: selectedIds })
+        });
+        
+        if (response.ok) {
+            // Remove rows from UI
+            selectedCheckboxes.forEach(checkbox => {
+                checkbox.closest('tr').remove();
+            });
+            
+            // Remove from leadsData
+            if (window.leadsData) {
+                window.leadsData = window.leadsData.filter(lead => 
+                    !selectedIds.includes(lead.id.toString())
+                );
+            }
+            
+            showToast(`${selectedIds.length} Lead(s) erfolgreich gelöscht`, 'success');
+            updateBulkActionVisibility();
+            updateSelectAllState();
+        } else {
+            const errorData = await response.json();
+            showToast(`Fehler beim Löschen: ${errorData.error}`, 'error');
+        }
+    } catch (error) {
+        console.error('Error deleting leads:', error);
+        showToast('Fehler beim Löschen der ausgewählten Leads', 'error');
+    } finally {
+        const bulkActionsBtn = document.querySelector('#bulkActions button');
+        if (bulkActionsBtn) {
+            bulkActionsBtn.disabled = false;
+            bulkActionsBtn.innerHTML = '<i class="fas fa-trash"></i> Ausgewählte löschen';
+        }
     }
 }
