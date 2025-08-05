@@ -7,6 +7,7 @@ let filterValues = {};
 let selectionMode = false;
 let selectedRowIds = new Set();
 let selectedLeadIds = new Set();
+let selectionSystemInitialized = false;
 
 // Initialize application
 document.addEventListener('DOMContentLoaded', function() {
@@ -23,6 +24,8 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('Loading existing leads data:', window.leadsData.length, 'leads');
         console.log('Sample lead data:', window.leadsData[0]);
         displayResults(window.leadsData);
+        // Initialize selection system after table is populated
+        setTimeout(() => initializeSelectionSystem(), 100);
     }
     
     // Test modal button functionality
@@ -559,11 +562,17 @@ function displayResults(leads) {
     // Re-initialize table filters after new content is loaded
     setTimeout(() => {
         initializeTableFilters();
+        // Initialize selection system after table is populated
+        initializeSelectionSystem();
     }, 100);
 }
 
 function createLeadRow(lead, index) {
     const row = document.createElement('tr');
+    
+    // Store lead data as attributes on the row for selection system
+    row.setAttribute('data-row-index', index);
+    row.setAttribute('data-lead-id', lead.id || 'unknown');
     
     // Add duplicate highlighting
     if (lead.is_duplicate) {
@@ -574,7 +583,7 @@ function createLeadRow(lead, index) {
     const emailStatus = getEmailStatus(lead);
     
     row.innerHTML = `
-        <td data-label="#" class="row-number-cell" onclick="toggleRowSelection(${index}, ${lead.id})">
+        <td data-label="#" class="row-number-cell" data-row-index="${index}" data-lead-id="${lead.id || 'unknown'}">
             <span class="row-number-text">${index + 1}</span>
             <input type="checkbox" class="row-number-checkbox" checked>
         </td>
@@ -611,10 +620,6 @@ function createLeadRow(lead, index) {
             </button>
         </td>
     `;
-    
-    // Store lead ID as a data attribute for selection
-    row.setAttribute('data-lead-id', lead.id);
-    row.setAttribute('data-row-index', index);
     
     return row;
 }
@@ -720,6 +725,46 @@ async function sendEmail(username, index) {
 // ROW SELECTION SYSTEM
 // =============================================================================
 
+function initializeSelectionSystem() {
+    // Prevent double initialization
+    if (selectionSystemInitialized) {
+        console.log('Selection system already initialized, skipping...');
+        return;
+    }
+    
+    console.log('Initializing selection system...');
+    
+    // Use event delegation on the table body to catch clicks on row number cells
+    const tableContainer = document.getElementById('tableWrapper');
+    if (tableContainer) {
+        tableContainer.addEventListener('click', function(event) {
+            const cell = event.target.closest('.row-number-cell');
+            if (cell) {
+                event.preventDefault();
+                event.stopPropagation();
+                
+                const rowIndex = parseInt(cell.getAttribute('data-row-index'));
+                const leadId = cell.getAttribute('data-lead-id');
+                
+                console.log('Row number cell clicked:', { rowIndex, leadId, cell });
+                
+                // Convert leadId to number if it's not 'unknown'
+                const numericLeadId = leadId !== 'unknown' ? parseInt(leadId) : null;
+                
+                if (!isNaN(rowIndex)) {
+                    toggleRowSelection(rowIndex, numericLeadId);
+                } else {
+                    console.error('Invalid row index:', rowIndex);
+                }
+            }
+        });
+        console.log('Selection event delegation added to table wrapper');
+        selectionSystemInitialized = true;
+    } else {
+        console.error('Table wrapper not found for selection system');
+    }
+}
+
 function toggleRowSelection(rowIndex, leadId) {
     console.log('Toggling row selection:', { rowIndex, leadId, selectionMode });
     
@@ -728,21 +773,33 @@ function toggleRowSelection(rowIndex, leadId) {
         enterSelectionMode();
     }
     
+    // Find the row by its data attribute
     const row = document.querySelector(`tr[data-row-index="${rowIndex}"]`);
+    if (!row) {
+        console.error('Row not found for index:', rowIndex);
+        return;
+    }
+    
     const numberCell = row.querySelector('.row-number-cell');
+    if (!numberCell) {
+        console.error('Number cell not found in row:', row);
+        return;
+    }
     
     if (selectedRowIds.has(rowIndex)) {
         // Deselect
         selectedRowIds.delete(rowIndex);
-        selectedLeadIds.delete(leadId);
+        if (leadId) selectedLeadIds.delete(leadId);
         numberCell.classList.remove('selected');
         row.classList.remove('row-selected');
+        console.log('Deselected row:', rowIndex);
     } else {
         // Select
         selectedRowIds.add(rowIndex);
-        selectedLeadIds.add(leadId);
+        if (leadId) selectedLeadIds.add(leadId);
         numberCell.classList.add('selected');
         row.classList.add('row-selected');
+        console.log('Selected row:', rowIndex);
     }
     
     updateSelectionDisplay();
