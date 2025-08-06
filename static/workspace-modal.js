@@ -150,6 +150,9 @@ function loadPromptSettingsForType(mode, type, promptSettings) {
     
     // Populate variables
     populateVariablesList(variableSettings);
+    
+    // Set initial product variable visibility based on current mode
+    setTimeout(() => handlePromptModeVariableVisibility(), 100);
 }
 
 // Populate variables list with checkboxes
@@ -272,6 +275,24 @@ function handleProductVariableVisibility() {
     });
 }
 
+// Handle product variable visibility based on prompt mode selection
+function handlePromptModeVariableVisibility() {
+    const withProductRadio = document.getElementById('offcanvasPromptModeWithProduct');
+    const productVariables = document.querySelectorAll('.product-variable');
+    
+    if (!withProductRadio || !productVariables.length) return;
+    
+    const showProductVariables = withProductRadio.checked;
+    
+    productVariables.forEach(element => {
+        if (showProductVariables) {
+            element.style.display = 'block';
+        } else {
+            element.style.display = 'none';
+        }
+    });
+}
+
 // Initialize workspace event listeners
 function initializeWorkspaceEventListeners() {
     // AI Generation button
@@ -310,6 +331,7 @@ function initializeOffcanvasEventListeners() {
     
     promptModeInputs.forEach(input => {
         input.addEventListener('change', handlePromptModeChange);
+        input.addEventListener('change', handlePromptModeVariableVisibility);
     });
     
     if (promptTypeSelect) {
