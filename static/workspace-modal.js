@@ -388,13 +388,16 @@ function enableMultipleOffcanvas() {
     // Custom close button handling for selective hiding
     document.querySelectorAll('[data-bs-dismiss="offcanvas"]').forEach(button => {
         button.addEventListener('click', function(e) {
-            e.preventDefault();
             const targetOffcanvas = this.closest('.offcanvas');
             if (targetOffcanvas) {
-                const offcanvasInstance = bootstrap.Offcanvas.getInstance(targetOffcanvas);
-                if (offcanvasInstance) {
-                    offcanvasInstance.hide();
-                }
+                // Don't prevent default - let Bootstrap handle it
+                // Just mark this as an intentional close
+                setTimeout(() => {
+                    const offcanvasInstance = bootstrap.Offcanvas.getInstance(targetOffcanvas);
+                    if (offcanvasInstance) {
+                        offcanvasInstance._isManualHide = true;
+                    }
+                }, 10);
             }
         });
     });
@@ -404,9 +407,13 @@ function enableMultipleOffcanvas() {
 function preventOffcanvasAutoHide() {
     const allOffcanvas = document.querySelectorAll('.offcanvas.show');
     allOffcanvas.forEach(canvas => {
-        // Ensure all shown offcanvas remain visible
-        canvas.style.visibility = 'visible';
-        canvas.style.transform = canvas.classList.contains('offcanvas-start') ? 'translateX(0)' : 'translateX(0)';
+        // Only prevent auto-hide if this wasn't a manual close
+        const instance = bootstrap.Offcanvas.getInstance(canvas);
+        if (instance && !instance._isManualHide) {
+            // Ensure all shown offcanvas remain visible
+            canvas.style.visibility = 'visible';
+            canvas.style.transform = canvas.classList.contains('offcanvas-start') ? 'translateX(0)' : 'translateX(0)';
+        }
     });
 }
 
