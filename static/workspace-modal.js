@@ -168,12 +168,18 @@ function populateVariablesList(variableSettings) {
         const div = document.createElement('div');
         div.className = 'form-check';
         
+        // Add product-specific class for conditional hiding
+        const productVariables = ['Produktname', 'Produkt_URL', 'Produkt_Beschreibung', 'Produkt_Preis'];
+        if (productVariables.includes(variable)) {
+            div.classList.add('product-variable');
+        }
+        
         const input = document.createElement('input');
         input.type = 'checkbox';
         input.className = 'form-check-input';
         input.id = `var_${variable}`;
         input.value = variable;
-        input.checked = variableSettings[variable] || false;
+        input.checked = variableSettings[variable] !== undefined ? variableSettings[variable] : true; // Default all to checked
         
         const label = document.createElement('label');
         label.className = 'form-check-label';
@@ -248,6 +254,24 @@ function updateCharacterCount(inputId, counterId, maxLength = null) {
     }
 }
 
+// Handle product variable visibility based on product selection
+function handleProductVariableVisibility() {
+    const productSelect = document.getElementById('workspaceProductSelect');
+    const productVariables = document.querySelectorAll('.product-variable');
+    
+    if (!productSelect || !productVariables.length) return;
+    
+    const hasProduct = productSelect.value && productSelect.value !== '';
+    
+    productVariables.forEach(element => {
+        if (hasProduct) {
+            element.style.display = 'block';
+        } else {
+            element.style.display = 'none';
+        }
+    });
+}
+
 // Initialize workspace event listeners
 function initializeWorkspaceEventListeners() {
     // AI Generation button
@@ -272,6 +296,8 @@ function initializeWorkspaceEventListeners() {
     const productSelect = document.getElementById('workspaceProductSelect');
     if (productSelect) {
         productSelect.addEventListener('change', handleWorkspaceProductChange);
+        // Also listen for changes to show/hide product variables in prompt offcanvas
+        productSelect.addEventListener('change', handleProductVariableVisibility);
     }
 }
 
