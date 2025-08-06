@@ -13,22 +13,47 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='kl-influence-style.css') }}">
     <!-- Custom Workspace Styles -->
     <style>
-        /* Bootstrap 5 Modal and Offcanvas Z-Index Fix */
-        .modal {
-            z-index: 1055 !important; /* Bootstrap 5 default for modals */
+        /* Fullscreen modal with constrained content width */
+        #emailWorkspaceModal .modal-dialog {
+            margin: 0;
+            max-width: 100%;
+            width: 100%;
+            height: 100vh;
         }
         
-        .modal-backdrop {
-            z-index: 1050 !important; /* Below modal, above offcanvas */
+        #emailWorkspaceModal .modal-content {
+            height: 100vh;
+            border-radius: 0;
+            max-width: 1400px; /* Constrain content width for readability */
+            margin: 0 auto;
+            width: 100%;
         }
         
+        #emailWorkspaceModal .modal-body {
+            overflow-y: auto;
+            padding: 2rem 3rem;
+        }
+        
+        /* Offcanvas z-index above modal for interaction */
         .offcanvas {
-            z-index: 1045 !important; /* Bootstrap 5 default for offcanvas */
+            z-index: 1060 !important; /* Above modal */
+            background-color: #ffffff !important; /* Ensure bright white background */
         }
         
-        /* Remove offcanvas backdrop completely for bright panels */
-        .offcanvas-backdrop {
+        /* Remove all backdrop dimming effects */
+        .offcanvas-backdrop,
+        .modal-backdrop.offcanvas-backdrop {
             display: none !important;
+        }
+        
+        /* Ensure modal backdrop doesn't interfere */
+        .modal-backdrop {
+            z-index: 1049 !important;
+        }
+        
+        /* Modal itself needs proper z-index */
+        .modal {
+            z-index: 1050 !important;
         }
         
         /* Offcanvas styling */
@@ -37,14 +62,26 @@
             background-color: #f8f9fa;
             position: sticky;
             bottom: 0;
-            z-index: 1000;
+            z-index: 10;
         }
         
         .offcanvas-body {
             padding-bottom: 80px; /* Account for fixed footer */
         }
         
-        /* Bootstrap 5 modal centering - let Bootstrap handle it natively */
+        /* Ensure offcanvas panels are properly sized */
+        .offcanvas-start,
+        .offcanvas-end {
+            width: 400px !important;
+            max-width: 90vw;
+        }
+        
+        /* Remove any dimming or opacity effects */
+        .offcanvas.show,
+        .offcanvas.showing {
+            opacity: 1 !important;
+            background-color: #ffffff !important;
+        }
     </style>
 </head>
 <body>
@@ -508,7 +545,7 @@
 
     <!-- Email Workspace Modal (Bootstrap 5) -->
     <div class="modal fade" id="emailWorkspaceModal" tabindex="-1" aria-labelledby="emailWorkspaceModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-xl">
+        <div class="modal-dialog modal-fullscreen">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title" id="emailWorkspaceModalLabel">Email Workspace - <span id="workspaceLeadName">Loading...</span></h5>
