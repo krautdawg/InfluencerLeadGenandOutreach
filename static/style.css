@@ -424,9 +424,9 @@ label {
     resize: vertical;
 }
 
-/* 9. Modal (for session ID input)
+/* 9. Legacy Modal Styles (for non-Bootstrap modals only)
 ------------------------------------------- */
-.modal {
+.modal:not(.fade) {
     display: none; /* Hidden by default */
     position: fixed;
     z-index: 1000;
@@ -438,7 +438,7 @@ label {
     background-color: rgba(0,0,0,0.5); /* Dim background */
 }
 
-.modal-content {
+.modal:not(.fade) .modal-content {
     background-color: var(--color-background);
     margin: 15% auto;
     padding: 2rem;

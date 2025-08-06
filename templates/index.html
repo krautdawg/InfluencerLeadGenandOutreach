@@ -13,19 +13,44 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='kl-influence-style.css') }}">
     <!-- Custom Workspace Styles -->
     <style>
+        /* Bootstrap 5 Modal and Offcanvas Z-Index Fix */
+        .modal {
+            z-index: 1055 !important; /* Bootstrap 5 default for modals */
+        }
+        
+        .modal-backdrop {
+            z-index: 1050 !important; /* Below modal, above offcanvas */
+        }
+        
+        .offcanvas {
+            z-index: 1045 !important; /* Bootstrap 5 default for offcanvas */
+        }
+        
+        .offcanvas-backdrop {
+            z-index: 1040 !important; /* Below offcanvas */
+        }
+        
+        /* Offcanvas styling */
         .offcanvas-footer {
             border-top: 1px solid #dee2e6;
             background-color: #f8f9fa;
+            position: sticky;
+            bottom: 0;
+            z-index: 1000;
         }
         
         .offcanvas-body {
             padding-bottom: 80px; /* Account for fixed footer */
         }
         
-        .offcanvas-footer {
-            position: sticky;
-            bottom: 0;
-            z-index: 1000;
+        /* Ensure Bootstrap 5 modal centering works properly */
+        .modal.fade .modal-dialog {
+            transition: transform 0.3s ease-out;
+            transform: translate(0, -50px);
+        }
+        
+        .modal.show .modal-dialog {
+            transform: none;
         }
     </style>
 </head>
@@ -366,8 +391,8 @@
         </div>
     </div>
 
-    <!-- Prompt Settings Offcanvas (Bootstrap 5) -->
-    <div class="offcanvas offcanvas-end" tabindex="-1" id="promptOffcanvas" aria-labelledby="promptOffcanvasLabel">
+    <!-- Prompt Settings Offcanvas (Bootstrap 5) - Slides from LEFT -->
+    <div class="offcanvas offcanvas-start" tabindex="-1" id="promptOffcanvas" aria-labelledby="promptOffcanvasLabel">
         <div class="offcanvas-header">
             <h5 class="offcanvas-title" id="promptOffcanvasLabel">✨ Prompt Einstellungen</h5>
             <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
@@ -434,7 +459,7 @@
         </div>
     </div>
 
-    <!-- Product Details Offcanvas (Bootstrap 5) -->
+    <!-- Product Details Offcanvas (Bootstrap 5) - Slides from RIGHT -->
     <div class="offcanvas offcanvas-end" tabindex="-1" id="productOffcanvas" aria-labelledby="productOffcanvasLabel">
         <div class="offcanvas-header">
             <h5 class="offcanvas-title" id="productOffcanvasLabel">📦 Produkt bearbeiten</h5>
