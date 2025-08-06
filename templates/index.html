@@ -94,6 +94,33 @@
             padding-left: 0.5rem;
             margin-left: 0.5rem;
         }
+        
+        /* Allow multiple offcanvas panels to be open simultaneously */
+        .offcanvas.show ~ .offcanvas.show {
+            transform: translateX(0) !important;
+        }
+        
+        /* Prevent Bootstrap from hiding offcanvas when another opens */
+        .offcanvas.show {
+            visibility: visible !important;
+            transform: translateX(0) !important;
+        }
+        
+        /* Adjust positioning when both panels are open */
+        .offcanvas-start.show ~ .modal .modal-content {
+            margin-left: 200px;
+            transition: margin-left 0.3s ease;
+        }
+        
+        .offcanvas-end.show ~ .modal .modal-content {
+            margin-right: 200px;
+            transition: margin-right 0.3s ease;
+        }
+        
+        /* Ensure no backdrop interference between panels */
+        .offcanvas.show + .offcanvas-backdrop {
+            display: none !important;
+        }
     </style>
 </head>
 <body>

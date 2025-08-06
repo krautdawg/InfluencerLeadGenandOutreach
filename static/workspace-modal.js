@@ -336,6 +336,54 @@ function initializeOffcanvasEventListeners() {
     if (deleteProductBtn) {
         deleteProductBtn.addEventListener('click', handleDeleteProduct);
     }
+    
+    // Enable multiple offcanvas panels to be open simultaneously
+    enableMultipleOffcanvas();
+}
+
+// Enable multiple offcanvas panels to be open simultaneously
+function enableMultipleOffcanvas() {
+    // Override Bootstrap's automatic hiding behavior
+    const promptOffcanvas = document.getElementById('promptOffcanvas');
+    const productOffcanvas = document.getElementById('productOffcanvas');
+    
+    if (promptOffcanvas) {
+        promptOffcanvas.addEventListener('show.bs.offcanvas', function(e) {
+            // Prevent Bootstrap from auto-hiding other offcanvas
+            setTimeout(() => preventOffcanvasAutoHide(), 10);
+        });
+    }
+    
+    if (productOffcanvas) {
+        productOffcanvas.addEventListener('show.bs.offcanvas', function(e) {
+            // Prevent Bootstrap from auto-hiding other offcanvas
+            setTimeout(() => preventOffcanvasAutoHide(), 10);
+        });
+    }
+    
+    // Custom close button handling for selective hiding
+    document.querySelectorAll('[data-bs-dismiss="offcanvas"]').forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            const targetOffcanvas = this.closest('.offcanvas');
+            if (targetOffcanvas) {
+                const offcanvasInstance = bootstrap.Offcanvas.getInstance(targetOffcanvas);
+                if (offcanvasInstance) {
+                    offcanvasInstance.hide();
+                }
+            }
+        });
+    });
+}
+
+// Prevent Bootstrap from automatically hiding other offcanvas panels
+function preventOffcanvasAutoHide() {
+    const allOffcanvas = document.querySelectorAll('.offcanvas.show');
+    allOffcanvas.forEach(canvas => {
+        // Ensure all shown offcanvas remain visible
+        canvas.style.visibility = 'visible';
+        canvas.style.transform = canvas.classList.contains('offcanvas-start') ? 'translateX(0)' : 'translateX(0)';
+    });
 }
 
 // Handle AI generation
