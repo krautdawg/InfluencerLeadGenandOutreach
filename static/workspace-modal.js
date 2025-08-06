@@ -370,32 +370,21 @@ function enableMultipleOffcanvas() {
     const productOffcanvas = document.getElementById('productOffcanvas');
     
     if (promptOffcanvas) {
-        promptOffcanvas.addEventListener('show.bs.offcanvas', function(e) {
-            // Prevent Bootstrap from auto-hiding other offcanvas
-            setTimeout(() => preventOffcanvasAutoHide(), 10);
+        promptOffcanvas.addEventListener('shown.bs.offcanvas', function(e) {
+            // Ensure other panels remain visible after this one opens
+            setTimeout(() => preventOffcanvasAutoHide(), 50);
         });
     }
     
     if (productOffcanvas) {
-        productOffcanvas.addEventListener('show.bs.offcanvas', function(e) {
-            // Prevent Bootstrap from auto-hiding other offcanvas
-            setTimeout(() => preventOffcanvasAutoHide(), 10);
+        productOffcanvas.addEventListener('shown.bs.offcanvas', function(e) {
+            // Ensure other panels remain visible after this one opens
+            setTimeout(() => preventOffcanvasAutoHide(), 50);
         });
     }
     
-    // Custom close button handling for selective hiding
-    document.querySelectorAll('[data-bs-dismiss="offcanvas"]').forEach(button => {
-        button.addEventListener('click', function(e) {
-            e.preventDefault();
-            const targetOffcanvas = this.closest('.offcanvas');
-            if (targetOffcanvas) {
-                const offcanvasInstance = bootstrap.Offcanvas.getInstance(targetOffcanvas);
-                if (offcanvasInstance) {
-                    offcanvasInstance.hide();
-                }
-            }
-        });
-    });
+    // Allow natural Bootstrap close behavior while preventing auto-hide of other panels
+    // No custom preventDefault needed - let Bootstrap handle individual panel closing
 }
 
 // Prevent Bootstrap from automatically hiding other offcanvas panels
