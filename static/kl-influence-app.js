@@ -504,8 +504,24 @@ function openSessionModal() {
 }
 
 // Close modal
+// Legacy function - updated for Bootstrap 5 compatibility
 function closeModal(modalId) {
-    document.getElementById(modalId).classList.remove('show');
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        if (modal.classList.contains('modal')) {
+            // Bootstrap 5 modal
+            const bsModal = bootstrap.Modal.getInstance(modal);
+            if (bsModal) {
+                bsModal.hide();
+            } else {
+                modal.classList.remove('show');
+            }
+        } else {
+            // Legacy modal
+            modal.classList.remove('show');
+            modal.style.display = 'none';
+        }
+    }
 }
 
 // Save session ID
@@ -1159,7 +1175,7 @@ function createLeadRow(lead, index) {
             </span>
         </td>
         <td data-label="Aktionen">
-            <button class="btn btn-email-setup" onclick="console.log('Button clicked for:', '${lead.username}'); openEmailCampaignModal('${lead.username}')" title="Email Campaign Setup">
+            <button class="btn btn-email-setup" data-bs-toggle="modal" data-bs-target="#emailWorkspaceModal" data-lead-id="${lead.id}" data-username="${lead.username}" title="Email Workspace">
                 <i class="fas fa-envelope-open-text"></i> Email Setup
             </button>
         </td>

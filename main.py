@@ -2932,6 +2932,212 @@ def delete_product(product_id):
         db.session.rollback()
         return {"error": "Failed to delete product"}, 500
 
+@app.route('/api/workspace-data/<int:lead_id>', methods=['GET'])
+@login_required
+def get_workspace_data(lead_id):
+    """Get consolidated workspace data for a lead"""
+    try:
+        # Get lead
+        lead = Lead.query.get(lead_id)
+        if not lead:
+            return {"error": "Lead not found"}, 404
+        
+        # Get all products
+        products = Product.query.all()
+        
+        # Get prompt settings
+        system_prompts = SystemPrompt.query.all()
+        user_prompts = UserPrompt.query.all()
+        variable_settings = VariableSettings.query.all()
+        
+        # Organize prompt settings
+        prompt_settings = {
+            'with_product': {'subject': '', 'body': ''},
+            'without_product': {'subject': '', 'body': ''}
+        }
+        
+        for prompt in system_prompts:
+            key = 'with_product' if prompt.has_product else 'without_product'
+            prompt_settings[key][prompt.prompt_type] = prompt.system_message
+        
+        # Organize user templates
+        user_templates = {
+            'with_product': {'subject': '', 'body': ''},
+            'without_product': {'subject': '', 'body': ''}
+        }
+        
+        for prompt in user_prompts:
+            key = 'with_product' if prompt.has_product else 'without_product'
+            user_templates[key][prompt.prompt_type] = prompt.user_message
+        
+        # Organize variable settings
+        variable_settings_result = {
+            'with_product': {'subject': {}, 'body': {}},
+            'without_product': {'subject': {}, 'body': {}}
+        }
+        
+        for setting in variable_settings:
+            key = 'with_product' if setting.has_product else 'without_product'
+            variable_settings_result[key][setting.prompt_type][setting.variable_name] = setting.is_enabled
+        
+        prompt_settings['user_templates'] = user_templates
+        prompt_settings['variable_settings'] = variable_settings_result
+        
+        # Get lead dict and add selected product info
+        lead_dict = lead.to_dict()
+        if lead.selected_product_id:
+            selected_product = Product.query.get(lead.selected_product_id)
+            if selected_product:
+                lead_dict['selectedProductId'] = selected_product.id
+        
+        return jsonify({
+            'success': True,
+            'lead': lead_dict,
+            'products': [product.to_dict() for product in products],
+            'promptSettings': prompt_settings
+        })
+        
+    except Exception as e:
+        logger.error(f"Failed to get workspace data: {e}")
+        return {"error": "Failed to get workspace data"}, 500
+
+@app.route('/api/save-prompt', methods=['POST'])
+@login_required
+def save_prompt():
+    """Save prompt settings from offcanvas"""
+    try:
+        data = request.get_json()
+        
+        if not data:
+            return jsonify({"error": "No data provided"}), 400
+        
+        prompt_type = data.get('prompt_type')  # 'subject' or 'body'
+        has_product = data.get('has_product')  # True or False
+        system_message = data.get('system_message')
+        user_template = data.get('user_template')
+        variable_settings = data.get('variable_settings', {})
+        
+        if prompt_type not in ['subject', 'body']:
+            return jsonify({"error": "Invalid prompt type"}), 400
+        
+        if has_product is None:
+            return jsonify({"error": "has_product flag required"}), 400
+        
+        # Update system prompt
+        system_prompt = SystemPrompt.query.filter_by(
+            prompt_type=prompt_type,
+            has_product=has_product
+        ).first()
+        
+        if system_prompt:
+            system_prompt.system_message = system_message
+            system_prompt.updated_at = datetime.utcnow()
+        else:
+            system_prompt = SystemPrompt(
+                prompt_type=prompt_type,
+                has_product=has_product,
+                system_message=system_message
+            )
+            db.session.add(system_prompt)
+        
+        # Update user prompt/template if provided
+        if user_template is not None:
+            user_prompt = UserPrompt.query.filter_by(
+                prompt_type=prompt_type,
+                has_product=has_product
+            ).first()
+            
+            if user_prompt:
+                user_prompt.user_message = user_template
+                user_prompt.updated_at = datetime.utcnow()
+            else:
+                user_prompt = UserPrompt(
+                    prompt_type=prompt_type,
+                    has_product=has_product,
+                    user_message=user_template
+                )
+                db.session.add(user_prompt)
+        
+        # Update variable settings if provided
+        if variable_settings:
+            for variable_name, is_enabled in variable_settings.items():
+                setting = VariableSettings.query.filter_by(
+                    prompt_type=prompt_type,
+                    has_product=has_product,
+                    variable_name=variable_name
+                ).first()
+                
+                if setting:
+                    setting.is_enabled = is_enabled
+                    setting.updated_at = datetime.utcnow()
+                else:
+                    new_setting = VariableSettings(
+                        prompt_type=prompt_type,
+                        has_product=has_product,
+                        variable_name=variable_name,
+                        is_enabled=is_enabled
+                    )
+                    db.session.add(new_setting)
+        
+        db.session.commit()
+        
+        return jsonify({
+            "success": True,
+            "message": "Prompt settings saved successfully"
+        })
+        
+    except Exception as e:
+        logger.error(f"Failed to save prompt: {e}")
+        db.session.rollback()
+        return jsonify({"error": "Failed to save prompt settings"}), 500
+
+@app.route('/api/save-product', methods=['POST'])
+@login_required  
+def save_product_workspace():
+    """Save product from offcanvas (same as existing save_product but with different route)"""
+    try:
+        data = request.get_json()
+        
+        if not data:
+            return jsonify({"error": "No data provided"}), 400
+        
+        product_id = data.get('id')
+        
+        if product_id:
+            # Update existing product
+            product = Product.query.get(product_id)
+            if not product:
+                return jsonify({"error": "Product not found"}), 404
+                
+            product.name = data.get('name', product.name)
+            product.url = data.get('url', product.url)
+            product.image_url = data.get('image_url', product.image_url)
+            product.description = data.get('description', product.description)
+            product.price = data.get('price', product.price)
+            product.updated_at = datetime.utcnow()
+        else:
+            # Create new product
+            product = Product(
+                name=data.get('name'),
+                url=data.get('url'),
+                image_url=data.get('image_url'),
+                description=data.get('description'),
+                price=data.get('price', '')
+            )
+            db.session.add(product)
+        
+        db.session.commit()
+        
+        return jsonify({
+            "success": True,
+            "product": product.to_dict(),
+            "message": "Product saved successfully"
+        })
+    except Exception as e:
+        logger.error(f"Failed to save product: {e}")
+        db.session.rollback()
+        return jsonify({"error": "Failed to save product"}), 500
+
 
 # Admin User Management Routes
 @app.route('/admin/users')

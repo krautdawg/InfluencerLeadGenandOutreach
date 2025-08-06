@@ -5,10 +5,29 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>K+L Influence - Lead Generation</title>
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}">
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Font Awesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- K+L Influence Style Guide CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='kl-influence-style.css') }}">
+    <!-- Custom Workspace Styles -->
+    <style>
+        .offcanvas-footer {
+            border-top: 1px solid #dee2e6;
+            background-color: #f8f9fa;
+        }
+        
+        .offcanvas-body {
+            padding-bottom: 80px; /* Account for fixed footer */
+        }
+        
+        .offcanvas-footer {
+            position: sticky;
+            bottom: 0;
+            z-index: 1000;
+        }
+    </style>
 </head>
 <body>
     <!-- Top Navigation Bar -->
@@ -355,193 +374,204 @@
         </div>
     </div>
 
-    <!-- Prompt Settings Modal -->
-    <div class="modal" id="promptSettingsModal">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-header">
-                <h4 class="modal-title">Prompt Einstellungen</h4>
-                <button type="button" class="close" onclick="closeModal('promptSettingsModal')" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
+    <!-- Prompt Settings Offcanvas (Bootstrap 5) -->
+    <div class="offcanvas offcanvas-end" tabindex="-1" id="promptOffcanvas" aria-labelledby="promptOffcanvasLabel">
+        <div class="offcanvas-header">
+            <h5 class="offcanvas-title" id="promptOffcanvasLabel">✨ Prompt Einstellungen</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+        </div>
+        <div class="offcanvas-body">
+            <!-- Error Message Container -->
+            <div id="promptErrorMessage" class="alert alert-danger" style="display: none;" role="alert"></div>
+            
+            <!-- Prompt Type Selection -->
+            <div class="mb-3">
+                <label class="form-label">Prompt Typ auswählen</label>
+                <div class="d-flex gap-3">
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="offcanvasPromptMode" id="offcanvasPromptModeWithoutProduct" value="without_product" checked>
+                        <label class="form-check-label" for="offcanvasPromptModeWithoutProduct">
+                            Ohne Produkt
+                        </label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="offcanvasPromptMode" id="offcanvasPromptModeWithProduct" value="with_product">
+                        <label class="form-check-label" for="offcanvasPromptModeWithProduct">
+                            Mit Produkt
+                        </label>
+                    </div>
+                </div>
+                <div class="form-text">Wähle, ob die E-Mails ein spezifisches Produkt erwähnen sollen.</div>
+            </div>
+
+            <!-- Email Type Selection -->
+            <div class="mb-3">
+                <label for="offcanvasPromptTypeSelect" class="form-label">E-Mail Typ</label>
+                <select class="form-select" id="offcanvasPromptTypeSelect">
+                    <option value="subject">Betreff</option>
+                    <option value="body">E-Mail Text</option>
+                </select>
+            </div>
+
+            <!-- System Message -->
+            <div class="mb-3">
+                <label for="offcanvasSystemMessage" class="form-label">System-Nachricht</label>
+                <textarea class="form-control" id="offcanvasSystemMessage" rows="6" placeholder="Gib die System-Anweisungen ein..."></textarea>
+                <div class="form-text">Diese Nachricht definiert, wie die KI den Text generieren soll.</div>
+            </div>
+
+            <!-- User Message Template -->
+            <div class="mb-3">
+                <label for="offcanvasUserTemplate" class="form-label">Benutzer-Nachricht Vorlage</label>
+                <textarea class="form-control" id="offcanvasUserTemplate" rows="3" placeholder="Gib die Vorlage für die Benutzer-Nachricht ein..."></textarea>
+                <div class="form-text">Diese Vorlage wird mit den Lead-Daten gefüllt.</div>
+            </div>
+
+            <!-- Available Variables -->
+            <div class="mb-4">
+                <label class="form-label">Verfügbare Variablen:</label>
+                <div id="offcanvasVariablesList" class="variable-checkboxes">
+                    <!-- Variables will be populated dynamically based on product selection -->
+                </div>
+            </div>
+        </div>
+        <div class="offcanvas-footer p-3 border-top">
+            <button type="button" class="btn btn-primary w-100" id="savePromptOffcanvas">
+                <span class="button-text">Prompt speichern</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Product Details Offcanvas (Bootstrap 5) -->
+    <div class="offcanvas offcanvas-end" tabindex="-1" id="productOffcanvas" aria-labelledby="productOffcanvasLabel">
+        <div class="offcanvas-header">
+            <h5 class="offcanvas-title" id="productOffcanvasLabel">📦 Produkt bearbeiten</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+        </div>
+        <div class="offcanvas-body">
+            <!-- Error Message Container -->
+            <div id="productErrorMessage" class="alert alert-danger" style="display: none;" role="alert"></div>
+            
+            <input type="hidden" id="offcanvasProductEditId">
+            <!-- Product Selector -->
+            <div class="mb-3">
+                <label for="offcanvasProductSelector" class="form-label">Produkt auswählen</label>
+                <select class="form-select" id="offcanvasProductSelector">
+                    <option value="">-- Neues Produkt erstellen --</option>
+                    <!-- Products will be populated dynamically -->
+                </select>
+                <div class="form-text">Wähle ein bestehendes Produkt zum Bearbeiten oder erstelle ein neues.</div>
+            </div>
+            <hr>
+            <div class="mb-3">
+                <label for="offcanvasProductName" class="form-label">Produkt Name</label>
+                <input type="text" class="form-control" id="offcanvasProductName" placeholder="Produkt Name eingeben...">
+            </div>
+            <div class="mb-3">
+                <label for="offcanvasProductUrl" class="form-label">Produkt URL</label>
+                <input type="text" class="form-control" id="offcanvasProductUrl" placeholder="https://www.beispiel.de/produkt">
+            </div>
+            <div class="mb-3">
+                <label for="offcanvasProductImageUrl" class="form-label">Bild URL</label>
+                <input type="text" class="form-control" id="offcanvasProductImageUrl" placeholder="https://www.beispiel.de/bild.jpg">
+            </div>
+            <div class="mb-3">
+                <label for="offcanvasProductDescription" class="form-label">Beschreibung</label>
+                <textarea class="form-control" id="offcanvasProductDescription" rows="3" placeholder="Produkt Beschreibung..."></textarea>
+            </div>
+            <div class="mb-4">
+                <label for="offcanvasProductPrice" class="form-label">Preis/Größe</label>
+                <input type="text" class="form-control" id="offcanvasProductPrice" placeholder="z.B. 50 ml">
+            </div>
+        </div>
+        <div class="offcanvas-footer p-3 border-top">
+            <div class="d-flex gap-2">
+                <button type="button" class="btn btn-danger flex-fill" id="deleteProductOffcanvas" style="display: none;">
+                    <i class="fas fa-trash"></i> Löschen
                 </button>
-            </div>
-            <div class="modal-body">
-                <!-- Prompt Type Selection -->
-                <div class="form-group">
-                    <label>Prompt Typ auswählen</label>
-                    <div class="d-flex gap-4">
-                        <div class="form-check">
-                            <input class="form-check-input" type="radio" name="promptMode" id="promptModeWithoutProduct" value="without_product" checked>
-                            <label class="form-check-label" for="promptModeWithoutProduct">
-                                Ohne Produkt
-                            </label>
-                        </div>
-                        <div class="form-check">
-                            <input class="form-check-input" type="radio" name="promptMode" id="promptModeWithProduct" value="with_product">
-                            <label class="form-check-label" for="promptModeWithProduct">
-                                Mit Produkt
-                            </label>
-                        </div>
-                    </div>
-                    <small class="form-text">Wähle, ob die E-Mails ein spezifisches Produkt erwähnen sollen.</small>
-                </div>
-
-                <!-- Email Type Selection -->
-                <div class="form-group">
-                    <label for="promptTypeSelect">E-Mail Typ</label>
-                    <select class="form-control" id="promptTypeSelect">
-                        <option value="subject">Betreff</option>
-                        <option value="body">E-Mail Text</option>
-                    </select>
-                </div>
-
-                <!-- System Message -->
-                <div class="form-group">
-                    <label for="systemMessage">System-Nachricht</label>
-                    <textarea class="form-control" id="systemMessage" rows="6" placeholder="Gib die System-Anweisungen ein..."></textarea>
-                    <small class="form-text">Diese Nachricht definiert, wie die KI den Text generieren soll.</small>
-                </div>
-
-                <!-- User Message Template -->
-                <div class="form-group">
-                    <label for="userTemplate">Benutzer-Nachricht Vorlage</label>
-                    <textarea class="form-control" id="userTemplate" rows="3" placeholder="Gib die Vorlage für die Benutzer-Nachricht ein..."></textarea>
-                    <small class="form-text">Diese Vorlage wird mit den Lead-Daten gefüllt.</small>
-                </div>
-
-                <!-- Available Variables -->
-                <div class="form-group">
-                    <label>Verfügbare Variablen:</label>
-                    <div id="variablesList" class="variable-checkboxes">
-                        <!-- Variables will be populated dynamically based on product selection -->
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" onclick="closeModal('promptSettingsModal')">Abbrechen</button>
-                <button type="button" class="btn btn-primary" id="savePromptSettings">Speichern</button>
+                <button type="button" class="btn btn-primary flex-fill" id="saveProductOffcanvas">
+                    <span class="button-text">Produkt speichern</span>
+                </button>
             </div>
         </div>
     </div>
 
-    <!-- Product Edit Modal -->
-    <div class="modal" id="productEditModal">
-        <div class="modal-dialog">
-            <div class="modal-header">
-                <h4 class="modal-title" id="productEditTitle">Produkt bearbeiten</h4>
-                <button type="button" class="close" onclick="closeModal('productEditModal')" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-            <div class="modal-body">
-                <input type="hidden" id="productEditId">
-                <!-- Product Selector -->
-                <div class="form-group">
-                    <label for="productSelector">Produkt auswählen</label>
-                    <select class="form-control" id="productSelector">
-                        <option value="">-- Neues Produkt erstellen --</option>
-                        <!-- Products will be populated dynamically -->
-                    </select>
-                    <small class="form-text">Wähle ein bestehendes Produkt zum Bearbeiten oder erstelle ein neues.</small>
+    <!-- Email Workspace Modal (Bootstrap 5) -->
+    <div class="modal fade" id="emailWorkspaceModal" tabindex="-1" aria-labelledby="emailWorkspaceModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="emailWorkspaceModalLabel">Email Workspace - <span id="workspaceLeadName">Loading...</span></h5>
+                    <div class="d-flex gap-2 me-3">
+                        <button class="btn btn-secondary btn-sm" type="button" data-bs-toggle="offcanvas" data-bs-target="#promptOffcanvas" aria-controls="promptOffcanvas">
+                            ✨ Prompt Einstellungen
+                        </button>
+                        <button class="btn btn-secondary btn-sm" type="button" data-bs-toggle="offcanvas" data-bs-target="#productOffcanvas" aria-controls="productOffcanvas">
+                            📦 Produkt bearbeiten
+                        </button>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <hr>
-                <div class="form-group">
-                    <label for="productName">Produkt Name</label>
-                    <input type="text" class="form-control" id="productName" placeholder="Produkt Name eingeben...">
-                </div>
-                <div class="form-group">
-                    <label for="productUrl">Produkt URL</label>
-                    <input type="text" class="form-control" id="productUrl" placeholder="https://www.beispiel.de/produkt">
-                </div>
-                <div class="form-group">
-                    <label for="productImageUrl">Bild URL</label>
-                    <input type="text" class="form-control" id="productImageUrl" placeholder="https://www.beispiel.de/bild.jpg">
-                </div>
-                <div class="form-group">
-                    <label for="productDescription">Beschreibung</label>
-                    <textarea class="form-control" id="productDescription" rows="3" placeholder="Produkt Beschreibung..."></textarea>
-                </div>
-                <div class="form-group">
-                    <label for="productPrice">Preis/Größe</label>
-                    <input type="text" class="form-control" id="productPrice" placeholder="z.B. 50 ml">
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" onclick="closeModal('productEditModal')">Abbrechen</button>
-                <button type="button" class="btn btn-primary" id="saveProduct">Speichern</button>
-            </div>
-        </div>
-    </div>
+                <div class="modal-body">
+                    <input type="hidden" id="workspaceLeadId">
+                    <input type="hidden" id="workspaceUsername">
+                    
+                    <!-- Lead Context Display -->
+                    <div class="alert alert-info mb-4">
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-user me-3"></i>
+                            <div>
+                                <strong id="workspaceLeadFullName">Loading...</strong>
+                                <small class="d-block text-muted" id="workspaceLeadInfo">@username • followers</small>
+                                <small class="d-block text-muted" id="workspaceLeadHashtag">#hashtag</small>
+                            </div>
+                        </div>
+                    </div>
 
-    <!-- Email Campaign Setup Modal -->
-    <div class="modal" id="emailCampaignModal">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-header">
-                <h4 class="modal-title" id="emailCampaignTitle">Email Campaign Setup</h4>
-                <button type="button" class="close" onclick="closeModal('emailCampaignModal')" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-            <div class="modal-body">
-                <input type="hidden" id="emailCampaignUsername">
-                
-                <!-- Lead Context Display -->
-                <div class="alert alert-info mb-4">
-                    <div class="d-flex align-items-center">
-                        <i class="fas fa-user me-2"></i>
-                        <div>
-                            <strong id="emailCampaignLeadName">Loading...</strong>
-                            <small class="d-block text-muted" id="emailCampaignLeadInfo">@username • followers</small>
+                    <!-- Product Selection -->
+                    <div class="form-group mb-3">
+                        <label for="workspaceProductSelect" class="form-label">Produkt auswählen</label>
+                        <select class="form-select" id="workspaceProductSelect">
+                            <option value="">Kein Produkt</option>
+                            <!-- Products will be populated dynamically -->
+                        </select>
+                        <div class="form-text">Wähle ein Produkt aus oder verwende "Kein Produkt" für allgemeine Kooperationsanfragen.</div>
+                    </div>
+
+                    <!-- AI Generation -->
+                    <div class="form-group mb-4">
+                        <button type="button" class="btn btn-primary" id="workspaceGenerateEmailBtn" title="Subject und Inhalt mit AI generieren">
+                            <i class="fas fa-magic"></i> Generate with AI
+                        </button>
+                    </div>
+
+                    <!-- Email Subject -->
+                    <div class="form-group mb-3">
+                        <label for="workspaceEmailSubject" class="form-label">Email Betreff *</label>
+                        <input type="text" class="form-control" id="workspaceEmailSubject" placeholder="Gib den Email-Betreff ein..." required maxlength="100">
+                        <div class="form-text">
+                            <span id="workspaceSubjectCharCount">0</span>/100 Zeichen
+                        </div>
+                    </div>
+
+                    <!-- Email Content -->
+                    <div class="form-group mb-3">
+                        <label for="workspaceEmailContent" class="form-label">Email Inhalt *</label>
+                        <textarea class="form-control" id="workspaceEmailContent" rows="8" placeholder="Gib den Email-Inhalt ein..." required></textarea>
+                        <div class="form-text">
+                            <span id="workspaceContentCharCount">0</span> Zeichen
                         </div>
                     </div>
                 </div>
-
-                <!-- Product Selection -->
-                <div class="form-group">
-                    <label for="emailCampaignProductSelect">Produkt auswählen</label>
-                    <select class="form-control" id="emailCampaignProductSelect">
-                        <option value="">Kein Produkt</option>
-                        <!-- Products will be populated dynamically -->
-                    </select>
-                    <small class="form-text">Wähle ein Produkt aus oder verwende "Kein Produkt" für allgemeine Kooperationsanfragen.</small>
-                </div>
-
-
-
-                <!-- AI Generation -->
-                <div class="form-group mb-4">
-                    <button type="button" class="btn btn-primary" id="generateEmailBtn" title="Subject und Inhalt mit AI generieren">
-                        <i class="fas fa-magic"></i> Generate with AI
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Abbrechen</button>
+                    <button type="button" class="btn btn-secondary" id="workspaceSaveDraftBtn">
+                        <i class="fas fa-save"></i> Entwurf speichern
+                    </button>
+                    <button type="button" class="btn btn-primary" id="workspaceSendEmailBtn">
+                        <i class="fas fa-paper-plane"></i> Email senden
                     </button>
                 </div>
-
-                <!-- Email Subject -->
-                <div class="form-group">
-                    <label for="emailCampaignSubject">Email Betreff *</label>
-                    <input type="text" class="form-control" id="emailCampaignSubject" placeholder="Gib den Email-Betreff ein..." required maxlength="100">
-                    <small class="form-text">
-                        <span id="subjectCharCount">0</span>/100 Zeichen
-                    </small>
-                </div>
-
-                <!-- Email Content -->
-                <div class="form-group">
-                    <label for="emailCampaignContent">Email Inhalt *</label>
-                    <textarea class="form-control" id="emailCampaignContent" rows="8" placeholder="Gib den Email-Inhalt ein..." required></textarea>
-                    <small class="form-text">
-                        <span id="contentCharCount">0</span> Zeichen
-                    </small>
-                </div>
-
-
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" onclick="closeModal('emailCampaignModal')">Abbrechen</button>
-                <button type="button" class="btn btn-secondary" id="saveDraftBtn">
-                    <i class="fas fa-save"></i> Entwurf speichern
-                </button>
-                <button type="button" class="btn btn-primary" id="sendEmailFromModalBtn">
-                    <i class="fas fa-paper-plane"></i> Email senden
-                </button>
             </div>
         </div>
     </div>
@@ -557,8 +587,12 @@
         window.defaultProductId = {{ default_product_id | tojson }};
     </script>
 
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
     <!-- JavaScript -->
     <script src="{{ url_for('static', filename='ui.js') }}"></script>
     <script src="{{ url_for('static', filename='kl-influence-app.js') }}"></script>
+    <script src="{{ url_for('static', filename='workspace-modal.js') }}"></script>
 </body>
 </html>

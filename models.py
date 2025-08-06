@@ -4,6 +4,7 @@ from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
 import pyotp
 import qrcode
+import qrcode.constants
 import io
 import base64
 import secrets
@@ -65,7 +66,6 @@ class User(db.Model):
     
     def generate_qr_code(self):
         """Generate QR code image as base64 string"""
-        import qrcode.constants
         qr = qrcode.QRCode(
             version=1,
             error_correction=qrcode.constants.ERROR_CORRECT_L,

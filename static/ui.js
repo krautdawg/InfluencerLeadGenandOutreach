@@ -894,11 +894,10 @@ function formatDate(dateString) {
 
 // ============= EMAIL CAMPAIGN MODAL FUNCTIONALITY =============
 
-// Open email campaign modal for a specific lead
+// Legacy function - now redirected to workspace modal
 function openEmailCampaignModal(username) {
-    console.log('Opening email campaign modal for:', username);
+    console.log(`Redirecting ${username} to workspace modal - legacy function called`);
     
-    // Find the lead data
     const lead = window.leadsData.find(l => l.username === username);
     if (!lead) {
         console.error('Lead not found for username:', username, 'Available leads:', window.leadsData);
@@ -906,38 +905,26 @@ function openEmailCampaignModal(username) {
         return;
     }
     
-    // Store current username
-    document.getElementById('emailCampaignUsername').value = username;
-    
-    // Populate lead context
-    document.getElementById('emailCampaignLeadName').textContent = lead.full_name || lead.name || username;
-    const followers = lead.followers || lead.followers_count || lead.followersCount || 0;
-    document.getElementById('emailCampaignLeadInfo').textContent = `@${username} • ${formatNumber(followers)} Follower`;
-    
-    // Populate products dropdown
-    populateProductsDropdown();
-    
-    // Load existing email data if available
-    loadExistingEmailData(lead);
-    
-    // Prefill product dropdown with lead's selected product
-    if (lead.selected_product_id && lead.selected_product_id !== null) {
-        const productSelect = document.getElementById('emailCampaignProductSelect');
-        productSelect.value = lead.selected_product_id;
-        handleProductChange(); // Trigger product preview update
-    }
-    
-    // Setup event listeners for the modal
-    setupEmailCampaignEventListeners();
-    
-    // Show the modal
-    const modal = document.getElementById('emailCampaignModal');
-    if (modal) {
-        modal.style.display = 'block';
-        modal.classList.add('show');
-        console.log('Modal should be visible now');
+    // Trigger the new workspace modal using Bootstrap 5 modal API
+    const workspaceModal = document.getElementById('emailWorkspaceModal');
+    if (workspaceModal) {
+        // Create and trigger modal with lead data
+        const modal = new bootstrap.Modal(workspaceModal);
+        
+        // Set the button attributes that the modal expects
+        const tempButton = document.createElement('button');
+        tempButton.setAttribute('data-lead-id', lead.id);
+        tempButton.setAttribute('data-username', username);
+        
+        // Manually trigger the show event with the correct related target
+        const showEvent = new Event('show.bs.modal', { bubbles: true });
+        showEvent.relatedTarget = tempButton;
+        workspaceModal.dispatchEvent(showEvent);
+        
+        modal.show();
     } else {
-        console.error('Modal element not found: emailCampaignModal');
+        console.error('Workspace modal not found');
+        showToast('Workspace modal not found', 'error');
     }
 }
 
