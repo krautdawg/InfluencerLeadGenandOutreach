@@ -2220,66 +2220,10 @@ async function emergencyRestart() {
     }
 }
 
-// Initialize Prompt Settings
+// Legacy prompt settings initialization - replaced by Email Workspace
 function initializePromptSettings() {
-    console.log('Initializing Prompt Settings...');
-    const promptSettingsBtn = document.getElementById('promptSettingsBtn');
-    const savePromptSettingsBtn = document.getElementById('savePromptSettings');
-    const promptTypeSelect = document.getElementById('promptTypeSelect');
-    
-    console.log('promptSettingsBtn:', promptSettingsBtn);
-    
-    if (!promptSettingsBtn) {
-        console.error('Prompt Settings button not found!');
-        return;
-    }
-    
-    // Open prompt settings modal
-    promptSettingsBtn.addEventListener('click', async (e) => {
-        console.log('Prompt Settings button clicked!');
-        e.preventDefault();
-        e.stopPropagation();
-        
-        try {
-            await loadSystemPrompts();
-            updatePromptFields();
-            updateVariablesList();
-            
-            const modal = document.getElementById('promptSettingsModal');
-            console.log('Modal element:', modal);
-            
-            if (modal) {
-                modal.style.display = 'flex';
-                modal.classList.add('show');
-                console.log('Modal opened successfully');
-            } else {
-                console.error('Modal element not found!');
-            }
-        } catch (error) {
-            console.error('Error opening prompt settings modal:', error);
-        }
-    });
-    
-    // Save prompt settings
-    if (savePromptSettingsBtn) {
-        savePromptSettingsBtn.addEventListener('click', saveSystemPrompts);
-    }
-    
-    // Prompt mode change (radio buttons)
-    const promptModeRadios = document.querySelectorAll('input[name="promptMode"]');
-    promptModeRadios.forEach(radio => {
-        radio.addEventListener('change', () => {
-            updatePromptFields();
-            updateVariablesList();
-        });
-    });
-    
-    // Email type selection change
-    if (promptTypeSelect) {
-        promptTypeSelect.addEventListener('change', updatePromptFields);
-    }
-    
-    // Initialize product management
+    console.log('Legacy prompt settings - now handled by Email Workspace');
+    // Initialize product management (still needed for backwards compatibility)
     initializeProductManagement();
 }
 
@@ -2721,17 +2665,11 @@ function addColumnWidthResetButton() {
 
 // ========== PRODUCT MANAGEMENT FUNCTIONS ==========
 
-// Initialize product management
+// Legacy product management initialization - replaced by Email Workspace
 function initializeProductManagement() {
-    const productManageBtn = document.getElementById('productManageBtn');
+    console.log('Legacy product management - now handled by Email Workspace');
     const productSelector = document.getElementById('productSelector');
     const saveProductBtn = document.getElementById('saveProduct');
-    
-    if (productManageBtn) {
-        productManageBtn.addEventListener('click', () => {
-            openProductModal();
-        });
-    }
     
     if (productSelector) {
         productSelector.addEventListener('change', async (e) => {

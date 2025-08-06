@@ -39,14 +39,6 @@
             <img src="{{ url_for('static', filename='kl-influence-logo.png') }}" alt="K+L Influence">
         </div>
         <div class="nav-links">
-            <button type="button" class="btn btn-primary" id="promptSettingsBtn" style="margin-right: 10px;">
-                <i class="fas fa-cogs"></i>
-                Prompt Einstellungen
-            </button>
-            <button type="button" class="btn btn-primary" id="productManageBtn" style="margin-right: 10px;">
-                <i class="fas fa-box"></i>
-                Produkte verwalten
-            </button>
             {% if is_admin %}
             <a href="{{ url_for('admin_users') }}" class="btn btn-warning" style="margin-right: 10px;">
                 <i class="fas fa-users-cog"></i>
