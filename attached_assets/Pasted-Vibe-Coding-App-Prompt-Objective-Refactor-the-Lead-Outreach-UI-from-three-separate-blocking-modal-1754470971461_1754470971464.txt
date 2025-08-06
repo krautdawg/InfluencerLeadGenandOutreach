@@ -1,0 +1,107 @@
+Vibe Coding App Prompt:
+Objective: Refactor the Lead Outreach UI from three separate, blocking modals into a single, integrated "Email Workspace". This workspace will use a primary Bootstrap 5 Modal for the email editor and two Bootstrap 5 Offcanvas components for "Prompt Settings" and "Product Details" that can be opened from within the main modal.
+
+Technology Stack:
+
+Frontend: Vanilla JavaScript, Bootstrap 5
+
+Backend: Flask
+
+Step-by-Step Implementation Plan:
+Step 1: Restructure the HTML
+
+Modify the Trigger Button: The "Email Setup" button in your table of leads should now only target a single, main modal.
+
+<button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#emailWorkspaceModal" data-lead-id="{{ lead.id }}">Email Setup</button>
+
+Create the Main Modal Structure (#emailWorkspaceModal):
+
+This will be a large, non-centered modal that serves as the primary workspace. Use the .modal-xl class.
+
+The modal's title should dynamically display the lead's name.
+
+The modal body will contain the main email editor (Subject field, Body textarea).
+
+Inside the modal header or body, add two new buttons:
+
+<button class="btn btn-secondary" type="button" data-bs-toggle="offcanvas" data-bs-target="#promptOffcanvas" aria-controls="promptOffcanvas">✨ Prompt Einstellungen</button>
+
+<button class="btn btn-secondary" type="button" data-bs-toggle="offcanvas" data-bs-target="#productOffcanvas" aria-controls="productOffcanvas">📦 Produkt bearbeiten</button>
+
+Create the Two Offcanvas Components:
+
+Define the HTML for the two Offcanvas panels. These should be placed at the top level of your <body> tag for correct positioning.
+
+Prompt Settings Offcanvas (#promptOffcanvas):
+
+This will slide out from the right (.offcanvas-end).
+
+The body of this Offcanvas will contain the exact same form fields as your current "Prompt Einstellungen" modal.
+
+Include a "Save Prompt" button in its footer.
+
+Product Details Offcanvas (#productOffcanvas):
+
+This will also slide out from the right.
+
+The body will contain the form fields from your current "Produkt bearbeiten" modal.
+
+Include a "Save Product" button in its footer.
+
+Step 2: Implement the JavaScript Logic (Vanilla JS)
+
+Central Data Loading:
+
+Listen for the show.bs.modal event on the #emailWorkspaceModal.
+
+When triggered, get the leadId from the button that opened the modal (event.relatedTarget.dataset.leadId).
+
+Create an async function loadWorkspaceData(leadId).
+
+This function will make a single fetch call to a new Flask endpoint (e.g., GET /api/workspace-data/${leadId}). This endpoint should return a JSON object containing all the necessary data: lead details, the current email template, the current prompt settings, and the current product details.
+
+On a successful response, use the data to populate the forms in the main modal, the prompt Offcanvas, and the product Offcanvas simultaneously.
+
+Saving Data from Offcanvas Panels:
+
+Add click event listeners to the "Save Prompt" and "Save Product" buttons inside each Offcanvas.
+
+The "Save Prompt" handler should:
+
+Prevent the default form submission.
+
+Gather the form data from within #promptOffcanvas.
+
+Make an async fetch call with POST to a Flask endpoint (e.g., POST /api/save-prompt).
+
+On success, provide visual feedback to the user (e.g., flash the save button green) and programmatically hide the Offcanvas: bootstrap.Offcanvas.getInstance('#promptOffcanvas').hide();.
+
+The "Save Product" handler will do the exact same thing for the product form, calling a POST /api/save-product endpoint.
+
+Real-time UI Updates (Bonus):
+
+After a successful save from an Offcanvas (e.g., the product name is changed), the JavaScript should update any corresponding placeholder variables visible in the main email editor text area.
+
+For example, after saving the product, find the {{Produktname}} placeholder in the email body preview and update its text content to reflect the new value.
+
+Step 3: Define the Backend API Endpoints (Flask)
+
+Create the Consolidated Data Endpoint:
+
+@app.route('/api/workspace-data/<int:lead_id>', methods=['GET'])
+
+This endpoint will fetch all associated data for the lead from the database (lead info, product info, prompt settings) and serialize it into a single JSON response. This is more efficient than making three separate requests from the frontend.
+
+Create the Save Endpoints:
+
+@app.route('/api/save-prompt', methods=['POST'])
+
+This endpoint will receive JSON data, validate it, and update the corresponding prompt record in the database. It should return a success or error status.
+
+@app.route('/api/save-product', methods=['POST'])
+
+This will do the same for updating the product details.
+
+Summary for the AI:
+
+"Please implement the following user experience refactor. The goal is to replace three separate modals with one primary Bootstrap 5 modal (#emailWorkspaceModal). This main modal will contain two buttons that trigger two separate Bootstrap 5 Offcanvas components (#promptOffcanvas and #productOffcanvas) for editing settings. All frontend logic should be in Vanilla JavaScript, fetching data from and posting data to a Flask backend via the new API endpoints defined above. The core user flow is: open main modal -> fetch all data -> open side panel to edit -> save side panel data -> side panel closes, main modal remains open."
