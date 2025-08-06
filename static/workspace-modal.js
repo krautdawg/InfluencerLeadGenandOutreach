@@ -284,6 +284,8 @@ function handlePromptModeVariableVisibility() {
     
     const showProductVariables = withProductRadio.checked;
     
+    console.log('Product variable visibility - with product checked:', showProductVariables);
+    
     productVariables.forEach(element => {
         if (showProductVariables) {
             element.style.display = 'block';
@@ -611,6 +613,8 @@ function handlePromptModeChange() {
 function handlePromptTypeChange() {
     // Reload settings when type changes  
     reloadPromptSettings();
+    // Also update variable visibility
+    handlePromptModeVariableVisibility();
 }
 
 async function reloadPromptSettings() {
