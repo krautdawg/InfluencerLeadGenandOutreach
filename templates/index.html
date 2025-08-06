@@ -26,8 +26,9 @@
             z-index: 1045 !important; /* Bootstrap 5 default for offcanvas */
         }
         
+        /* Remove offcanvas backdrop completely for bright panels */
         .offcanvas-backdrop {
-            z-index: 1040 !important; /* Below offcanvas */
+            display: none !important;
         }
         
         /* Offcanvas styling */
@@ -384,7 +385,7 @@
     </div>
 
     <!-- Prompt Settings Offcanvas (Bootstrap 5) - Slides from LEFT -->
-    <div class="offcanvas offcanvas-start" tabindex="-1" id="promptOffcanvas" aria-labelledby="promptOffcanvasLabel">
+    <div class="offcanvas offcanvas-start" tabindex="-1" id="promptOffcanvas" aria-labelledby="promptOffcanvasLabel" data-bs-backdrop="false">
         <div class="offcanvas-header">
             <h5 class="offcanvas-title" id="promptOffcanvasLabel">✨ Prompt Einstellungen</h5>
             <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
@@ -452,7 +453,7 @@
     </div>
 
     <!-- Product Details Offcanvas (Bootstrap 5) - Slides from RIGHT -->
-    <div class="offcanvas offcanvas-end" tabindex="-1" id="productOffcanvas" aria-labelledby="productOffcanvasLabel">
+    <div class="offcanvas offcanvas-end" tabindex="-1" id="productOffcanvas" aria-labelledby="productOffcanvasLabel" data-bs-backdrop="false">
         <div class="offcanvas-header">
             <h5 class="offcanvas-title" id="productOffcanvasLabel">📦 Produkt bearbeiten</h5>
             <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
