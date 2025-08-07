@@ -409,12 +409,7 @@
                                     Nur Personal
                                 </label>
                             </div>
-                            <div id="bulkActions" style="display: none;" class="me-3">
-                                <span id="selectedCount" class="text-muted me-2">0 ausgewählt</span>
-                                <button type="button" class="btn btn-danger btn-sm" onclick="deleteSelectedLeads()">
-                                    <i class="fas fa-trash"></i> Ausgewählte löschen
-                                </button>
-                            </div>
+
                             <button type="button" class="btn btn-secondary btn-sm" onclick="clearFilters()">
                                 <i class="fas fa-filter"></i> Filter löschen
                             </button>
@@ -462,9 +457,6 @@
                         <table class="data-table" id="resultsTable">
                             <thead>
                                 <tr>
-                                    <th style="width: 40px;">
-                                        <input type="checkbox" id="selectAll" class="form-check-input" title="Alle auswählen/abwählen">
-                                    </th>
                                     <th onclick="sortTable(0)" class="sortable">
                                         #<span class="sort-indicator">↕</span>
                                         <div class="resize-handle" data-column="1"></div>
