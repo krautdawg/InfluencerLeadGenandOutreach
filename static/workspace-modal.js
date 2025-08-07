@@ -9,15 +9,27 @@ document.addEventListener('DOMContentLoaded', function() {
     initializeWorkspaceModal();
 });
 
+// Custom modal functions
+window.showEmailWorkspace = function() {
+    const modal = document.getElementById('emailWorkspaceModal');
+    if (modal) {
+        modal.classList.add('custom-show');
+    }
+};
+
+window.hideEmailWorkspace = function() {
+    const modal = document.getElementById('emailWorkspaceModal');
+    if (modal) {
+        modal.classList.remove('custom-show');
+    }
+};
+
 function initializeWorkspaceModal() {
     const workspaceModal = document.getElementById('emailWorkspaceModal');
     if (!workspaceModal) {
         console.error('Email Workspace Modal not found');
         return;
     }
-
-    // Listen for modal show event
-    workspaceModal.addEventListener('show.bs.modal', handleWorkspaceModalShow);
     
     // Initialize character counters
     initializeCharacterCounters();
@@ -29,20 +41,19 @@ function initializeWorkspaceModal() {
     initializeOffcanvasEventListeners();
 }
 
-// Handle modal show event - load data
-async function handleWorkspaceModalShow(event) {
-    const button = event.relatedTarget;
-    const leadId = button.getAttribute('data-lead-id');
-    const username = button.getAttribute('data-username');
-    
+// Open Email Workspace with lead data
+window.openEmailWorkspace = async function(leadId, username) {
     if (!leadId || !username) {
-        console.error('Lead ID or username not found in button attributes');
+        console.error('Lead ID or username not provided');
         showToast('Fehler: Lead-Daten nicht gefunden', 'error');
         return;
     }
     
     currentWorkspaceLeadId = leadId;
     currentWorkspaceUsername = username;
+    
+    // Show the modal using custom function
+    showEmailWorkspace();
     
     // Show loading state
     document.getElementById('workspaceLeadName').textContent = 'Lade...';
@@ -56,7 +67,7 @@ async function handleWorkspaceModalShow(event) {
         console.error('Error loading workspace data:', error);
         showToast('Fehler beim Laden der Workspace-Daten', 'error');
     }
-}
+};
 
 // Load all workspace data with single API call
 async function loadWorkspaceData(leadId) {
@@ -555,11 +566,8 @@ async function handleWorkspaceSendEmail() {
                 }
             }
             
-            // Close the modal
-            const modal = bootstrap.Modal.getInstance(document.getElementById('emailWorkspaceModal'));
-            if (modal) {
-                modal.hide();
-            }
+            // Close the modal using custom function
+            hideEmailWorkspace();
         } else {
             const error = await response.json();
             showToast(error.error || 'Fehler beim Senden der E-Mail', 'error');

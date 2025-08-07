@@ -126,11 +126,87 @@
             visibility: visible !important;
         }
         
-        /* Solution 1: No backdrop needed - removed to prevent dimming */
+        /* Solution 3: Custom Modal System - No Bootstrap dependencies */
         
-        /* Remove Bootstrap offcanvas classes and use custom ones */
+        /* Remove ALL Bootstrap modal backdrop */
+        .modal-backdrop {
+            display: none !important;
+        }
+        
+        /* Custom modal implementation matching offcanvas */
+        .custom-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1050;
+            display: none;
+            visibility: hidden;
+        }
+        
+        .custom-modal.custom-show {
+            display: block !important;
+            visibility: visible !important;
+        }
+        
+        .custom-modal-dialog {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+        }
+        
+        .custom-modal-content {
+            width: 100%;
+            height: 100%;
+            background-color: #ffffff;
+            border: none;
+            border-radius: 0;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        /* Ensure custom offcanvas panels are above modal */
+        .custom-offcanvas {
+            z-index: 1060; /* Higher than custom modal */
+        }
+        
+        /* Modal header styling */
+        .custom-modal .modal-header {
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid #dee2e6;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-shrink: 0;
+        }
+        
+        /* Modal body styling */
+        .custom-modal .modal-body {
+            padding: 1.5rem;
+            overflow-y: auto;
+            flex: 1;
+        }
+        
+        /* Modal footer styling */
+        .custom-modal .modal-footer {
+            padding: 1rem 1.5rem;
+            border-top: 1px solid #dee2e6;
+            display: flex;
+            justify-content: flex-end;
+            gap: 0.5rem;
+            flex-shrink: 0;
+        }
+        
+        /* Ensure all panels have same brightness */
+        .custom-offcanvas,
+        .custom-modal-content {
+            background-color: #ffffff !important;
+            opacity: 1 !important;
+        }
+        
+        /* Remove Bootstrap offcanvas classes */
         .offcanvas {
-            /* Reset Bootstrap styles */
             position: static;
             transform: none;
             visibility: visible;
@@ -596,10 +672,10 @@
         </div>
     </div>
 
-    <!-- Email Workspace Modal (Bootstrap 5) -->
-    <div class="modal fade" id="emailWorkspaceModal" tabindex="-1" aria-labelledby="emailWorkspaceModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-fullscreen">
-            <div class="modal-content">
+    <!-- Email Workspace Modal (Custom Implementation) -->
+    <div class="custom-modal" id="emailWorkspaceModal">
+        <div class="custom-modal-dialog">
+            <div class="custom-modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title" id="emailWorkspaceModalLabel">Email Workspace - <span id="workspaceLeadName">Loading...</span></h5>
                     <div class="d-flex gap-2 me-3">
@@ -610,7 +686,7 @@
                             📦 Produkt bearbeiten
                         </button>
                     </div>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="btn-close" onclick="hideEmailWorkspace()" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
                     <input type="hidden" id="workspaceLeadId">

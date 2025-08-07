@@ -1175,7 +1175,7 @@ function createLeadRow(lead, index) {
             </span>
         </td>
         <td data-label="Aktionen">
-            <button class="btn btn-email-setup" data-bs-toggle="modal" data-bs-target="#emailWorkspaceModal" data-lead-id="${lead.id}" data-username="${lead.username}" title="Email Workspace">
+            <button class="btn btn-email-setup" onclick="openEmailWorkspace('${lead.id}', '${lead.username}')" title="Email Workspace">
                 <i class="fas fa-envelope-open-text"></i> Email Setup
             </button>
         </td>

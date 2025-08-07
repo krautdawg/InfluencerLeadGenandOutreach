@@ -905,26 +905,12 @@ function openEmailCampaignModal(username) {
         return;
     }
     
-    // Trigger the new workspace modal using Bootstrap 5 modal API
-    const workspaceModal = document.getElementById('emailWorkspaceModal');
-    if (workspaceModal) {
-        // Create and trigger modal with lead data
-        const modal = new bootstrap.Modal(workspaceModal);
-        
-        // Set the button attributes that the modal expects
-        const tempButton = document.createElement('button');
-        tempButton.setAttribute('data-lead-id', lead.id);
-        tempButton.setAttribute('data-username', username);
-        
-        // Manually trigger the show event with the correct related target
-        const showEvent = new Event('show.bs.modal', { bubbles: true });
-        showEvent.relatedTarget = tempButton;
-        workspaceModal.dispatchEvent(showEvent);
-        
-        modal.show();
+    // Use the new custom modal function
+    if (typeof window.openEmailWorkspace === 'function') {
+        window.openEmailWorkspace(lead.id, username);
     } else {
-        console.error('Workspace modal not found');
-        showToast('Workspace modal not found', 'error');
+        console.error('openEmailWorkspace function not found');
+        showToast('Email Workspace Funktion nicht gefunden', 'error');
     }
 }
 
