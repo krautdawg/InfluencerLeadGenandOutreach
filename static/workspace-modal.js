@@ -367,68 +367,122 @@ function initializeOffcanvasEventListeners() {
 
 // Enable multiple offcanvas panels to be open simultaneously
 function enableMultipleOffcanvas() {
-    // Override Bootstrap's automatic hiding behavior
     const promptOffcanvas = document.getElementById('promptOffcanvas');
     const productOffcanvas = document.getElementById('productOffcanvas');
     
+    // Track which panels are intended to stay open
+    let dualPanelMode = false;
+    let panelOpeningStates = {
+        prompt: false,
+        product: false
+    };
+    
     if (promptOffcanvas) {
+        // Before showing prompt panel
         promptOffcanvas.addEventListener('show.bs.offcanvas', function(e) {
-            // Only prevent auto-hide if both panels will be open
-            setTimeout(() => {
-                if (areBothPanelsOpen()) {
-                    preventOffcanvasAutoHide();
-                }
-            }, 10);
+            panelOpeningStates.prompt = true;
+            // If product panel is already open, enable dual mode
+            if (document.getElementById('productOffcanvas').classList.contains('show')) {
+                dualPanelMode = true;
+            }
+        });
+        
+        // Prevent automatic hiding when in dual mode
+        promptOffcanvas.addEventListener('hide.bs.offcanvas', function(e) {
+            if (dualPanelMode && panelOpeningStates.product) {
+                e.preventDefault(); // Stop Bootstrap from hiding this panel
+                return false;
+            }
+        });
+        
+        // After prompt panel is fully shown
+        promptOffcanvas.addEventListener('shown.bs.offcanvas', function(e) {
+            if (dualPanelMode) {
+                // Force both panels to stay visible
+                preventOffcanvasAutoHide();
+            }
+        });
+        
+        // When prompt panel actually closes
+        promptOffcanvas.addEventListener('hidden.bs.offcanvas', function(e) {
+            panelOpeningStates.prompt = false;
+            if (!panelOpeningStates.product) {
+                dualPanelMode = false;
+            }
         });
     }
     
     if (productOffcanvas) {
+        // Before showing product panel
         productOffcanvas.addEventListener('show.bs.offcanvas', function(e) {
-            // Only prevent auto-hide if both panels will be open
-            setTimeout(() => {
-                if (areBothPanelsOpen()) {
-                    preventOffcanvasAutoHide();
-                }
-            }, 10);
+            panelOpeningStates.product = true;
+            // If prompt panel is already open, enable dual mode
+            if (document.getElementById('promptOffcanvas').classList.contains('show')) {
+                dualPanelMode = true;
+            }
+        });
+        
+        // Prevent automatic hiding when in dual mode
+        productOffcanvas.addEventListener('hide.bs.offcanvas', function(e) {
+            if (dualPanelMode && panelOpeningStates.prompt) {
+                e.preventDefault(); // Stop Bootstrap from hiding this panel
+                return false;
+            }
+        });
+        
+        // After product panel is fully shown
+        productOffcanvas.addEventListener('shown.bs.offcanvas', function(e) {
+            if (dualPanelMode) {
+                // Force both panels to stay visible
+                preventOffcanvasAutoHide();
+            }
+        });
+        
+        // When product panel actually closes
+        productOffcanvas.addEventListener('hidden.bs.offcanvas', function(e) {
+            panelOpeningStates.product = false;
+            if (!panelOpeningStates.prompt) {
+                dualPanelMode = false;
+            }
         });
     }
     
-    // Selective close button handling based on panel state
+    // Custom close button handling
     document.querySelectorAll('[data-bs-dismiss="offcanvas"]').forEach(button => {
         button.addEventListener('click', function(e) {
             const targetOffcanvas = this.closest('.offcanvas');
-            if (targetOffcanvas && areBothPanelsOpen()) {
-                // Only override Bootstrap behavior when both panels are open
-                e.preventDefault();
+            if (targetOffcanvas) {
+                // Allow manual closing by temporarily disabling dual mode for this panel
+                if (targetOffcanvas.id === 'promptOffcanvas') {
+                    panelOpeningStates.prompt = false;
+                } else if (targetOffcanvas.id === 'productOffcanvas') {
+                    panelOpeningStates.product = false;
+                }
+                
+                // Let Bootstrap handle the close normally
                 const offcanvasInstance = bootstrap.Offcanvas.getInstance(targetOffcanvas);
                 if (offcanvasInstance) {
                     offcanvasInstance.hide();
                 }
             }
-            // If only one panel open, let Bootstrap handle it normally (no preventDefault)
         });
     });
 }
 
-// Check if both offcanvas panels are currently open
-function areBothPanelsOpen() {
-    const promptOpen = document.getElementById('promptOffcanvas').classList.contains('show');
-    const productOpen = document.getElementById('productOffcanvas').classList.contains('show');
-    return promptOpen && productOpen;
-}
-
-// Prevent Bootstrap from automatically hiding other offcanvas panels
+// Force both panels to remain visible in dual mode
 function preventOffcanvasAutoHide() {
-    // Only apply auto-hide prevention when both panels are actually open
-    if (!areBothPanelsOpen()) {
-        return;
-    }
-    
     const allOffcanvas = document.querySelectorAll('.offcanvas.show');
     allOffcanvas.forEach(canvas => {
-        // Ensure all shown offcanvas remain visible
-        canvas.style.visibility = 'visible';
-        canvas.style.transform = canvas.classList.contains('offcanvas-start') ? 'translateX(0)' : 'translateX(0)';
+        // Force visibility and positioning
+        canvas.style.visibility = 'visible !important';
+        canvas.style.transform = 'translateX(0) !important';
+        canvas.style.display = 'block !important';
+        
+        // Remove any backdrop that might interfere
+        const backdrop = canvas.nextElementSibling;
+        if (backdrop && backdrop.classList.contains('offcanvas-backdrop')) {
+            backdrop.style.display = 'none';
+        }
     });
 }
 
