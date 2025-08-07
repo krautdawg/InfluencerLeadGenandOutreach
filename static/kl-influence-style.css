@@ -540,7 +540,7 @@ select:focus {
 }
 
 /* Apply column widths to table headers and cells */
-.data-table th:nth-child(1), .data-table td:nth-child(1) { width: var(--col-width-1); min-width: var(--col-width-1); }
+.data-table th:nth-child(1), .data-table td:nth-child(1) { width: var(--col-width-1); min-width: var(--col-width-1); padding-left: var(--space-lg); }
 .data-table th:nth-child(2), .data-table td:nth-child(2) { width: var(--col-width-2); min-width: var(--col-width-2); }
 .data-table th:nth-child(3), .data-table td:nth-child(3) { width: var(--col-width-3); min-width: var(--col-width-3); }
 .data-table th:nth-child(4), .data-table td:nth-child(4) { width: var(--col-width-4); min-width: var(--col-width-4); }
