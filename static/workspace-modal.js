@@ -37,7 +37,12 @@ window.hideEmailWorkspace = function() {
 // Update modal width based on panel states
 function updateModalWidth() {
     const modal = document.getElementById('emailWorkspaceModal');
-    if (!modal) return;
+    if (!modal) {
+        console.warn('Modal not found for width update');
+        return;
+    }
+    
+    console.log('Updating modal width. Panel states:', panelStates);
     
     // Remove all width classes first
     modal.classList.remove('left-panel-open', 'right-panel-open', 'both-panels-open');
@@ -45,11 +50,17 @@ function updateModalWidth() {
     // Apply appropriate class based on panel states
     if (panelStates.left && panelStates.right) {
         modal.classList.add('both-panels-open');
+        console.log('Applied both-panels-open class');
     } else if (panelStates.left) {
         modal.classList.add('left-panel-open');
+        console.log('Applied left-panel-open class');
     } else if (panelStates.right) {
         modal.classList.add('right-panel-open');
+        console.log('Applied right-panel-open class');
     }
+    
+    // Debug: Log current modal classes
+    console.log('Modal classes after update:', modal.className);
 }
 
 function initializeWorkspaceModal() {
@@ -80,8 +91,15 @@ window.openEmailWorkspace = async function(leadId, username) {
     currentWorkspaceLeadId = leadId;
     currentWorkspaceUsername = username;
     
+    // Reset panel states when opening modal
+    panelStates.left = false;
+    panelStates.right = false;
+    
     // Show the modal using custom function
     showEmailWorkspace();
+    
+    // Test modal width system
+    setTimeout(() => testModalWidthSystem(), 100);
     
     // Show loading state
     document.getElementById('workspaceLeadName').textContent = 'Lade...';
@@ -424,7 +442,12 @@ window.toggleCustomOffcanvas = function(offcanvasId) {
 
 window.showCustomOffcanvas = function(offcanvasId) {
     const offcanvas = document.getElementById(offcanvasId);
-    if (!offcanvas) return;
+    if (!offcanvas) {
+        console.error('Offcanvas not found:', offcanvasId);
+        return;
+    }
+    
+    console.log('Showing custom offcanvas:', offcanvasId);
     
     // Show the panel without backdrop (Solution 1: No backdrop)
     offcanvas.classList.add('custom-show');
@@ -432,9 +455,11 @@ window.showCustomOffcanvas = function(offcanvasId) {
     // Update panel states for dynamic width adjustment
     if (offcanvasId === 'promptOffcanvas') {
         panelStates.left = true;
+        console.log('Set panelStates.left = true');
         handlePromptOffcanvasShow();
     } else if (offcanvasId === 'productOffcanvas') {
         panelStates.right = true;
+        console.log('Set panelStates.right = true');
         handleProductOffcanvasShow();
     }
     
@@ -444,7 +469,12 @@ window.showCustomOffcanvas = function(offcanvasId) {
 
 window.hideCustomOffcanvas = function(offcanvasId) {
     const offcanvas = document.getElementById(offcanvasId);
-    if (!offcanvas) return;
+    if (!offcanvas) {
+        console.error('Offcanvas not found for hiding:', offcanvasId);
+        return;
+    }
+    
+    console.log('Hiding custom offcanvas:', offcanvasId);
     
     // Hide the panel (Solution 1: No backdrop management needed)
     offcanvas.classList.remove('custom-show');
@@ -452,19 +482,86 @@ window.hideCustomOffcanvas = function(offcanvasId) {
     // Update panel states for dynamic width adjustment
     if (offcanvasId === 'promptOffcanvas') {
         panelStates.left = false;
+        console.log('Set panelStates.left = false');
     } else if (offcanvasId === 'productOffcanvas') {
         panelStates.right = false;
+        console.log('Set panelStates.right = false');
     }
     
     // Update modal width based on panel states
     updateModalWidth();
 };
 
-// Solution 1: No backdrop functions needed - removed to prevent modal interference
+// Handle prompt offcanvas show - load workspace data into prompt panel
+function handlePromptOffcanvasShow() {
+    console.log('Prompt offcanvas show - loading prompt data');
+    
+    // Only load data if we have a current workspace lead
+    if (currentWorkspaceLeadId) {
+        console.log('Loading prompt data for lead ID:', currentWorkspaceLeadId);
+        
+        // Trigger prompt data loading
+        const mode = document.querySelector('input[name="offcanvasPromptMode"]:checked')?.value || 'without_product';
+        const type = document.getElementById('offcanvasPromptTypeSelect')?.value || 'subject';
+        
+        handlePromptModeChange();
+        handlePromptTypeChange();
+    } else {
+        console.warn('No current workspace lead ID for prompt loading');
+    }
+}
 
-// Custom implementation - no longer needed
-function preventOffcanvasAutoHide() {
-    // Custom implementation handles this automatically
+// Handle product offcanvas show - load workspace data into product panel
+function handleProductOffcanvasShow() {
+    console.log('Product offcanvas show - loading product data');
+    
+    // Only load data if we have a current workspace lead
+    if (currentWorkspaceLeadId) {
+        console.log('Loading product data for lead ID:', currentWorkspaceLeadId);
+        
+        // The product data should already be loaded from the initial workspace data load
+        // Just make sure the product selector is populated
+        const productSelect = document.getElementById('workspaceProductSelect');
+        if (productSelect && productSelect.value) {
+            // If a product is selected in main modal, sync it to offcanvas
+            const offcanvasSelector = document.getElementById('offcanvasProductSelector');
+            if (offcanvasSelector) {
+                offcanvasSelector.value = productSelect.value;
+                handleProductSelectorChange();
+            }
+        }
+    } else {
+        console.warn('No current workspace lead ID for product loading');
+    }
+}
+
+// Test modal width system to ensure it's working
+function testModalWidthSystem() {
+    const modal = document.getElementById('emailWorkspaceModal');
+    if (!modal) {
+        console.error('Modal not found for width system test');
+        return;
+    }
+    
+    console.log('=== MODAL WIDTH SYSTEM TEST ===');
+    console.log('Modal element found:', modal);
+    console.log('Modal current classes:', modal.className);
+    console.log('Modal computed width:', window.getComputedStyle(modal).width);
+    console.log('Modal computed left:', window.getComputedStyle(modal).left);
+    console.log('Current panel states:', panelStates);
+    
+    // Test adding classes manually
+    console.log('Testing left-panel-open class...');
+    modal.classList.add('left-panel-open');
+    setTimeout(() => {
+        console.log('After adding left-panel-open:');
+        console.log('Modal classes:', modal.className);
+        console.log('Modal computed width:', window.getComputedStyle(modal).width);
+        console.log('Modal computed left:', window.getComputedStyle(modal).left);
+        
+        modal.classList.remove('left-panel-open');
+        console.log('=== END TEST ===');
+    }, 1000);
 }
 
 // Handle AI generation

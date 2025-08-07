@@ -179,6 +179,64 @@
             }
         }
         
+        /* Debug indicator for modal width states */
+        .custom-modal::before {
+            content: '';
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            width: 10px;
+            height: 10px;
+            background-color: #28a745;
+            border-radius: 50%;
+            z-index: 1000;
+            display: none;
+        }
+        
+        .custom-modal.left-panel-open::before {
+            display: block;
+            background-color: #007bff;
+        }
+        
+        .custom-modal.right-panel-open::before {
+            display: block;
+            background-color: #ffc107;
+        }
+        
+        .custom-modal.both-panels-open::before {
+            display: block;
+            background-color: #dc3545;
+        }
+        
+        /* Debug indicator for modal width states */
+        .custom-modal::before {
+            content: '';
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            width: 10px;
+            height: 10px;
+            background-color: #28a745;
+            border-radius: 50%;
+            z-index: 1000;
+            display: none;
+        }
+        
+        .custom-modal.left-panel-open::before {
+            display: block;
+            background-color: #007bff;
+        }
+        
+        .custom-modal.right-panel-open::before {
+            display: block;
+            background-color: #ffc107;
+        }
+        
+        .custom-modal.both-panels-open::before {
+            display: block;
+            background-color: #dc3545;
+        }
+        
         .custom-modal-dialog {
             width: 100%;
             height: 100%;
