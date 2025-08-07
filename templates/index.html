@@ -95,31 +95,62 @@
             margin-left: 0.5rem;
         }
         
-        /* Allow multiple offcanvas panels to be open simultaneously */
-        .offcanvas.show ~ .offcanvas.show {
-            transform: translateX(0) !important;
+        /* Custom offcanvas implementation for dual panels */
+        .custom-offcanvas {
+            position: fixed;
+            top: 0;
+            bottom: 0;
+            z-index: 1045;
+            width: 400px;
+            background-color: #ffffff;
+            border: 1px solid #dee2e6;
+            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+            transform: translateX(-100%);
+            transition: transform 0.3s ease-in-out;
+            overflow-y: auto;
+            visibility: hidden;
         }
         
-        /* Prevent Bootstrap from hiding offcanvas when another opens */
-        .offcanvas.show {
+        .custom-offcanvas.custom-offcanvas-start {
+            left: 0;
+            transform: translateX(-100%);
+        }
+        
+        .custom-offcanvas.custom-offcanvas-end {
+            right: 0;
+            transform: translateX(100%);
+        }
+        
+        .custom-offcanvas.custom-show {
+            transform: translateX(0) !important;
             visibility: visible !important;
-            transform: translateX(0) !important;
         }
         
-        /* Adjust positioning when both panels are open */
-        .offcanvas-start.show ~ .modal .modal-content {
-            margin-left: 200px;
-            transition: margin-left 0.3s ease;
+        /* Custom backdrop for dual panels */
+        .custom-offcanvas-backdrop {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1040;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease-in-out;
         }
         
-        .offcanvas-end.show ~ .modal .modal-content {
-            margin-right: 200px;
-            transition: margin-right 0.3s ease;
+        .custom-offcanvas-backdrop.custom-show {
+            opacity: 1;
+            visibility: visible;
         }
         
-        /* Ensure no backdrop interference between panels */
-        .offcanvas.show + .offcanvas-backdrop {
-            display: none !important;
+        /* Remove Bootstrap offcanvas classes and use custom ones */
+        .offcanvas {
+            /* Reset Bootstrap styles */
+            position: static;
+            transform: none;
+            visibility: visible;
         }
     </style>
 </head>
@@ -460,11 +491,11 @@
         </div>
     </div>
 
-    <!-- Prompt Settings Offcanvas (Bootstrap 5) - Slides from LEFT -->
-    <div class="offcanvas offcanvas-start" tabindex="-1" id="promptOffcanvas" aria-labelledby="promptOffcanvasLabel" data-bs-backdrop="false">
+    <!-- Prompt Settings Offcanvas (Custom Implementation) - Slides from LEFT -->
+    <div class="custom-offcanvas custom-offcanvas-start" id="promptOffcanvas" aria-labelledby="promptOffcanvasLabel">
         <div class="offcanvas-header">
             <h5 class="offcanvas-title" id="promptOffcanvasLabel">✨ Prompt Einstellungen</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+            <button type="button" class="btn-close" onclick="hideCustomOffcanvas('promptOffcanvas')" aria-label="Close"></button>
         </div>
         <div class="offcanvas-body">
             <!-- Error Message Container -->
@@ -528,11 +559,11 @@
         </div>
     </div>
 
-    <!-- Product Details Offcanvas (Bootstrap 5) - Slides from RIGHT -->
-    <div class="offcanvas offcanvas-end" tabindex="-1" id="productOffcanvas" aria-labelledby="productOffcanvasLabel" data-bs-backdrop="false">
+    <!-- Product Details Offcanvas (Custom Implementation) - Slides from RIGHT -->
+    <div class="custom-offcanvas custom-offcanvas-end" id="productOffcanvas" aria-labelledby="productOffcanvasLabel">
         <div class="offcanvas-header">
             <h5 class="offcanvas-title" id="productOffcanvasLabel">📦 Produkt bearbeiten</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+            <button type="button" class="btn-close" onclick="hideCustomOffcanvas('productOffcanvas')" aria-label="Close"></button>
         </div>
         <div class="offcanvas-body">
             <!-- Error Message Container -->
@@ -589,10 +620,10 @@
                 <div class="modal-header">
                     <h5 class="modal-title" id="emailWorkspaceModalLabel">Email Workspace - <span id="workspaceLeadName">Loading...</span></h5>
                     <div class="d-flex gap-2 me-3">
-                        <button class="btn btn-secondary btn-sm" type="button" data-bs-toggle="offcanvas" data-bs-target="#promptOffcanvas" aria-controls="promptOffcanvas">
+                        <button class="btn btn-secondary btn-sm" type="button" onclick="toggleCustomOffcanvas('promptOffcanvas')" id="promptOffcanvasBtn">
                             ✨ Prompt Einstellungen
                         </button>
-                        <button class="btn btn-secondary btn-sm" type="button" data-bs-toggle="offcanvas" data-bs-target="#productOffcanvas" aria-controls="productOffcanvas">
+                        <button class="btn btn-secondary btn-sm" type="button" onclick="toggleCustomOffcanvas('productOffcanvas')" id="productOffcanvasBtn">
                             📦 Produkt bearbeiten
                         </button>
                     </div>
