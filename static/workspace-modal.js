@@ -387,13 +387,7 @@ window.showCustomOffcanvas = function(offcanvasId) {
     const offcanvas = document.getElementById(offcanvasId);
     if (!offcanvas) return;
     
-    // Add backdrop if no panels are open
-    const openPanels = document.querySelectorAll('.custom-offcanvas.custom-show');
-    if (openPanels.length === 0) {
-        showCustomBackdrop();
-    }
-    
-    // Show the panel
+    // Show the panel without backdrop (Solution 1: No backdrop)
     offcanvas.classList.add('custom-show');
     
     // Trigger appropriate handler based on panel type
@@ -408,45 +402,11 @@ window.hideCustomOffcanvas = function(offcanvasId) {
     const offcanvas = document.getElementById(offcanvasId);
     if (!offcanvas) return;
     
-    // Hide the panel
+    // Hide the panel (Solution 1: No backdrop management needed)
     offcanvas.classList.remove('custom-show');
-    
-    // Remove backdrop if no panels are open
-    setTimeout(() => {
-        const openPanels = document.querySelectorAll('.custom-offcanvas.custom-show');
-        if (openPanels.length === 0) {
-            hideCustomBackdrop();
-        }
-    }, 100);
 };
 
-function showCustomBackdrop() {
-    let backdrop = document.querySelector('.custom-offcanvas-backdrop');
-    if (!backdrop) {
-        backdrop = document.createElement('div');
-        backdrop.className = 'custom-offcanvas-backdrop';
-        backdrop.onclick = function() {
-            // Close all panels when backdrop is clicked
-            hideAllCustomOffcanvas();
-        };
-        document.body.appendChild(backdrop);
-    }
-    backdrop.classList.add('custom-show');
-}
-
-function hideCustomBackdrop() {
-    const backdrop = document.querySelector('.custom-offcanvas-backdrop');
-    if (backdrop) {
-        backdrop.classList.remove('custom-show');
-    }
-}
-
-function hideAllCustomOffcanvas() {
-    const openPanels = document.querySelectorAll('.custom-offcanvas.custom-show');
-    openPanels.forEach(panel => {
-        hideCustomOffcanvas(panel.id);
-    });
-}
+// Solution 1: No backdrop functions needed - removed to prevent modal interference
 
 // Custom implementation - no longer needed
 function preventOffcanvasAutoHide() {
