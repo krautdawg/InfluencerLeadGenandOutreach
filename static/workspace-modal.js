@@ -98,9 +98,6 @@ window.openEmailWorkspace = async function(leadId, username) {
     // Show the modal using custom function
     showEmailWorkspace();
     
-    // Test modal width system
-    setTimeout(() => testModalWidthSystem(), 100);
-    
     // Show loading state
     document.getElementById('workspaceLeadName').textContent = 'Lade...';
     document.getElementById('workspaceLeadFullName').textContent = 'Lade...';

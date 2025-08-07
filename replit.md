@@ -106,6 +106,7 @@ Preferred communication style: Simple, everyday language. Before implementing an
   - **Visual Debugging**: Colored dot indicators show modal state (blue=left, yellow=right, red=both)
   - **Complete Custom Implementation**: No Bootstrap modal dependencies, full backdrop control
   - **Consistent Close Behavior**: All close buttons (X, Abbrechen) properly close modal and panels
+  - **Smooth Opening**: Removed auto-testing that caused brief left indent on modal open
 
 ### 2025-08-05: TOTP Two-Factor Authentication Implementation (COMPLETED)
 - **Feature**: Vollständige TOTP-basierte Zwei-Faktor-Authentifizierung mit Mandatory Setup für bestehende Benutzer
