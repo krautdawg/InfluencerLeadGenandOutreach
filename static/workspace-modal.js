@@ -9,6 +9,12 @@ document.addEventListener('DOMContentLoaded', function() {
     initializeWorkspaceModal();
 });
 
+// Track panel states
+let panelStates = {
+    left: false,
+    right: false
+};
+
 // Custom modal functions
 window.showEmailWorkspace = function() {
     const modal = document.getElementById('emailWorkspaceModal');
@@ -21,8 +27,30 @@ window.hideEmailWorkspace = function() {
     const modal = document.getElementById('emailWorkspaceModal');
     if (modal) {
         modal.classList.remove('custom-show');
+        modal.classList.remove('left-panel-open', 'right-panel-open', 'both-panels-open');
+        // Reset panel states when modal closes
+        panelStates.left = false;
+        panelStates.right = false;
     }
 };
+
+// Update modal width based on panel states
+function updateModalWidth() {
+    const modal = document.getElementById('emailWorkspaceModal');
+    if (!modal) return;
+    
+    // Remove all width classes first
+    modal.classList.remove('left-panel-open', 'right-panel-open', 'both-panels-open');
+    
+    // Apply appropriate class based on panel states
+    if (panelStates.left && panelStates.right) {
+        modal.classList.add('both-panels-open');
+    } else if (panelStates.left) {
+        modal.classList.add('left-panel-open');
+    } else if (panelStates.right) {
+        modal.classList.add('right-panel-open');
+    }
+}
 
 function initializeWorkspaceModal() {
     const workspaceModal = document.getElementById('emailWorkspaceModal');
@@ -401,12 +429,17 @@ window.showCustomOffcanvas = function(offcanvasId) {
     // Show the panel without backdrop (Solution 1: No backdrop)
     offcanvas.classList.add('custom-show');
     
-    // Trigger appropriate handler based on panel type
+    // Update panel states for dynamic width adjustment
     if (offcanvasId === 'promptOffcanvas') {
+        panelStates.left = true;
         handlePromptOffcanvasShow();
     } else if (offcanvasId === 'productOffcanvas') {
+        panelStates.right = true;
         handleProductOffcanvasShow();
     }
+    
+    // Update modal width based on panel states
+    updateModalWidth();
 };
 
 window.hideCustomOffcanvas = function(offcanvasId) {
@@ -415,6 +448,16 @@ window.hideCustomOffcanvas = function(offcanvasId) {
     
     // Hide the panel (Solution 1: No backdrop management needed)
     offcanvas.classList.remove('custom-show');
+    
+    // Update panel states for dynamic width adjustment
+    if (offcanvasId === 'promptOffcanvas') {
+        panelStates.left = false;
+    } else if (offcanvasId === 'productOffcanvas') {
+        panelStates.right = false;
+    }
+    
+    // Update modal width based on panel states
+    updateModalWidth();
 };
 
 // Solution 1: No backdrop functions needed - removed to prevent modal interference
@@ -568,6 +611,9 @@ async function handleWorkspaceSendEmail() {
             
             // Close the modal using custom function
             hideEmailWorkspace();
+            // Also close any open offcanvas panels
+            hideCustomOffcanvas('promptOffcanvas');
+            hideCustomOffcanvas('productOffcanvas');
         } else {
             const error = await response.json();
             showToast(error.error || 'Fehler beim Senden der E-Mail', 'error');
