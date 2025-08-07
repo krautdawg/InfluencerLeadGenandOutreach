@@ -526,17 +526,17 @@ select:focus {
   table-layout: fixed; /* Enable precise column width control */
 }
 
-/* Column width CSS variables - default values */
+/* Column width CSS variables - proportional values that total 100% */
 :root {
-  --col-width-1: 60px;   /* # column */
-  --col-width-2: 150px;  /* Username column (sticky) */
-  --col-width-3: 120px;  /* Hashtag column */
-  --col-width-4: 100px;  /* Followers column */
-  --col-width-5: 200px;  /* Email column */
-  --col-width-6: 180px;  /* Website column */
-  --col-width-7: 150px;  /* Post Datum column */
-  --col-width-8: 150px;  /* Email Status column */
-  --col-width-9: 180px;  /* Actions column */
+  --col-width-1: 5%;     /* # column */
+  --col-width-2: 18%;    /* Username column (sticky) */
+  --col-width-3: 12%;    /* Hashtag column */
+  --col-width-4: 8%;     /* Followers column */
+  --col-width-5: 20%;    /* Email column */
+  --col-width-6: 15%;    /* Website column */
+  --col-width-7: 12%;    /* Post Datum column */
+  --col-width-8: 12%;    /* Email Status column */
+  --col-width-9: 15%;    /* Actions column */
 }
 
 /* Apply column widths to table headers and cells */
